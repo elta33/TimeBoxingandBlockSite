@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Focus Timeboxer</title>
+  <style>
+
+/* ── 기본 리셋 & 바디 ── */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f0f2f5;
+  color: #222;
+  margin: 0;
+  padding: 0;
+  min-width: 900px;
+}
+
+/* ── 최상단 앱 헤더 ── */
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid #e4e4e4;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 52px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.app-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  margin-right: 32px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* ── 상단 탭 ── */
+.main-tab {
+  height: 52px;
+  padding: 0 20px;
+  border: none;
+  background: none;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #888;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.main-tab:hover { color: #333; }
+.main-tab.active {
+  color: #111;
+  font-weight: 700;
+  border-bottom-color: #111;
+}
+
+/* ── 탭 패널 ── */
+.tab-panel { display: none; padding: 28px 32px; max-width: 1400px; margin: 0 auto;}
+.tab-panel.active { display: block; }
+
+/* ── 카드(섹터) ── */
+.sector {
+  background: #fff;
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* ── 섹터 제목 ── */
+.sector-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #efefef;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111;
+}
+
+/* ── 차단 관리 탭: 2컬럼 ── */
+.block-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── 스케줄러 탭: 좌(폼) + 우(시간표) ── */
+.scheduler-grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 15px;
+  align-items: start;
+}
+
+/* ── 입력 행 공통 ── */
+.input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.input-row input[type="text"] {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-row input[type="text"]:focus { border-color: #999; }
+
+/* ── 기본 버튼 ── */
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: #111;
+  color: #fff;
+  transition: background 0.15s;
+}
+.btn:hover { background: #333; }
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  border-radius: 5px;
+}
+.btn-danger {
+  background: #ff4d4f;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-danger:hover { background: #d9363e; }
+.btn-ghost {
+  background: none;
+  border: 1px solid #ddd;
+  color: #555;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-ghost:hover { background: #f5f5f5; }
+
+/* ── 도메인 리스트 ── */
+.domain-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.domain-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 0.87rem;
+  transition: background 0.1s;
+}
+.domain-list li:hover { background: #f7f7f7; }
+.domain-list li span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  margin-right: 8px;
+  color: #333;
+}
+
+/* ── 경고 텍스트 ── */
+.warn-text {
+  color: #ff4d4d;
+  font-size: 0.8rem;
+  margin-left: 6px;
+  display: none;
+  font-weight: 600;
+}
+
+/* ── 토글 그룹 ── */
+.toggle-group { display: flex; margin: 8px 0; }
+.toggle-group input[type="radio"] { display: none; }
+.toggle-group label {
+  padding: 7px 16px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  background: #fff;
+  font-size: 0.85rem;
+  color: #555;
+  transition: background 0.12s, color 0.12s;
+}
+.toggle-group label:first-of-type { border-radius: 7px 0 0 7px; }
+.toggle-group label:last-of-type  { border-radius: 0 7px 7px 0; border-left: none; }
+.toggle-group input[type="radio"]:checked + label {
+  background: #111; color: #fff; font-weight: 700; border-color: #111;
+}
+
+/* ── 미니 토글 ── */
+.mini-toggle { display: inline-flex; margin: 0 4px; vertical-align: middle; }
+.mini-toggle input[type="radio"] { display: none; }
+.mini-toggle label {
+  padding: 3px 9px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  background: #fff;
+  font-size: 0.78rem;
+  color: #444;
+}
+.mini-toggle label:first-of-type { border-radius: 4px 0 0 4px; }
+.mini-toggle label:last-of-type  { border-radius: 0 4px 4px 0; border-left: none; }
+.mini-toggle input[type="radio"]:checked + label {
+  background: #333; color: #fff; font-weight: 700; border-color: #333;
+}
+
+/* ── 커스텀 도메인 아이템 ── */
+.custom-domain-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f5f5;
+  padding: 6px 10px;
+  margin-top: 5px;
+  border-radius: 5px;
+  font-size: 0.9rem;
+}
+.custom-domain-controls { display: flex; align-items: center; gap: 4px; }
+
+/* ── 바운스 애니메이션 ── */
+@keyframes bounceAnim {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+.bounce { animation: bounceAnim 0.28s ease-in-out 2; }
+
+/* ── 박스 추가 폼 내부 레이블 행 ── */
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.form-label {
+  font-size: 0.82rem;
+  color: #666;
+  width: 64px;
+  flex-shrink: 0;
+}
+.form-row select {
+  padding: 8px 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.92rem;
+}
+.form-row input[type="text"] {
+  width: 42px;
+  text-align: center;
+  padding: 8px 4px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.92rem;
+}
+.form-row input[type="text"]:focus,
+.form-row select:focus,
+.form-row input[type="time"]:focus { outline: none; border-color: #999; }
+.form-row input[type="time"] {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  font-family: inherit;
+}
+.form-section-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #555;
+  margin: 14px 0 4px 0;
+}
+.form-divider {
+  border: none;
+  border-top: 1px dashed #ddd;
+  margin: 14px 0;
+}
+
+/* ── 요일 선택 ── */
+.day-selector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.day-selector label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  user-select: none;
+}
+.day-selector input[type="checkbox"] { display: none; }
+.day-selector input[type="checkbox"]:checked + label {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+#daySelectRow { display: none; }
+
+/* ── 시간표 뷰 탭 ── */
+.view-tab-group {
+  display: flex;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.view-tab {
+  padding: 5px 16px;
+  border: none;
+  background: #fff;
+  color: #666;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.view-tab.active { background: #111; color: #fff; font-weight: 700; }
+
+/* ── 시간표 공통 ── */
+.timetable-outer {
+  overflow: hidden;
+  border: 1px solid #e4e4e4;
+  border-radius: 10px;
+  background: #fff;
+}
+.timetable-grid {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+}
+.time-label-col {
+  position: relative;
+  border-right: 1px solid #ebebeb;
+  background: #fafafa;
+}
+.time-label {
+  position: absolute;
+  right: 7px;
+  font-size: 0.65rem;
+  color: #bbb;
+  white-space: nowrap;
+  line-height: 1;
+  user-select: none;
+}
+.time-label.on-hour { color: #999; font-weight: 500; }
+.time-label.midnight { color: #555; font-weight: 700; }
+.timetable-body { position: relative; }
+.hour-line {
+  position: absolute;
+  left: 0; right: 0;
+  border-top: 1px solid #f2f2f2;
+  pointer-events: none;
+}
+.hour-line.on-hour { border-top-color: #e8e8e8; }
+
+/* ── 타임박스 카드 ── */
+.tbox {
+  position: absolute;
+  left: 4px; right: 4px;
+  border-radius: 6px;
+  padding: 5px 9px;
+  color: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  transition: filter 0.12s, box-shadow 0.12s;
+  box-sizing: border-box;
+  min-height: 20px;
+}
+.tbox:hover { filter: brightness(1.07); box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
+.tbox.box-block { background: #ff4d4f; }
+.tbox.box-allow { background: #52c41a; }
+.tbox-name { font-size: 0.78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbox-time { font-size: 0.68rem; opacity: 0.85; margin-top: 1px; }
+.tbox-del {
+  position: absolute;
+  top: 4px; right: 4px;
+  background: rgba(0,0,0,0.3);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  padding: 2px 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+  line-height: 1.4;
+}
+.tbox:hover .tbox-del { opacity: 1; }
+
+/* ── 박스 상세 패널 ── */
+.tbox-detail {
+  display: none;
+  position: absolute;
+  left: 8px;
+  z-index: 30;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 14px 15px;
+  min-width: 250px;
+  max-width: 300px;
+  color: #333;
+}
+.tbox-detail.open { display: block; }
+.tbox-detail-title {
+  font-weight: 700;
+  font-size: 0.86rem;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tbox-detail-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 1rem; color: #bbb; line-height: 1;
+}
+.tbox-detail-close:hover { color: #555; }
+
+/* ── 일주일 뷰 ── */
+.week-header-row {
+  display: grid;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid #e4e4e4;
+}
+.week-day-label {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #777;
+  padding: 6px 0;
+  border-right: 1px solid #f0f0f0;
+}
+.week-day-label:last-child { border-right: none; }
+.week-day-label.today { color: #ff4d4f; }
+.week-day-col {
+  position: relative;
+  border-right: 1px solid #f0f0f0;
+}
+.week-day-col:last-child { border-right: none; }
+.week-day-col .tbox { left: 2px; right: 2px; border-radius: 4px; padding: 2px 4px; }
+.week-day-col .tbox-name { font-size: 0.66rem; }
+.week-day-col .tbox-time { font-size: 0.6rem; }
+
+/* ── 빈 상태 ── */
+.empty-hint {
+  text-align: center;
+  color: #ccc;
+  font-size: 0.85rem;
+  padding: 40px 0;
+}
+
+/* ── 원형 하루 뷰 ── */
+.donut-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 8px;
+}
+.donut-detail-area {
+  width: 100%;
+  max-width: 480px;
+  margin-top: 20px;
+  padding: 0 4px;
+}
+.donut-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f7f7f7;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid #ececec;
+}
+.donut-detail-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #222;
+}
+.donut-master-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #fafafa;
+  border-left: 1px solid #ececec;
+  border-right: 1px solid #ececec;
+}
+.donut-domain-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #ececec;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+.donut-domain-list .custom-domain-item {
+  border-radius: 0;
+  margin-top: 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.donut-domain-list .custom-domain-item:last-child {
+  border-bottom: none;
+}
+
+/* ── 스케줄러 섹터 제목 행 ── */
+.scheduler-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+  </style>
+</head>
+<body>
+
+  <!-- 앱 헤더 + 상단 탭 -->
+  <header class="app-header">
+    <span class="app-title">Focus Timeboxer</span>
+    <button class="main-tab active" data-tab="block">차단 관리</button>
+    <button class="main-tab" data-tab="scheduler">타임박스 스케줄러</button>
+  </header>
+
+  <!-- ── 탭 1: 차단 관리 ── -->
+  <div class="tab-panel active" id="tab-block">
+    <div class="block-grid">
+
+      <!-- 상시 차단 -->
+      <div class="sector">
+        <div class="sector-title">
+          상시 차단 도메인
+          <button id="clearPermanentBtn" class="btn-danger btn-sm">전체 초기화</button>
+        </div>
+        <p style="font-size:0.9rem;color:#888;margin:0 0 12px;">스케줄 무관, 항상 차단됩니다.</p>
+        <span id="permanentWarn" class="warn-text">이미 있습니다.</span>
+        <div class="input-row">
+          <input type="text" id="permanentDomainInput" placeholder="예: netflix.com">
+          <button id="addPermanentBtn" class="btn btn-sm">추가</button>
+        </div>
+        <ul id="permanentList" class="domain-list"></ul>
+      </div>
+
+      <!-- 일반 차단 -->
+      <div class="sector">
+        <div class="sector-title">
+          일반 차단 도메인
+          <button id="clearGeneralBtn" class="btn-danger btn-sm">전체 초기화</button>
+        </div>
+        <p style="font-size:0.9rem;color:#888;margin:0 0 12px;">차단 박스가 활성화된 시간대에 적용됩니다.</p>
+        <span id="generalWarn" class="warn-text">이미 있습니다.</span>
+        <div class="input-row">
+          <input type="text" id="generalDomainInput" placeholder="예: youtube.com">
+          <button id="addGeneralBtn" class="btn btn-sm">추가</button>
+        </div>
+        <ul id="generalList" class="domain-list"></ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 탭 2: 타임박스 스케줄러 ── -->
+  <div class="tab-panel" id="tab-scheduler">
+    <div class="scheduler-grid">
+
+      <!-- 좌: 새 박스 추가 폼 -->
+      <div class="sector">
+        <div class="sector-title">새 박스 추가</div>
+
+        <div class="form-section-title">박스 이름</div>
+        <div class="input-row" style="margin:0;">
+          <input type="text" id="boxName" placeholder="예: 집중 코딩 시간" style="flex:1;">
+        </div>
+
+        <div class="form-section-title" style="margin-top:14px;">
+          시간 설정
+          <span id="boxWarn" class="warn-text">시간이 겹칩니다.</span>
+        </div>
+        <div class="form-row">
+          <span class="form-label">시작</span>
+          <input type="time" id="startTime" style="flex:1;">
+        </div>
+        <div class="form-row">
+          <span class="form-label">종료</span>
+          <input type="time" id="endTime" style="flex:1;">
+        </div>
+
+        <div id="daySelectRow">
+          <div class="form-section-title" style="margin-top:14px;">요일 선택</div>
+          <div class="day-selector">
+            <input type="checkbox" id="day0" name="days" value="0"><label for="day0">월</label>
+            <input type="checkbox" id="day1" name="days" value="1"><label for="day1">화</label>
+            <input type="checkbox" id="day2" name="days" value="2"><label for="day2">수</label>
+            <input type="checkbox" id="day3" name="days" value="3"><label for="day3">목</label>
+            <input type="checkbox" id="day4" name="days" value="4"><label for="day4">금</label>
+            <input type="checkbox" id="day5" name="days" value="5"><label for="day5">토</label>
+            <input type="checkbox" id="day6" name="days" value="6"><label for="day6">일</label>
+          </div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:14px;">모드</div>
+        <div class="toggle-group">
+          <input type="radio" id="modeBlock" name="boxMode" value="block" checked>
+          <label for="modeBlock">차단 박스</label>
+          <input type="radio" id="modeAllow" name="boxMode" value="allow">
+          <label for="modeAllow">허용 박스</label>
+        </div>
+
+        <hr class="form-divider">
+
+        <div class="form-section-title">박스 전용 커스텀 주소</div>
+        <div class="input-row">
+          <input type="text" id="customDomainInput" placeholder="예: github.com" style="flex:1;">
+          <button id="addCustomStagingBtn" class="btn btn-sm">추가</button>
+          <span id="customWarn" class="warn-text">이미 있습니다.</span>
+        </div>
+        <div style="display:flex;gap:5px;margin:6px 0 0;align-items:center;">
+          <span style="font-size:0.78rem;color:#888;">일괄:</span>
+          <button id="masterStgBlockBtn" class="btn-ghost btn-sm">모두 차단</button>
+          <button id="masterStgAllowBtn" class="btn-ghost btn-sm">모두 허용</button>
+        </div>
+        <ul id="stagingCustomList" style="margin-top:8px;padding:0;list-style:none;"></ul>
+
+        <button id="addBoxBtn" class="btn" style="width:100%;margin-top:18px;">박스 생성 완료</button>
+      </div>
+
+      <!-- 우: 시간표 -->
+      <div class="sector">
+        <div class="scheduler-title-row">
+          <div class="sector-title" style="margin:0;padding:0;border:none;">타임박스 스케줄러
+            <button id="clearBoxesBtn" class="btn-danger btn-sm" style="margin-left:10px;">전체 초기화</button>
+          </div>
+          <div class="view-tab-group">
+            <button class="view-tab active" data-view="day">하루</button>
+            <button class="view-tab" data-view="week">일주일</button>
+          </div>
+        </div>
+        <div id="timetableWrap"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
