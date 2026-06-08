@@ -28,10 +28,11 @@ function hideWarn(warnId) {
 }
 
 function loadSettings() {
-  chrome.storage.local.get(['generalList', 'permanentList', 'timeBoxes'], function(result) {
+  const boxKey = currentView === 'week' ? 'weeklyBoxes' : 'dailyBoxes';
+  chrome.storage.local.get(['generalList', 'permanentList', boxKey], function(result) {
     renderList('generalList', result.generalList || [], 'generalList', 'generalWarn');
     renderList('permanentList', result.permanentList || [], 'permanentList', 'permanentWarn');
-    renderBoxes(result.timeBoxes || []);
+    renderBoxes(result[boxKey] || []);
   });
 }
 
@@ -88,7 +89,8 @@ function initViewTabs() {
       // 요일 선택 행: 일주일 뷰일 때만 표시
       const dayRow = document.getElementById('daySelectRow');
       if (dayRow) dayRow.style.display = currentView === 'week' ? 'block' : 'none';
-      renderBoxes(currentBoxes);
+      // 새 뷰에 맞는 key로 다시 로드
+      loadSettings();
     });
   });
 }
@@ -442,14 +444,15 @@ function renderDayView(boxes, wrap) {
       modeEl.textContent = box.mode === 'block' ? '차단 박스' : '허용 박스';
       centerGroup.appendChild(modeEl);
     } else {
-      const DAYS_KO = ['일','월','화','수','목','금','토'];
-      const todayStr = DAYS_KO[new Date().getDay()] + '요일';
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
       const dayEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       dayEl.setAttribute('x', CX); dayEl.setAttribute('y', CY - 12);
       dayEl.setAttribute('text-anchor', 'middle'); dayEl.setAttribute('dominant-baseline', 'middle');
       dayEl.setAttribute('font-size', '16'); dayEl.setAttribute('font-weight', 'bold');
       dayEl.setAttribute('fill', '#333'); dayEl.setAttribute('font-family', 'inherit');
-      dayEl.textContent = todayStr;
+      dayEl.textContent = `${mm}-${dd}`;
       centerGroup.appendChild(dayEl);
 
       const hintEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -846,8 +849,9 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
   let newEndMin = getMinutes(endTime);
   if (newEndMin <= newStartMin) newEndMin += 24 * 60;
 
-  chrome.storage.local.get(['timeBoxes'], function(result) {
-    const boxes = result.timeBoxes || [];
+  const boxKey = currentView === 'week' ? 'weeklyBoxes' : 'dailyBoxes';
+  chrome.storage.local.get([boxKey], function(result) {
+    const boxes = result[boxKey] || [];
 
     // 겹침 검사: 요일이 겹치는 박스끼리만 시간 충돌 체크
     let overlapIndex = -1;
@@ -876,7 +880,7 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
 
     const newBox = { name, startTime, endTime, mode, days, customDomains: [...stagingCustomDomains] };
     boxes.push(newBox);
-    chrome.storage.local.set({ timeBoxes: boxes }, () => {
+    chrome.storage.local.set({ [boxKey]: boxes }, () => {
       document.getElementById('boxName').value = '';
       document.getElementById('customDomainInput').value = '';
       hideWarn('boxWarn');
@@ -916,23 +920,39 @@ function addToList(inputId, storageKey, ulId, warnId) {
 }
 
 function deleteItem(storageKey, index) { chrome.storage.local.get([storageKey], function(result) { const list = result[storageKey] || []; list.splice(index, 1); chrome.storage.local.set({ [storageKey]: list }, loadSettings); }); }
-function deleteBox(index) { chrome.storage.local.get(['timeBoxes'], function(result) { const boxes = result.timeBoxes || []; boxes.splice(index, 1); chrome.storage.local.set({ timeBoxes: boxes }, loadSettings); }); }
-function deleteCustomDomain(boxIndex, cdIndex) { chrome.storage.local.get(['timeBoxes'], function(result) { result.timeBoxes[boxIndex].customDomains.splice(cdIndex, 1); chrome.storage.local.set({ timeBoxes: result.timeBoxes }, loadSettings); }); }
-function updateCustomMode(boxIndex, cdIndex, newMode) { chrome.storage.local.get(['timeBoxes'], function(result) { result.timeBoxes[boxIndex].customDomains[cdIndex].mode = newMode; chrome.storage.local.set({ timeBoxes: result.timeBoxes }, loadSettings); }); }
-function setBoxMasterMode(boxIndex, newMode) { chrome.storage.local.get(['timeBoxes'], function(result) { result.timeBoxes[boxIndex].customDomains.forEach(cd => cd.mode = newMode); chrome.storage.local.set({ timeBoxes: result.timeBoxes }, loadSettings); }); }
+function deleteBox(index) {
+  const boxKey = currentView === 'week' ? 'weeklyBoxes' : 'dailyBoxes';
+  chrome.storage.local.get([boxKey], function(result) { const boxes = result[boxKey] || []; boxes.splice(index, 1); chrome.storage.local.set({ [boxKey]: boxes }, loadSettings); });
+}
+function deleteCustomDomain(boxIndex, cdIndex) {
+  const boxKey = currentView === 'week' ? 'weeklyBoxes' : 'dailyBoxes';
+  chrome.storage.local.get([boxKey], function(result) { result[boxKey][boxIndex].customDomains.splice(cdIndex, 1); chrome.storage.local.set({ [boxKey]: result[boxKey] }, loadSettings); });
+}
+function updateCustomMode(boxIndex, cdIndex, newMode) {
+  const boxKey = currentView === 'week' ? 'weeklyBoxes' : 'dailyBoxes';
+  chrome.storage.local.get([boxKey], function(result) { result[boxKey][boxIndex].customDomains[cdIndex].mode = newMode; chrome.storage.local.set({ [boxKey]: result[boxKey] }, loadSettings); });
+}
+function setBoxMasterMode(boxIndex, newMode) {
+  const boxKey = currentView === 'week' ? 'weeklyBoxes' : 'dailyBoxes';
+  chrome.storage.local.get([boxKey], function(result) { result[boxKey][boxIndex].customDomains.forEach(cd => cd.mode = newMode); chrome.storage.local.set({ [boxKey]: result[boxKey] }, loadSettings); });
+}
 
 function clearAll(storageKey, confirmMsg, inputIdsToClear) {
   if(!confirm(confirmMsg)) return;
   chrome.storage.local.set({ [storageKey]: [] }, () => {
     if(inputIdsToClear) inputIdsToClear.forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-    if(storageKey === 'timeBoxes') { stagingCustomDomains = []; renderStagingList(); }
+    if(storageKey === 'dailyBoxes' || storageKey === 'weeklyBoxes') { stagingCustomDomains = []; renderStagingList(); }
     loadSettings();
   });
 }
 
 document.getElementById('clearGeneralBtn').onclick = () => clearAll('generalList', '일반 차단 목록을 모두 지우시겠습니까?', ['generalDomainInput']);
 document.getElementById('clearPermanentBtn').onclick = () => clearAll('permanentList', '상시 차단 목록을 모두 지우시겠습니까?', ['permanentDomainInput']);
-document.getElementById('clearBoxesBtn').onclick = () => { clearAll('timeBoxes', '타임박스 스케쥴을 모두 지우시겠습니까?', ['boxName', 'customDomainInput']); clearCustomTimeInputs(); clearDaySelection(); };
+document.getElementById('clearBoxesBtn').onclick = () => {
+  const boxKey = currentView === 'week' ? 'weeklyBoxes' : 'dailyBoxes';
+  clearAll(boxKey, '타임박스 스케쥴을 모두 지우시겠습니까?', ['boxName', 'customDomainInput']);
+  clearCustomTimeInputs(); clearDaySelection();
+};
 
 function getFormattedTime(inputId) {
   const val = document.getElementById(inputId).value; // "HH:MM"

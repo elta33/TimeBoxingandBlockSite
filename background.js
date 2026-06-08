@@ -29,10 +29,13 @@ function cleanDomain(d) {
 }
 
 async function updateBlockingRules() {
-  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'timeBoxes']);
+  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes']);
   const generalList = data.generalList || [];
   const permanentList = data.permanentList || [];
-  const timeBoxes = data.timeBoxes || [];
+  // dailyBoxes: 요일 무관 오늘만 / weeklyBoxes: 요일 필터 적용
+  const dailyBoxes = (data.dailyBoxes || []).map(b => ({ ...b, days: [] })); // 강제로 매일 적용
+  const weeklyBoxes = data.weeklyBoxes || [];
+  const timeBoxes = [...dailyBoxes, ...weeklyBoxes];
 
   let ruleIdCounter = 1;
   const newRules = [];
