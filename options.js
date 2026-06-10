@@ -106,7 +106,7 @@ function createCustomDomainItemUI(domain, mode, idPrefix, elType, onModeChange, 
   return item;
 }
 
-function initViewTabs() {
+function initViewTabs(onViewChange) {
   document.querySelectorAll('.view-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
@@ -114,6 +114,7 @@ function initViewTabs() {
       currentView = btn.dataset.view;
       const dayRow = document.getElementById('daySelectRow');
       if (dayRow) dayRow.style.display = currentView === 'week' ? 'block' : 'none';
+      if (onViewChange) onViewChange();
       loadSettings();
     });
   });
@@ -127,24 +128,24 @@ function timeToMins(timeStr) {
 }
 
 // ── 일주일 뷰 전용 헬퍼 ──
-const PX_PER_MIN = 80 / 120;
+const PX_PER_MIN = 80 / 60; // 1시간 = 80px
 const TOTAL_HEIGHT = TOTAL_MINS * PX_PER_MIN;
 
 function minsToPx(mins) { return mins * PX_PER_MIN; }
 
 function buildTimeAxis(labelCol, bodyEl, slotCount) {
   labelCol.style.height = `${TOTAL_HEIGHT}px`;
-  bodyEl.style.height = `${TOTAL_HEIGHT}px`;
+  bodyEl.style.height   = `${TOTAL_HEIGHT}px`;
 
   for (let slot = 0; slot <= slotCount; slot++) {
-    const mins = slot * 120; 
-    const px = minsToPx(mins);
+    const mins = slot * 60; // 1시간 간격
+    const px   = minsToPx(mins);
     const isMidnight = mins === 0 || mins === TOTAL_MINS;
 
     const lbl = document.createElement('div');
-    lbl.className = 'time-label on-hour' + (isMidnight ? ' midnight' : '');
-    lbl.style.top = `${px}px`;
-    lbl.style.transform = (slot === 0) ? 'translateY(2px)' : 'translateY(-50%)';
+    lbl.className   = 'time-label on-hour' + (isMidnight ? ' midnight' : '');
+    lbl.style.top   = `${px}px`;
+    lbl.style.transform = slot === 0 ? 'translateY(2px)' : 'translateY(-50%)';
     const h = Math.floor(mins / 60) % 24;
     lbl.textContent = `${String(h).padStart(2,'0')}:00`;
     labelCol.appendChild(lbl);
@@ -616,76 +617,173 @@ function renderDayView(boxes, wrap) {
   dayViewClockInterval = setInterval(renderClockHand, 60000);
 }
 
-function renderWeekView(boxes, wrap) {
-  const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
-  const todayDow = (new Date().getDay() + 6) % 7; 
+// ── 요일 선택기 순서를 주 시작 설정과 동기화 ──
+// 내부 value: 0=월…6=일 (getWeekOrder와 동일 기준)
+function syncDaySelector() {
+  const selector = document.querySelector('.day-selector');
+  if (!selector) return;
+  const ORDER_MON = [0,1,2,3,4,5,6]; // 월화수목금토일
+  const ORDER_SUN = [6,0,1,2,3,4,5]; // 일월화수목금토
+  const order = weekStartMonday ? ORDER_MON : ORDER_SUN;
+  const LABELS = ['월','화','수','목','금','토','일'];
+  // 현재 체크 상태 저장
+  const checked = new Set(
+    Array.from(selector.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value)
+  );
+  selector.innerHTML = '';
+  order.forEach(v => {
+    const id = `day${v}`;
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.id = id; cb.name = 'days'; cb.value = String(v);
+    if (checked.has(String(v))) cb.checked = true;
+    const lbl = document.createElement('label');
+    lbl.htmlFor = id; lbl.textContent = LABELS[v];
+    selector.appendChild(cb);
+    selector.appendChild(lbl);
+  });
+}
+let weekStartMonday = false; // false=일요일, true=월요일
+
+function getWeekOrder() {
+  // weekStartMonday=false: 일월화수목금토 (JS getDay 기준)
+  // weekStartMonday=true:  월화수목금토일
+  if (weekStartMonday) {
+    return [
+      { label: '월', dow: 1 },
+      { label: '화', dow: 2 },
+      { label: '수', dow: 3 },
+      { label: '목', dow: 4 },
+      { label: '금', dow: 5 },
+      { label: '토', dow: 6 },
+      { label: '일', dow: 0 },
+    ];
+  } else {
+    return [
+      { label: '일', dow: 0 },
+      { label: '월', dow: 1 },
+      { label: '화', dow: 2 },
+      { label: '수', dow: 3 },
+      { label: '목', dow: 4 },
+      { label: '금', dow: 5 },
+      { label: '토', dow: 6 },
+    ];
+  }
+}
+
+function renderWeekView(boxes, wrap, scrollToMins) {
+  const weekOrder  = getWeekOrder();
+  const todayDow   = new Date().getDay(); // 0=일…6=토
 
   const outer = document.createElement('div');
-  outer.className = 'timetable-outer';
+  outer.className = 'timetable-outer scrollable';
 
+  // ── 스크롤 가능한 body 래퍼 (헤더 포함) ──
+  const scrollBody = document.createElement('div');
+  scrollBody.className = 'week-scroll-body';
+
+  // ── 요일 헤더 (sticky — scrollBody 안에서 고정) ──
   const headerRow = document.createElement('div');
   headerRow.className = 'week-header-row';
+  headerRow.style.gridTemplateColumns = '52px repeat(7, 1fr)';
   const cornerCell = document.createElement('div');
   cornerCell.style.cssText = 'width:52px;border-right:1px solid #e8e8e8;background:#fafafa;';
   headerRow.appendChild(cornerCell);
-  DAYS.forEach((d, i) => {
+  weekOrder.forEach(({ label, dow }) => {
     const lbl = document.createElement('div');
-    lbl.className = 'week-day-label' + (i === todayDow ? ' today' : '');
-    lbl.textContent = d;
+    lbl.className   = 'week-day-label' + (dow === todayDow ? ' today' : '');
+    lbl.textContent = label;
     headerRow.appendChild(lbl);
   });
-  headerRow.style.gridTemplateColumns = `52px repeat(7, 1fr)`;
-  outer.appendChild(headerRow);
+  scrollBody.appendChild(headerRow);
 
   const bodyGrid = document.createElement('div');
   bodyGrid.className = 'timetable-grid';
-  bodyGrid.style.gridTemplateColumns = `52px repeat(7, 1fr)`;
+  bodyGrid.style.gridTemplateColumns = '52px repeat(7, 1fr)';
 
   const labelCol = document.createElement('div');
   labelCol.className = 'time-label-col';
 
-  const dayCols = DAYS.map(() => {
+  const dayCols = weekOrder.map(({ dow }) => {
     const col = document.createElement('div');
-    col.className = 'week-day-col';
+    col.className       = 'week-day-col';
+    col.style.height    = `${TOTAL_HEIGHT}px`;
+    col.style.position  = 'relative';
+    col._dow            = dow; // 요일 추적용
     return col;
   });
 
-  const SLOTS = 12; 
-  const dummyBody = document.createElement('div');
-  dummyBody.className = 'timetable-body';
-  buildTimeAxis(labelCol, dummyBody, SLOTS);
+  const SLOTS = 24; // 1시간 × 24 = 24시간
+  buildTimeAxis(labelCol, document.createElement('div'), SLOTS);
 
-  dayCols.forEach((col) => {
-    col.style.height = `${TOTAL_HEIGHT}px`;
-    col.style.position = 'relative';
+  dayCols.forEach(col => {
     for (let slot = 0; slot < SLOTS; slot++) {
       const line = document.createElement('div');
       line.className = 'hour-line on-hour';
-      line.style.top = `${minsToPx(slot * 120)}px`;
+      line.style.top = `${minsToPx(slot * 60)}px`;
       col.appendChild(line);
     }
   });
 
-  dayCols.forEach((col, dayIdx) => {
-    const dayBoxes = boxes.filter(box => {
-      const d = box.days || [];
-      return d.length === 0 || d.includes(dayIdx);
-    });
-    dayBoxes.forEach((box) => {
-      const origIdx = boxes.indexOf(box);
-      col.appendChild(buildBoxCard(box, origIdx, true));
-    });
+  // 요일별 박스 배치 — dow 기준으로 필터
+  dayCols.forEach(col => {
+    const dow = col._dow;
+    // days 배열의 값: 0=월…6=일 (options.js 내부 기준)
+    // dow: JS getDay 기준 0=일…6=토 → 내부 기준으로 변환
+    const internalDow = dow === 0 ? 6 : dow - 1; // JS일=6, JS월=0
+    boxes
+      .filter(box => {
+        const d = box.days || [];
+        return d.length === 0 || d.includes(internalDow);
+      })
+      .forEach(box => {
+        col.appendChild(buildBoxCard(box, boxes.indexOf(box), true));
+      });
   });
 
   bodyGrid.appendChild(labelCol);
   dayCols.forEach(col => bodyGrid.appendChild(col));
-  outer.appendChild(bodyGrid);
+
+  scrollBody.appendChild(bodyGrid);
+  outer.appendChild(scrollBody);
   wrap.appendChild(outer);
+
+  scrollBody.addEventListener('scroll', () => { wrap._weekScrollTop = scrollBody.scrollTop; }, { passive: true });
+
+  // ── 드래그 스크롤 ──
+  let isDragging = false, startY = 0, startScrollTop = 0;
+  scrollBody.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    isDragging    = true;
+    startY        = e.clientY;
+    startScrollTop = scrollBody.scrollTop;
+    scrollBody.classList.add('grabbing');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    scrollBody.scrollTop = startScrollTop - (e.clientY - startY);
+  });
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    scrollBody.classList.remove('grabbing');
+  });
+
+  // scrollToMins 지정 시 해당 위치 중앙, 없으면 현재 스크롤 위치 유지 (최초 진입은 현재 시각)
+  if (scrollToMins !== undefined) {
+    const targetScroll = Math.max(0, minsToPx(scrollToMins) - 40);
+    requestAnimationFrame(() => { scrollBody.scrollTop = targetScroll; });
+  } else if (wrap._weekScrollTop !== undefined) {
+    requestAnimationFrame(() => { scrollBody.scrollTop = wrap._weekScrollTop; });
+  } else {
+    const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+    const scrollBodyHeight = 520;
+    requestAnimationFrame(() => { scrollBody.scrollTop = Math.max(0, minsToPx(nowMins) - scrollBodyHeight / 2); });
+  }
 }
 
-function renderBoxes(boxes) {
+function renderBoxes(boxes, scrollToMins) {
   currentBoxes = boxes;
-  const wrap = document.getElementById('timetableWrap');
+  const wrap   = document.getElementById('timetableWrap');
   if (!wrap) return;
   wrap.innerHTML = '';
 
@@ -695,7 +793,7 @@ function renderBoxes(boxes) {
   }
 
   if (currentView === 'day') renderDayView(boxes, wrap);
-  else renderWeekView(boxes, wrap);
+  else renderWeekView(boxes, wrap, scrollToMins);
 
   wrap.addEventListener('click', (e) => {
     if (!e.target.closest('.tbox')) {
@@ -785,8 +883,12 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
       return;
     }
 
-    const newBox = { name, startTime, endTime, mode, days, customDomains: [...stagingCustomDomains] };
-    boxes.push(newBox);
+    // 주간 뷰에서 선택된 요일마다 별도 박스로 저장 → 요일별 독립 삭제 가능
+    const daysToSave = currentView === 'week' ? days : [null];
+    daysToSave.forEach(day => {
+      const newBox = { name, startTime, endTime, mode, days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains] };
+      boxes.push(newBox);
+    });
     chrome.storage.local.set({ [boxKey]: boxes }, () => {
       document.getElementById('boxName').value = '';
       document.getElementById('customDomainInput').value = '';
@@ -795,7 +897,14 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
       clearDaySelection();
       stagingCustomDomains = [];
       renderStagingList();
-      loadSettings();
+      // 생성된 박스 윗부분 기준으로 스크롤 (40px 여백)
+      const topMins = timeToMins(startTime);
+      const key = getBoxKey();
+      chrome.storage.local.get(['generalList', 'permanentList', key], result => {
+        renderList('generalList',   result.generalList   || [], 'generalList',   'generalWarn');
+        renderList('permanentList', result.permanentList || [], 'permanentList', 'permanentWarn');
+        renderBoxes(result[key] || [], topMins);
+      });
     });
   });
 });
@@ -897,6 +1006,7 @@ function clearDaySelection() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 상단 메인 탭
   document.querySelectorAll('.main-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
@@ -906,21 +1016,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  initViewTabs();
+  // 주 시작 토글 초기화 — storage에서 읽어서 복원
+  const weekStartWrap = document.getElementById('weekStartToggleWrap');
+  chrome.storage.local.get(['weekStartMonday'], result => {
+    weekStartMonday = !!result.weekStartMonday;
+    const radio = document.querySelector(`input[name="weekStart"][value="${weekStartMonday ? 'mon' : 'sun'}"]`);
+    if (radio) radio.checked = true;
+    syncDaySelector();
+  });
+  document.querySelectorAll('input[name="weekStart"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      weekStartMonday = radio.value === 'mon';
+      chrome.storage.local.set({ weekStartMonday });
+      syncDaySelector();
+      if (currentView === 'week') loadSettings();
+    });
+  });
+
+  // 주 시작 토글은 일주일 뷰일 때만 표시
+  function updateWeekStartToggleVisibility() {
+    if (weekStartWrap) weekStartWrap.style.display = currentView === 'week' ? 'flex' : 'none';
+  }
+  updateWeekStartToggleVisibility();
+
+  initViewTabs(updateWeekStartToggleVisibility);
   loadSettings();
 
-  const ids = ['generalDomainInput', 'permanentDomainInput', 'customDomainInput', 'boxName'];
+  // 입력 시 경고 숨김
+  const ids   = ['generalDomainInput', 'permanentDomainInput', 'customDomainInput', 'boxName'];
   const warns = ['generalWarn', 'permanentWarn', 'customWarn', 'boxWarn'];
   ids.forEach((id, idx) => {
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('input', () => hideWarn(warns[idx]));
+    document.getElementById(id)?.addEventListener('input', () => hideWarn(warns[idx]));
   });
-  
   ['startTime', 'endTime'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', () => hideWarn('boxWarn'));
-      el.addEventListener('change', () => hideWarn('boxWarn'));
-    }
+    el?.addEventListener('input',  () => hideWarn('boxWarn'));
+    el?.addEventListener('change', () => hideWarn('boxWarn'));
   });
 });

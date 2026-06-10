@@ -128,7 +128,38 @@ button { cursor: pointer; font-family: inherit; }
 .view-tab.active { background: #111; color: #fff; font-weight: 700; }
 
 /* ── 시간표 공통 ── */
-.timetable-outer { overflow: hidden; border: 1px solid #e4e4e4; border-radius: 10px; background: #fff; }
+.timetable-outer {
+  overflow: hidden;
+  border: 1px solid #e4e4e4;
+  border-radius: 10px;
+  background: #fff;
+}
+.timetable-outer.scrollable {
+  overflow: hidden; /* 바깥은 hidden, 안쪽 body만 스크롤 */
+}
+.week-scroll-body {
+  height: 520px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  cursor: grab;
+  user-select: none;
+  scrollbar-width: thin;
+  scrollbar-color: #ddd transparent;
+}
+.week-scroll-body.grabbing { cursor: grabbing; }
+.week-scroll-body::-webkit-scrollbar { width: 6px; }
+.week-scroll-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+
+/* 주 시작 토글 */
+.week-start-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #666;
+}
+.week-start-toggle .toggle-group { margin: 0; }
+.week-start-toggle label { padding: 4px 10px; font-size: 0.75rem; }
 .timetable-grid { display: grid; grid-template-columns: 48px 1fr; }
 .time-label-col { position: relative; border-right: 1px solid #ebebeb; background: #fafafa; }
 .time-label { position: absolute; right: 7px; font-size: 0.65rem; color: #bbb; white-space: nowrap; line-height: 1; user-select: none; }
@@ -159,7 +190,7 @@ button { cursor: pointer; font-family: inherit; }
 .week-header-row { display: grid; position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #e4e4e4; }
 .week-day-label { text-align: center; font-size: 0.72rem; font-weight: 700; color: #777; padding: 6px 0; border-right: 1px solid #f0f0f0; }
 .week-day-label:last-child { border-right: none; }
-.week-day-label.today { color: #ff4d4f; }
+.week-day-label.today { color: #faad14; }
 .week-day-col { position: relative; border-right: 1px solid #f0f0f0; }
 .week-day-col:last-child { border-right: none; }
 .week-day-col .tbox { left: 2px; right: 2px; border-radius: 4px; padding: 2px 4px; }
@@ -272,11 +303,10 @@ button { cursor: pointer; font-family: inherit; }
 
         <hr class="form-divider">
 
-        <div class="form-section-title">박스 전용 커스텀 주소</div>
+        <div class="form-section-title">박스 전용 커스텀 주소 <span id="customWarn" class="warn-text">이미 있습니다.</span> </div>
         <div class="input-row">
           <input type="text" id="customDomainInput" placeholder="예: github.com">
           <button id="addCustomStagingBtn" class="btn btn-sm">추가</button>
-          <span id="customWarn" class="warn-text">이미 있습니다.</span>
         </div>
         <div style="display:flex;gap:5px;margin:6px 0 0;align-items:center;">
           <span style="font-size:0.78rem;color:#888;">일괄:</span>
@@ -293,9 +323,20 @@ button { cursor: pointer; font-family: inherit; }
           <div class="sector-title" style="margin:0;padding:0;border:none;">타임박스 스케줄러
             <button id="clearBoxesBtn" class="btn-danger btn-sm" style="margin-left:10px;">전체 초기화</button>
           </div>
-          <div class="view-tab-group">
-            <button class="view-tab active" data-view="day">하루</button>
-            <button class="view-tab" data-view="week">일주일</button>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="week-start-toggle" id="weekStartToggleWrap">
+              <span>주 시작:</span>
+              <div class="toggle-group">
+                <input type="radio" id="weekStartSun" name="weekStart" value="sun" checked>
+                <label for="weekStartSun">일요일</label>
+                <input type="radio" id="weekStartMon" name="weekStart" value="mon">
+                <label for="weekStartMon">월요일</label>
+              </div>
+            </div>
+            <div class="view-tab-group">
+              <button class="view-tab active" data-view="day">하루</button>
+              <button class="view-tab" data-view="week">일주일</button>
+            </div>
           </div>
         </div>
         <div id="timetableWrap"></div>
