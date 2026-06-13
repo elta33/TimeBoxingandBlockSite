@@ -96,6 +96,9 @@ function initViewTabs(onViewChange) {
       currentView = btn.dataset.view;
       const dayRow = document.getElementById('daySelectRow');
       if (dayRow) dayRow.style.display = currentView === 'week' ? 'block' : 'none';
+      // 뷰 전환 시 주간 상세 패널 닫기
+      const panel = document.getElementById('weekDetailPanel');
+      if (panel) panel.style.display = 'none';
       if (onViewChange) onViewChange();
       loadSettings();
     });
@@ -142,6 +145,7 @@ function buildBoxCard(box, boxIndex, isWeek) {
 
   const card = document.createElement('div');
   card.className = `tbox ${box.mode === 'block' ? 'box-block' : 'box-allow'}`;
+  card.dataset.boxIndex = boxIndex;
   card.style.top    = `${minsToPx(startM)}px`;
   card.style.height = `${Math.max(minsToPx(durationM) - 3, 20)}px`;
 
@@ -156,62 +160,190 @@ function buildBoxCard(box, boxIndex, isWeek) {
     card.appendChild(timeEl);
   }
 
+  // 커스텀 주소 요약 텍스트
+  if (box.customDomains && box.customDomains.length > 0 && durationM >= 30) {
+    const summaryEl = document.createElement('div');
+    summaryEl.className = 'tbox-custom-summary';
+    const first = box.customDomains[0].domain;
+    const rest  = box.customDomains.length - 1;
+    summaryEl.textContent = rest > 0 ? `${first} 외 ${rest}개` : first;
+    card.appendChild(summaryEl);
+  }
+
   const delBtn = document.createElement('button');
   delBtn.className = 'tbox-del'; delBtn.textContent = '삭제'; delBtn.title = '이 박스 삭제';
   delBtn.onclick = (e) => { e.stopPropagation(); deleteBox(boxIndex); };
   card.appendChild(delBtn);
 
+  // 박스 클릭 → 하단 외부 패널 열기
   if (box.customDomains && box.customDomains.length > 0) {
-    const detail = buildDetailPanel(box, boxIndex, startM);
-    card.appendChild(detail);
     card.addEventListener('click', (e) => {
       if (e.target === delBtn) return;
-      const isOpen = detail.classList.contains('open');
-      document.querySelectorAll('.tbox-detail.open').forEach(d => d.classList.remove('open'));
-      if (!isOpen) detail.classList.add('open');
+      renderWeekDetailPanel(box, boxIndex);
     });
   }
 
   return card;
 }
 
-// ── 주간 뷰: 박스 카드 내 커스텀 도메인 상세 패널 ──
-function buildDetailPanel(box, boxIndex, startM) {
-  const panel = document.createElement('div');
-  panel.className = 'tbox-detail';
-  const openUp = startM > TOTAL_MINS - 180;
-  if (openUp) panel.style.bottom = '0'; else panel.style.top = '0';
+// ── 주간 뷰: 스케줄러 하단 커스텀 주소 패널 ──
+function renderWeekDetailPanel(box, boxIndex) {
+  const panel = document.getElementById('weekDetailPanel');
+  if (!panel) return;
 
-  const titleRow = document.createElement('div');
-  titleRow.className = 'tbox-detail-title';
-  titleRow.innerHTML = `<span>커스텀 주소 (${box.customDomains.length})</span>`;
+  // 같은 박스 재클릭 시 토글 닫기
+  if (panel.style.display === 'block' && panel.dataset.openIndex === String(boxIndex)) {
+    panel.style.display = 'none';
+    panel.dataset.openIndex = '';
+    return;
+  }
+
+  panel.innerHTML = '';
+  panel.dataset.openIndex = String(boxIndex);
+
+  const refreshPanel = (updatedBoxes) => {
+    currentBoxes = updatedBoxes;
+    const updatedBox = updatedBoxes[boxIndex];
+    if (updatedBox) renderWeekDetailPanel(updatedBox, boxIndex);
+    else { panel.style.display = 'none'; panel.dataset.openIndex = ''; }
+  };
+
+  // 헤더
+  const header = document.createElement('div');
+  header.className = 'donut-detail-header';
+  const titleSpan = document.createElement('span');
+  titleSpan.className = 'donut-detail-title';
+  titleSpan.textContent = box.name;
+  header.appendChild(titleSpan);
   const closeBtn = document.createElement('button');
-  closeBtn.className = 'tbox-detail-close'; closeBtn.textContent = '✕';
-  closeBtn.onclick = (e) => { e.stopPropagation(); panel.classList.remove('open'); };
-  titleRow.appendChild(closeBtn);
-  panel.appendChild(titleRow);
+  closeBtn.className = 'btn-ghost btn-sm'; closeBtn.textContent = '닫기';
+  closeBtn.onclick = () => { panel.style.display = 'none'; panel.dataset.openIndex = ''; };
+  header.appendChild(closeBtn);
+  panel.appendChild(header);
 
+  // ── 주소 추가 팝업 (인라인 드롭다운) ──
+  const wAddPopupWrap = document.createElement('div');
+  wAddPopupWrap.style.cssText = 'position:relative;display:inline-block;';
+
+  const wAddDomainPopup = document.createElement('div');
+  wAddDomainPopup.style.cssText = [
+    'display:none;position:absolute;z-index:200;',
+    'top:calc(100% + 6px);left:0;',
+    'background:#fff;border:1px solid #ddd;border-radius:8px;',
+    'box-shadow:0 4px 16px rgba(0,0,0,0.13);',
+    'padding:10px 12px;min-width:260px;'
+  ].join('');
+
+  const wPopupInput = document.createElement('input');
+  wPopupInput.type = 'text';
+  wPopupInput.placeholder = '예: github.com';
+  wPopupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
+
+  const wPopupModeWrap = document.createElement('div');
+  wPopupModeWrap.className = 'mini-toggle';
+  wPopupModeWrap.style.marginLeft = '6px';
+  const wUid = `wpop_b${boxIndex}_${Date.now()}`;
+  const wpBlkR = document.createElement('input'); wpBlkR.type='radio'; wpBlkR.id=`${wUid}_blk`; wpBlkR.name=wUid; wpBlkR.value='block'; wpBlkR.checked=true;
+  const wpBlkL = document.createElement('label'); wpBlkL.htmlFor=wpBlkR.id; wpBlkL.textContent='차단';
+  const wpAlwR = document.createElement('input'); wpAlwR.type='radio'; wpAlwR.id=`${wUid}_alw`; wpAlwR.name=wUid; wpAlwR.value='allow';
+  const wpAlwL = document.createElement('label'); wpAlwL.htmlFor=wpAlwR.id; wpAlwL.textContent='허용';
+  wPopupModeWrap.append(wpBlkR, wpBlkL, wpAlwR, wpAlwL);
+
+  const wPopupConfirmBtn = document.createElement('button');
+  wPopupConfirmBtn.className = 'btn btn-sm';
+  wPopupConfirmBtn.textContent = '추가';
+  wPopupConfirmBtn.style.cssText = 'margin-left:6px;padding:7px 12px;flex-shrink:0;';
+
+  const wPopupRow = document.createElement('div');
+  wPopupRow.style.cssText = 'display:flex;align-items:center;gap:0;';
+  wPopupRow.appendChild(wPopupInput);
+  wPopupRow.appendChild(wPopupModeWrap);
+  wPopupRow.appendChild(wPopupConfirmBtn);
+
+  const wPopupWarn = document.createElement('div');
+  wPopupWarn.style.cssText = 'font-size:0.78rem;color:#ff4d4d;margin-top:5px;display:none;font-weight:600;';
+  wAddDomainPopup.appendChild(wPopupRow);
+  wAddDomainPopup.appendChild(wPopupWarn);
+  wAddPopupWrap.appendChild(wAddDomainPopup);
+
+  let _wPopupOutsideHandler = null;
+  function openWAddPopup() {
+    wAddDomainPopup.style.display = 'block';
+    wPopupInput.value = ''; wPopupWarn.style.display = 'none';
+    setTimeout(() => wPopupInput.focus(), 50);
+    _wPopupOutsideHandler = (ev) => {
+      if (!wAddPopupWrap.contains(ev.target)) {
+        wAddDomainPopup.style.display = 'none';
+        document.removeEventListener('mousedown', _wPopupOutsideHandler);
+      }
+    };
+    document.addEventListener('mousedown', _wPopupOutsideHandler);
+  }
+
+  const wAddDomainInPanelBtn = document.createElement('button');
+  wAddDomainInPanelBtn.className = 'btn-ghost btn-sm';
+  wAddDomainInPanelBtn.textContent = '+ 주소 추가';
+  wAddDomainInPanelBtn.onclick = (e) => { e.stopPropagation(); openWAddPopup(); };
+  wAddPopupWrap.insertBefore(wAddDomainInPanelBtn, wAddDomainPopup);
+
+  function doWAddDomain() {
+    const raw = wPopupInput.value.trim();
+    const domain = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+    if (!domain) return;
+    const mode = wPopupModeWrap.querySelector('input:checked')?.value || 'block';
+    const boxKey = getBoxKey();
+    chrome.storage.local.get([boxKey], function(result) {
+      const boxes = result[boxKey] || [];
+      const targetBox = boxes[boxIndex];
+      if (!targetBox) return;
+      if (!targetBox.customDomains) targetBox.customDomains = [];
+      if (targetBox.customDomains.some(cd => cd.domain === domain)) {
+        wPopupWarn.textContent = '이미 등록된 주소입니다.';
+        wPopupWarn.style.display = 'block';
+        return;
+      }
+      targetBox.customDomains.push({ domain, mode });
+      chrome.storage.local.set({ [boxKey]: boxes }, () => {
+        wAddDomainPopup.style.display = 'none';
+        if (_wPopupOutsideHandler) document.removeEventListener('mousedown', _wPopupOutsideHandler);
+        refreshPanel(boxes);
+      });
+    });
+  }
+
+  wPopupConfirmBtn.onclick = doWAddDomain;
+  wPopupInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doWAddDomain(); });
+
+  // 모두 차단 / 모두 허용
   const masterRow = document.createElement('div');
-  masterRow.className = 'detail-master-row';
+  masterRow.className = 'donut-master-row';
+  masterRow.appendChild(wAddPopupWrap);
+  const mRightBtns = document.createElement('div');
+  mRightBtns.style.cssText = 'display:flex;gap:6px;margin-left:auto;';
   const mBlockBtn = document.createElement('button');
-  mBlockBtn.textContent = '모두 차단'; mBlockBtn.className = 'btn-ghost btn-sm';
-  mBlockBtn.onclick = (e) => { e.stopPropagation(); setBoxMasterMode(boxIndex, 'block'); };
+  mBlockBtn.className = 'btn-ghost btn-sm'; mBlockBtn.textContent = '모두 차단';
+  mBlockBtn.onclick = () => setBoxMasterMode(boxIndex, 'block', refreshPanel);
   const mAllowBtn = document.createElement('button');
-  mAllowBtn.textContent = '모두 허용'; mAllowBtn.className = 'btn-ghost btn-sm';
-  mAllowBtn.onclick = (e) => { e.stopPropagation(); setBoxMasterMode(boxIndex, 'allow'); };
-  masterRow.appendChild(mBlockBtn); masterRow.appendChild(mAllowBtn);
+  mAllowBtn.className = 'btn-ghost btn-sm'; mAllowBtn.textContent = '모두 허용';
+  mAllowBtn.onclick = () => setBoxMasterMode(boxIndex, 'allow', refreshPanel);
+  mRightBtns.appendChild(mBlockBtn); mRightBtns.appendChild(mAllowBtn);
+  masterRow.appendChild(mRightBtns);
   panel.appendChild(masterRow);
 
+  // 도메인 리스트
+  const list = document.createElement('ul');
+  list.className = 'donut-domain-list';
   box.customDomains.forEach((cd, cdIndex) => {
-    const item = createCustomDomainItemUI(
-      cd.domain, cd.mode, `dp_b${boxIndex}_c${cdIndex}`, 'div',
-      (newMode) => updateCustomMode(boxIndex, cdIndex, newMode),
-      () => deleteCustomDomain(boxIndex, cdIndex)
+    const li = createCustomDomainItemUI(
+      cd.domain, cd.mode, `wd_b${boxIndex}_c${cdIndex}`, 'li',
+      (newMode) => updateCustomMode(boxIndex, cdIndex, newMode, refreshPanel),
+      () => deleteCustomDomain(boxIndex, cdIndex, refreshPanel)
     );
-    panel.appendChild(item);
+    list.appendChild(li);
   });
+  panel.appendChild(list);
 
-  return panel;
+  panel.style.display = 'block';
 }
 
 // ── 요일 선택기 순서 동기화 ──
@@ -320,6 +452,7 @@ function renderWeekView(boxes, wrap, scrollToMins) {
   outer.appendChild(scrollBody);
   wrap.appendChild(outer);
 
+  wrap._weekScrollBody = scrollBody;
   scrollBody.addEventListener('scroll', () => { wrap._weekScrollTop = scrollBody.scrollTop; }, { passive: true });
 
   // ── 드래그 스크롤 ──
@@ -360,12 +493,6 @@ function renderBoxes(boxes, scrollToMins) {
 
   if (currentView === 'day') renderDayView(boxes, wrap);
   else renderWeekView(boxes, wrap, scrollToMins);
-
-  wrap.addEventListener('click', (e) => {
-    if (!e.target.closest('.tbox')) {
-      document.querySelectorAll('.tbox-detail.open').forEach(d => d.classList.remove('open'));
-    }
-  });
 }
 
 // ── 스테이징 커스텀 도메인 목록 렌더링 ──
@@ -424,7 +551,7 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
   chrome.storage.local.get([boxKey], function(result) {
     const boxes = result[boxKey] || [];
 
-    let overlapIndex = -1;
+    const overlapIndices = [];
     for (let i = 0; i < boxes.length; i++) {
       const b = boxes[i];
       const bDays = b.days || [];
@@ -435,18 +562,61 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
       let existEnd   = timeToMins(b.endTime);
       if (existEnd <= existStart) existEnd += 24 * 60;
 
-      if (Math.max(newStartMin, existStart) < Math.min(newEndMin, existEnd)) { overlapIndex = i; break; }
-      if (newEndMin > 24 * 60) {
+      let isOverlap = Math.max(newStartMin, existStart) < Math.min(newEndMin, existEnd);
+      if (!isOverlap && newEndMin > 24 * 60) {
         const shiftedStart = existStart + 24 * 60;
         const shiftedEnd   = existEnd   + 24 * 60;
-        if (Math.max(newStartMin, shiftedStart) < Math.min(newEndMin, shiftedEnd)) { overlapIndex = i; break; }
+        isOverlap = Math.max(newStartMin, shiftedStart) < Math.min(newEndMin, shiftedEnd);
       }
+      if (isOverlap) overlapIndices.push(i);
     }
 
-    if (overlapIndex !== -1) {
+    if (overlapIndices.length > 0) {
       const wrap = document.getElementById('timetableWrap');
-      if (wrap && wrap._pulseBox) wrap._pulseBox(overlapIndex);
-      triggerBounceAndWarn(null, 'boxWarn', '시간이 겹치는 박스가 있습니다.');
+
+      if (currentView === 'week' && wrap) {
+        const allOverlapDays = new Set();
+        overlapIndices.forEach(i => {
+          (boxes[i].days || []).filter(d => days.includes(d)).forEach(d => allOverlapDays.add(d));
+        });
+
+        allOverlapDays.forEach(d => {
+          const cb = document.querySelector(`.day-selector input[value="${d}"]`);
+          if (cb) {
+            const lbl = cb.nextElementSibling;
+            if (lbl) {
+              lbl.classList.remove('bounce');
+              void lbl.offsetWidth;
+              lbl.classList.add('bounce');
+              setTimeout(() => lbl.classList.remove('bounce'), 600);
+            }
+          }
+        });
+
+        const scrollBody = wrap._weekScrollBody;
+        if (scrollBody) {
+          const firstStartMins = timeToMins(boxes[overlapIndices[0]].startTime);
+          scrollBody.scrollTop = Math.max(0, minsToPx(firstStartMins) - 40);
+        }
+
+        overlapIndices.forEach(i => {
+          wrap.querySelectorAll(`.tbox[data-box-index="${i}"]`).forEach(card => {
+            card.classList.remove('bounce');
+            void card.offsetWidth;
+            card.classList.add('bounce');
+            setTimeout(() => card.classList.remove('bounce'), 600);
+          });
+        });
+
+        triggerBounceAndWarn(null, 'boxWarn', '시간이 겹치는 박스가 있습니다.');
+
+      } else if (currentView === 'day' && wrap && wrap._pulseBox) {
+        overlapIndices.forEach(i => wrap._pulseBox(i));
+        triggerBounceAndWarn(null, 'boxWarn', '시간이 겹치는 박스가 있습니다.');
+      } else {
+        triggerBounceAndWarn(null, 'boxWarn', '시간이 겹치는 박스가 있습니다.');
+      }
+
       document.getElementById('startTime').focus();
       return;
     }

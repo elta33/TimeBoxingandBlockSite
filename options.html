@@ -135,7 +135,7 @@ button { cursor: pointer; font-family: inherit; }
   background: #fff;
 }
 .timetable-outer.scrollable {
-  overflow: hidden; /* 바깥은 hidden, 안쪽 body만 스크롤 */
+  overflow: hidden;
 }
 .week-scroll-body {
   height: 520px;
@@ -176,15 +176,9 @@ button { cursor: pointer; font-family: inherit; }
 .tbox.box-allow { background: #52c41a; }
 .tbox-name { font-size: 0.78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tbox-time { font-size: 0.68rem; opacity: 0.85; margin-top: 1px; }
+.tbox-custom-summary { font-size: 0.6rem; opacity: 0.8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tbox-del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.3); color: #fff; border: none; border-radius: 3px; font-size: 0.65rem; padding: 2px 5px; cursor: pointer; opacity: 0; transition: opacity 0.12s; line-height: 1.4; }
 .tbox:hover .tbox-del { opacity: 1; }
-
-/* ── 박스 상세 패널 ── */
-.tbox-detail { display: none; position: absolute; left: 8px; z-index: 30; background: #fff; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 14px 15px; min-width: 250px; max-width: 300px; color: #333; }
-.tbox-detail.open { display: block; }
-.tbox-detail-title { font-weight: 700; font-size: 0.86rem; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-.tbox-detail-close { background: none; border: none; cursor: pointer; font-size: 1rem; color: #bbb; line-height: 1; }
-.tbox-detail-close:hover { color: #555; }
 
 /* ── 일주일 뷰 ── */
 .week-header-row { display: grid; position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #e4e4e4; }
@@ -197,6 +191,14 @@ button { cursor: pointer; font-family: inherit; }
 .week-day-col .tbox-name { font-size: 0.66rem; }
 .week-day-col .tbox-time { font-size: 0.6rem; }
 
+/* ── 주간 뷰 하단 상세 패널 ── */
+#weekDetailPanel {
+  display: none;
+  margin-top: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 /* ── 빈 상태 ── */
 .empty-hint { text-align: center; color: #ccc; font-size: 0.85rem; padding: 40px 0; }
 
@@ -205,7 +207,7 @@ button { cursor: pointer; font-family: inherit; }
 .donut-detail-area { width: 100%; max-width: 480px; margin-top: 20px; padding: 0 4px; }
 .donut-detail-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f7f7f7; border-radius: 8px 8px 0 0; border: 1px solid #ececec; }
 .donut-detail-title { font-weight: 700; font-size: 0.95rem; color: #222; }
-.donut-master-row { display: flex; gap: 6px; padding: 8px 12px; background: #fafafa; border-left: 1px solid #ececec; border-right: 1px solid #ececec; }
+.donut-master-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 12px; background: #fafafa; border-left: 1px solid #ececec; border-right: 1px solid #ececec; }
 .donut-domain-list { list-style: none; padding: 0; margin: 0; border: 1px solid #ececec; border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; }
 .donut-domain-list .custom-domain-item { border-radius: 0; margin-top: 0; border-bottom: 1px solid #f0f0f0; }
 .donut-domain-list .custom-domain-item:last-child { border-bottom: none; }
@@ -340,6 +342,7 @@ button { cursor: pointer; font-family: inherit; }
           </div>
         </div>
         <div id="timetableWrap"></div>
+        <div id="weekDetailPanel"></div>
       </div>
 
     </div>

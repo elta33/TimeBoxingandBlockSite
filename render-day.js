@@ -239,16 +239,114 @@ function renderDayView(boxes, wrap) {
     header.appendChild(delBoxBtn);
     detailArea.appendChild(header);
 
+    // ── 주소 추가 팝업 (인라인 드롭다운) ──
+    const addPopupWrap = document.createElement('div');
+    addPopupWrap.style.cssText = 'position:relative;display:inline-block;';
+
+    const addDomainPopup = document.createElement('div');
+    addDomainPopup.style.cssText = [
+      'display:none;position:absolute;z-index:200;',
+      'top:calc(100% + 6px);left:0;',
+      'background:#fff;border:1px solid #ddd;border-radius:8px;',
+      'box-shadow:0 4px 16px rgba(0,0,0,0.13);',
+      'padding:10px 12px;min-width:260px;'
+    ].join('');
+
+    const popupInput = document.createElement('input');
+    popupInput.type = 'text';
+    popupInput.placeholder = '예: github.com';
+    popupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
+
+    const popupModeWrap = document.createElement('div');
+    popupModeWrap.className = 'mini-toggle';
+    popupModeWrap.style.marginLeft = '6px';
+    const uid = `dpop_b${boxIndex}_${Date.now()}`;
+    const pBlkR = document.createElement('input'); pBlkR.type='radio'; pBlkR.id=`${uid}_blk`; pBlkR.name=uid; pBlkR.value='block'; pBlkR.checked=true;
+    const pBlkL = document.createElement('label'); pBlkL.htmlFor=pBlkR.id; pBlkL.textContent='차단';
+    const pAlwR = document.createElement('input'); pAlwR.type='radio'; pAlwR.id=`${uid}_alw`; pAlwR.name=uid; pAlwR.value='allow';
+    const pAlwL = document.createElement('label'); pAlwL.htmlFor=pAlwR.id; pAlwL.textContent='허용';
+    popupModeWrap.append(pBlkR, pBlkL, pAlwR, pAlwL);
+
+    const popupConfirmBtn = document.createElement('button');
+    popupConfirmBtn.className = 'btn btn-sm';
+    popupConfirmBtn.textContent = '추가';
+    popupConfirmBtn.style.cssText = 'margin-left:6px;padding:7px 12px;flex-shrink:0;';
+
+    const popupRow = document.createElement('div');
+    popupRow.style.cssText = 'display:flex;align-items:center;gap:0;';
+    popupRow.appendChild(popupInput);
+    popupRow.appendChild(popupModeWrap);
+    popupRow.appendChild(popupConfirmBtn);
+
+    const popupWarn = document.createElement('div');
+    popupWarn.style.cssText = 'font-size:0.78rem;color:#ff4d4d;margin-top:5px;display:none;font-weight:600;';
+    addDomainPopup.appendChild(popupRow);
+    addDomainPopup.appendChild(popupWarn);
+    addPopupWrap.appendChild(addDomainPopup);
+
+    // 팝업 외부 클릭 시 닫기
+    let _popupOutsideHandler = null;
+    function openAddPopup() {
+      addDomainPopup.style.display = 'block';
+      popupInput.value = ''; popupWarn.style.display = 'none';
+      setTimeout(() => popupInput.focus(), 50);
+      _popupOutsideHandler = (ev) => {
+        if (!addPopupWrap.contains(ev.target)) {
+          addDomainPopup.style.display = 'none';
+          document.removeEventListener('mousedown', _popupOutsideHandler);
+        }
+      };
+      document.addEventListener('mousedown', _popupOutsideHandler);
+    }
+
+    const addDomainInPanelBtn = document.createElement('button');
+    addDomainInPanelBtn.className = 'btn-ghost btn-sm';
+    addDomainInPanelBtn.textContent = '+ 주소 추가';
+    addDomainInPanelBtn.onclick = (e) => { e.stopPropagation(); openAddPopup(); };
+    addPopupWrap.insertBefore(addDomainInPanelBtn, addDomainPopup);
+
+    function doAddDomain() {
+      const raw = popupInput.value.trim();
+      const domain = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+      if (!domain) return;
+      const mode = popupModeWrap.querySelector('input:checked')?.value || 'block';
+      const boxKey = getBoxKey();
+      chrome.storage.local.get([boxKey], function(result) {
+        const boxes = result[boxKey] || [];
+        const targetBox = boxes[boxIndex];
+        if (!targetBox) return;
+        if (!targetBox.customDomains) targetBox.customDomains = [];
+        if (targetBox.customDomains.some(cd => cd.domain === domain)) {
+          popupWarn.textContent = '이미 등록된 주소입니다.';
+          popupWarn.style.display = 'block';
+          return;
+        }
+        targetBox.customDomains.push({ domain, mode });
+        chrome.storage.local.set({ [boxKey]: boxes }, () => {
+          addDomainPopup.style.display = 'none';
+          if (_popupOutsideHandler) document.removeEventListener('mousedown', _popupOutsideHandler);
+          refreshPanel(boxes);
+        });
+      });
+    }
+
+    popupConfirmBtn.onclick = doAddDomain;
+    popupInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAddDomain(); });
+
     if (box.customDomains && box.customDomains.length > 0) {
       const masterRow = document.createElement('div');
       masterRow.className = 'donut-master-row';
+      masterRow.appendChild(addPopupWrap);
+      const rightBtns = document.createElement('div');
+      rightBtns.style.cssText = 'display:flex;gap:6px;margin-left:auto;';
       const mBlockBtn = document.createElement('button');
       mBlockBtn.className = 'btn-ghost btn-sm'; mBlockBtn.textContent = '모두 차단';
       mBlockBtn.onclick = () => setBoxMasterMode(boxIndex, 'block', refreshPanel);
       const mAllowBtn = document.createElement('button');
       mAllowBtn.className = 'btn-ghost btn-sm'; mAllowBtn.textContent = '모두 허용';
       mAllowBtn.onclick = () => setBoxMasterMode(boxIndex, 'allow', refreshPanel);
-      masterRow.appendChild(mBlockBtn); masterRow.appendChild(mAllowBtn);
+      rightBtns.appendChild(mBlockBtn); rightBtns.appendChild(mAllowBtn);
+      masterRow.appendChild(rightBtns);
       detailArea.appendChild(masterRow);
 
       const list = document.createElement('ul');
@@ -263,6 +361,12 @@ function renderDayView(boxes, wrap) {
       });
       detailArea.appendChild(list);
     } else {
+      const emptyMasterRow = document.createElement('div');
+      emptyMasterRow.className = 'donut-master-row';
+      emptyMasterRow.style.justifyContent = 'flex-start';
+      emptyMasterRow.appendChild(addPopupWrap);
+      detailArea.appendChild(emptyMasterRow);
+
       const empty = document.createElement('p');
       empty.className = 'detail-empty';
       empty.textContent = '커스텀 주소 없음';
