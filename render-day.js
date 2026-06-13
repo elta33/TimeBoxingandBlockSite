@@ -257,16 +257,6 @@ function renderDayView(boxes, wrap) {
     popupInput.placeholder = '예: github.com';
     popupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
 
-    const popupModeWrap = document.createElement('div');
-    popupModeWrap.className = 'mini-toggle';
-    popupModeWrap.style.marginLeft = '6px';
-    const uid = `dpop_b${boxIndex}_${Date.now()}`;
-    const pBlkR = document.createElement('input'); pBlkR.type='radio'; pBlkR.id=`${uid}_blk`; pBlkR.name=uid; pBlkR.value='block';
-    const pBlkL = document.createElement('label'); pBlkL.htmlFor=pBlkR.id; pBlkL.textContent='차단';
-    const pAlwR = document.createElement('input'); pAlwR.type='radio'; pAlwR.id=`${uid}_alw`; pAlwR.name=uid; pAlwR.value='allow'; pAlwR.checked=true;
-    const pAlwL = document.createElement('label'); pAlwL.htmlFor=pAlwR.id; pAlwL.textContent='허용';
-    popupModeWrap.append(pBlkR, pBlkL, pAlwR, pAlwL);
-
     const popupConfirmBtn = document.createElement('button');
     popupConfirmBtn.className = 'btn btn-sm';
     popupConfirmBtn.textContent = '추가';
@@ -275,7 +265,6 @@ function renderDayView(boxes, wrap) {
     const popupRow = document.createElement('div');
     popupRow.style.cssText = 'display:flex;align-items:center;gap:0;';
     popupRow.appendChild(popupInput);
-    popupRow.appendChild(popupModeWrap);
     popupRow.appendChild(popupConfirmBtn);
 
     const popupWarn = document.createElement('div');
@@ -309,7 +298,7 @@ function renderDayView(boxes, wrap) {
       const raw = popupInput.value.trim();
       const domain = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
       if (!domain) return;
-      const mode = popupModeWrap.querySelector('input:checked')?.value || 'block';
+      const mode = 'allow';
       const boxKey = getBoxKey();
       chrome.storage.local.get([boxKey], function(result) {
         const boxes = result[boxKey] || [];
@@ -337,16 +326,6 @@ function renderDayView(boxes, wrap) {
       const masterRow = document.createElement('div');
       masterRow.className = 'donut-master-row';
       masterRow.appendChild(addPopupWrap);
-      const rightBtns = document.createElement('div');
-      rightBtns.style.cssText = 'display:flex;gap:6px;margin-left:auto;';
-      const mBlockBtn = document.createElement('button');
-      mBlockBtn.className = 'btn-ghost btn-sm'; mBlockBtn.textContent = '모두 차단';
-      mBlockBtn.onclick = () => setBoxMasterMode(boxIndex, 'block', refreshPanel);
-      const mAllowBtn = document.createElement('button');
-      mAllowBtn.className = 'btn-ghost btn-sm'; mAllowBtn.textContent = '모두 허용';
-      mAllowBtn.onclick = () => setBoxMasterMode(boxIndex, 'allow', refreshPanel);
-      rightBtns.appendChild(mBlockBtn); rightBtns.appendChild(mAllowBtn);
-      masterRow.appendChild(rightBtns);
       detailArea.appendChild(masterRow);
 
       const list = document.createElement('ul');
@@ -354,7 +333,6 @@ function renderDayView(boxes, wrap) {
       box.customDomains.forEach((cd, cdIndex) => {
         const li = createCustomDomainItemUI(
           cd.domain, cd.mode, `dv_b${boxIndex}_c${cdIndex}`, 'li',
-          (newMode) => updateCustomMode(boxIndex, cdIndex, newMode, refreshPanel),
           () => deleteCustomDomain(boxIndex, cdIndex, refreshPanel)
         );
         list.appendChild(li);

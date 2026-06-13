@@ -51,7 +51,7 @@ function renderList(elementId, items, storageKey, warnId) {
 }
 
 // ── 공통: 커스텀 도메인 아이템 UI 팩토리 ──
-function createCustomDomainItemUI(domain, mode, idPrefix, elType, onModeChange, onDelete) {
+function createCustomDomainItemUI(domain, mode, idPrefix, elType, onDelete) {
   const item = document.createElement(elType);
   item.className = 'custom-domain-item';
 
@@ -62,21 +62,11 @@ function createCustomDomainItemUI(domain, mode, idPrefix, elType, onModeChange, 
   const controls = document.createElement('div');
   controls.className = 'custom-domain-controls';
 
-  const toggleDiv = document.createElement('div');
-  toggleDiv.className = 'mini-toggle';
-
-  const rBlock = document.createElement('input');
-  rBlock.type = 'radio'; rBlock.id = `${idPrefix}_blk`; rBlock.name = idPrefix; rBlock.checked = mode === 'block';
-  rBlock.onchange = () => onModeChange('block');
-  const lBlock = document.createElement('label'); lBlock.htmlFor = rBlock.id; lBlock.textContent = '차단';
-
-  const rAllow = document.createElement('input');
-  rAllow.type = 'radio'; rAllow.id = `${idPrefix}_alw`; rAllow.name = idPrefix; rAllow.checked = mode === 'allow';
-  rAllow.onchange = () => onModeChange('allow');
-  const lAllow = document.createElement('label'); lAllow.htmlFor = rAllow.id; lAllow.textContent = '허용';
-
-  toggleDiv.append(rBlock, lBlock, rAllow, lAllow);
-  controls.appendChild(toggleDiv);
+  // 모드 배지 (읽기 전용)
+  const modeBadge = document.createElement('span');
+  modeBadge.className = 'mode-badge ' + (mode === 'allow' ? 'mode-badge-allow' : 'mode-badge-block');
+  modeBadge.textContent = mode === 'allow' ? '허용' : '차단';
+  controls.appendChild(modeBadge);
 
   const delBtn = document.createElement('button');
   delBtn.className = 'btn-danger btn-sm'; delBtn.textContent = '삭제';
@@ -239,16 +229,6 @@ function renderWeekDetailPanel(box, boxIndex) {
   wPopupInput.placeholder = '예: github.com';
   wPopupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
 
-  const wPopupModeWrap = document.createElement('div');
-  wPopupModeWrap.className = 'mini-toggle';
-  wPopupModeWrap.style.marginLeft = '6px';
-  const wUid = `wpop_b${boxIndex}_${Date.now()}`;
-  const wpBlkR = document.createElement('input'); wpBlkR.type='radio'; wpBlkR.id=`${wUid}_blk`; wpBlkR.name=wUid; wpBlkR.value='block';
-  const wpBlkL = document.createElement('label'); wpBlkL.htmlFor=wpBlkR.id; wpBlkL.textContent='차단';
-  const wpAlwR = document.createElement('input'); wpAlwR.type='radio'; wpAlwR.id=`${wUid}_alw`; wpAlwR.name=wUid; wpAlwR.value='allow'; wpAlwR.checked=true;
-  const wpAlwL = document.createElement('label'); wpAlwL.htmlFor=wpAlwR.id; wpAlwL.textContent='허용';
-  wPopupModeWrap.append(wpBlkR, wpBlkL, wpAlwR, wpAlwL);
-
   const wPopupConfirmBtn = document.createElement('button');
   wPopupConfirmBtn.className = 'btn btn-sm';
   wPopupConfirmBtn.textContent = '추가';
@@ -257,7 +237,6 @@ function renderWeekDetailPanel(box, boxIndex) {
   const wPopupRow = document.createElement('div');
   wPopupRow.style.cssText = 'display:flex;align-items:center;gap:0;';
   wPopupRow.appendChild(wPopupInput);
-  wPopupRow.appendChild(wPopupModeWrap);
   wPopupRow.appendChild(wPopupConfirmBtn);
 
   const wPopupWarn = document.createElement('div');
@@ -290,7 +269,7 @@ function renderWeekDetailPanel(box, boxIndex) {
     const raw = wPopupInput.value.trim();
     const domain = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
     if (!domain) return;
-    const mode = wPopupModeWrap.querySelector('input:checked')?.value || 'block';
+    const mode = 'allow';
     const boxKey = getBoxKey();
     chrome.storage.local.get([boxKey], function(result) {
       const boxes = result[boxKey] || [];
@@ -318,16 +297,6 @@ function renderWeekDetailPanel(box, boxIndex) {
   const masterRow = document.createElement('div');
   masterRow.className = 'donut-master-row';
   masterRow.appendChild(wAddPopupWrap);
-  const mRightBtns = document.createElement('div');
-  mRightBtns.style.cssText = 'display:flex;gap:6px;margin-left:auto;';
-  const mBlockBtn = document.createElement('button');
-  mBlockBtn.className = 'btn-ghost btn-sm'; mBlockBtn.textContent = '모두 차단';
-  mBlockBtn.onclick = () => setBoxMasterMode(boxIndex, 'block', refreshPanel);
-  const mAllowBtn = document.createElement('button');
-  mAllowBtn.className = 'btn-ghost btn-sm'; mAllowBtn.textContent = '모두 허용';
-  mAllowBtn.onclick = () => setBoxMasterMode(boxIndex, 'allow', refreshPanel);
-  mRightBtns.appendChild(mBlockBtn); mRightBtns.appendChild(mAllowBtn);
-  masterRow.appendChild(mRightBtns);
   panel.appendChild(masterRow);
 
   // 도메인 리스트
@@ -336,7 +305,6 @@ function renderWeekDetailPanel(box, boxIndex) {
   box.customDomains.forEach((cd, cdIndex) => {
     const li = createCustomDomainItemUI(
       cd.domain, cd.mode, `wd_b${boxIndex}_c${cdIndex}`, 'li',
-      (newMode) => updateCustomMode(boxIndex, cdIndex, newMode, refreshPanel),
       () => deleteCustomDomain(boxIndex, cdIndex, refreshPanel)
     );
     list.appendChild(li);
@@ -502,7 +470,6 @@ function renderStagingList() {
   stagingCustomDomains.forEach((cd, index) => {
     const li = createCustomDomainItemUI(
       cd.domain, cd.mode, `stg_c${index}`, 'li',
-      (newMode) => { stagingCustomDomains[index].mode = newMode; renderStagingList(); },
       () => removeStagingDomain(index)
     );
     ul.appendChild(li);
@@ -512,7 +479,7 @@ function renderStagingList() {
 // ── 스테이징 이벤트 핸들러 ──
 document.getElementById('addCustomStagingBtn').onclick = () => {
   const domain = cleanDomain(document.getElementById('customDomainInput').value.trim());
-  const mode = 'allow'; // 박스는 항상 차단이므로 커스텀 기본값은 허용
+  const mode = 'allow';
   if (domain) {
     const existIdx = stagingCustomDomains.findIndex(cd => cd.domain === domain);
     if (existIdx !== -1) {
@@ -527,8 +494,6 @@ document.getElementById('addCustomStagingBtn').onclick = () => {
   }
 };
 
-document.getElementById('masterStgBlockBtn').onclick = () => { stagingCustomDomains.forEach(cd => cd.mode = 'block'); renderStagingList(); };
-document.getElementById('masterStgAllowBtn').onclick = () => { stagingCustomDomains.forEach(cd => cd.mode = 'allow'); renderStagingList(); };
 function removeStagingDomain(index) { stagingCustomDomains.splice(index, 1); hideWarn('customWarn'); renderStagingList(); }
 
 // ── 박스 추가 폼 ──

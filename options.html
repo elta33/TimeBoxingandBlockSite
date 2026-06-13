@@ -199,7 +199,10 @@ button { cursor: pointer; font-family: inherit; }
   overflow: hidden;
 }
 
-/* ── 빈 상태 ── */
+/* ── 모드 배지 ── */
+.mode-badge { display:inline-block; font-size:0.72rem; font-weight:700; padding:2px 7px; border-radius:10px; flex-shrink:0; }
+.mode-badge-allow { background:#e6f7ff; color:#1890ff; }
+.mode-badge-block { background:#fff1f0; color:#ff4d4f; }
 .empty-hint { text-align: center; color: #ccc; font-size: 0.85rem; padding: 40px 0; }
 
 /* ── 원형 하루 뷰 ── */
@@ -297,15 +300,10 @@ button { cursor: pointer; font-family: inherit; }
 
         <hr class="form-divider">
 
-        <div class="form-section-title">박스 전용 커스텀 주소 <span id="customWarn" class="warn-text">이미 있습니다.</span> </div>
+        <div class="form-section-title">차단 예외 주소 <span id="customWarn" class="warn-text">이미 있습니다.</span> </div>
         <div class="input-row">
           <input type="text" id="customDomainInput" placeholder="예: github.com">
           <button id="addCustomStagingBtn" class="btn btn-sm">추가</button>
-        </div>
-        <div style="display:flex;gap:5px;margin:6px 0 0;align-items:center;">
-          <span style="font-size:0.78rem;color:#888;">일괄:</span>
-          <button id="masterStgBlockBtn" class="btn-ghost btn-sm">모두 차단</button>
-          <button id="masterStgAllowBtn" class="btn-ghost btn-sm">모두 허용</button>
         </div>
         <ul id="stagingCustomList" class="domain-list" style="margin-top:8px;"></ul>
 
