@@ -144,7 +144,7 @@ function buildBoxCard(box, boxIndex, isWeek) {
   const durationM = endM - startM;
 
   const card = document.createElement('div');
-  card.className = `tbox ${box.mode === 'block' ? 'box-block' : 'box-allow'}`;
+  card.className = `tbox box-block`;
   card.dataset.boxIndex = boxIndex;
   card.style.top    = `${minsToPx(startM)}px`;
   card.style.height = `${Math.max(minsToPx(durationM) - 3, 20)}px`;
@@ -243,9 +243,9 @@ function renderWeekDetailPanel(box, boxIndex) {
   wPopupModeWrap.className = 'mini-toggle';
   wPopupModeWrap.style.marginLeft = '6px';
   const wUid = `wpop_b${boxIndex}_${Date.now()}`;
-  const wpBlkR = document.createElement('input'); wpBlkR.type='radio'; wpBlkR.id=`${wUid}_blk`; wpBlkR.name=wUid; wpBlkR.value='block'; wpBlkR.checked=box.mode==='allow';
+  const wpBlkR = document.createElement('input'); wpBlkR.type='radio'; wpBlkR.id=`${wUid}_blk`; wpBlkR.name=wUid; wpBlkR.value='block';
   const wpBlkL = document.createElement('label'); wpBlkL.htmlFor=wpBlkR.id; wpBlkL.textContent='차단';
-  const wpAlwR = document.createElement('input'); wpAlwR.type='radio'; wpAlwR.id=`${wUid}_alw`; wpAlwR.name=wUid; wpAlwR.value='allow'; wpAlwR.checked=box.mode==='block';
+  const wpAlwR = document.createElement('input'); wpAlwR.type='radio'; wpAlwR.id=`${wUid}_alw`; wpAlwR.name=wUid; wpAlwR.value='allow'; wpAlwR.checked=true;
   const wpAlwL = document.createElement('label'); wpAlwL.htmlFor=wpAlwR.id; wpAlwL.textContent='허용';
   wPopupModeWrap.append(wpBlkR, wpBlkL, wpAlwR, wpAlwL);
 
@@ -512,8 +512,7 @@ function renderStagingList() {
 // ── 스테이징 이벤트 핸들러 ──
 document.getElementById('addCustomStagingBtn').onclick = () => {
   const domain = cleanDomain(document.getElementById('customDomainInput').value.trim());
-  const boxMode = document.querySelector('input[name="boxMode"]:checked')?.value || 'block';
-  const mode = boxMode === 'block' ? 'allow' : 'block';
+  const mode = 'allow'; // 박스는 항상 차단이므로 커스텀 기본값은 허용
   if (domain) {
     const existIdx = stagingCustomDomains.findIndex(cd => cd.domain === domain);
     if (existIdx !== -1) {
@@ -537,7 +536,6 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
   const name      = document.getElementById('boxName').value.trim();
   const startTime = getFormattedTime('startTime');
   const endTime   = getFormattedTime('endTime');
-  const mode      = document.querySelector('input[name="boxMode"]:checked')?.value || 'block';
   const days      = currentView === 'week' ? getSelectedDays() : [];
 
   if (!name || !startTime || !endTime) return alert('박스 이름과 시간을 입력해주세요!');
@@ -623,7 +621,7 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
 
     const daysToSave = currentView === 'week' ? days : [null];
     daysToSave.forEach(day => {
-      boxes.push({ name, startTime, endTime, mode, days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains] });
+      boxes.push({ name, startTime, endTime, mode: 'block', days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains] });
     });
     chrome.storage.local.set({ [boxKey]: boxes }, () => {
       document.getElementById('boxName').value = '';

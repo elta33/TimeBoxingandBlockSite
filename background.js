@@ -39,7 +39,7 @@ async function updateBlockingRules() {
 
   let ruleIdCounter = 1;
   const newRules = [];
-  const finalAllowSet = new Set(); // 자바스크립트 단에서 완벽한 중복 제거를 위한 셋업
+  const finalAllowSet = new Set(); // 커스텀 allow 도메인 추적 (generalList 등록 시 필터링용)
 
   function addDnrRule(domain, priority, isAllow) {
     if (!domain) return;
@@ -96,18 +96,12 @@ async function updateBlockingRules() {
       });
     }
 
-    // 일반 차단 리스트 처리 (계급 10) — 차단 박스일 때만 활성화
-    if (activeBox.mode === 'block') {
-      generalList.forEach(d => {
-        const clean = cleanDomain(d);
-        // 커스텀에서 allow로 지정된 도메인은 규칙 자체를 올리지 않음
-        // (allow 액션이 redirect를 이기지 못하므로 규칙 미등록이 유일한 해결책)
-        if (!finalAllowSet.has(clean)) {
-          addDnrRule(clean, 10, false);
-        }
-      });
-    }
-    // 허용 박스(allow)일 때는 generalList를 올리지 않음 → 커스텀 block 도메인만 차단되고 나머지는 자유
+    generalList.forEach(d => {
+          const clean = cleanDomain(d);
+          if (!finalAllowSet.has(clean)) {
+            addDnrRule(clean, 10, false);
+          }
+        });
   }
 
   // 크롬 엔진 덮어쓰기

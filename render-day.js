@@ -132,7 +132,7 @@ function renderDayView(boxes, wrap) {
       nameEl.setAttribute('x', CX); nameEl.setAttribute('y', CY - 18);
       nameEl.setAttribute('text-anchor', 'middle'); nameEl.setAttribute('dominant-baseline', 'middle');
       nameEl.setAttribute('font-size', '15'); nameEl.setAttribute('font-weight', 'bold');
-      nameEl.setAttribute('fill', box.mode === 'block' ? '#ff4d4f' : '#52c41a');
+      nameEl.setAttribute('fill', '#ff4d4f');
       nameEl.setAttribute('font-family', 'inherit');
       nameEl.textContent = box.name.length > 10 ? box.name.slice(0, 10) + '…' : box.name;
       centerGroup.appendChild(nameEl);
@@ -149,9 +149,9 @@ function renderDayView(boxes, wrap) {
       modeEl.setAttribute('x', CX); modeEl.setAttribute('y', CY + 30);
       modeEl.setAttribute('text-anchor', 'middle'); modeEl.setAttribute('dominant-baseline', 'middle');
       modeEl.setAttribute('font-size', '11');
-      modeEl.setAttribute('fill', box.mode === 'block' ? '#ff4d4f' : '#52c41a');
+      modeEl.setAttribute('fill', '#ff4d4f');
       modeEl.setAttribute('font-family', 'inherit');
-      modeEl.textContent = box.mode === 'block' ? '차단 박스' : '허용 박스';
+      modeEl.textContent = '차단 박스';
       centerGroup.appendChild(modeEl);
     } else {
       const now = new Date();
@@ -261,9 +261,9 @@ function renderDayView(boxes, wrap) {
     popupModeWrap.className = 'mini-toggle';
     popupModeWrap.style.marginLeft = '6px';
     const uid = `dpop_b${boxIndex}_${Date.now()}`;
-    const pBlkR = document.createElement('input'); pBlkR.type='radio'; pBlkR.id=`${uid}_blk`; pBlkR.name=uid; pBlkR.value='block'; pBlkR.checked=box.mode==='allow';
+    const pBlkR = document.createElement('input'); pBlkR.type='radio'; pBlkR.id=`${uid}_blk`; pBlkR.name=uid; pBlkR.value='block';
     const pBlkL = document.createElement('label'); pBlkL.htmlFor=pBlkR.id; pBlkL.textContent='차단';
-    const pAlwR = document.createElement('input'); pAlwR.type='radio'; pAlwR.id=`${uid}_alw`; pAlwR.name=uid; pAlwR.value='allow'; pAlwR.checked=box.mode==='block';
+    const pAlwR = document.createElement('input'); pAlwR.type='radio'; pAlwR.id=`${uid}_alw`; pAlwR.name=uid; pAlwR.value='allow'; pAlwR.checked=true;
     const pAlwL = document.createElement('label'); pAlwL.htmlFor=pAlwR.id; pAlwL.textContent='허용';
     popupModeWrap.append(pBlkR, pBlkL, pAlwR, pAlwL);
 
@@ -449,7 +449,7 @@ function renderDayView(boxes, wrap) {
     const startM = timeToMins(box.startTime);
     let endM = timeToMins(box.endTime);
     if (endM <= startM) endM += TOTAL_MINS;
-    const color = box.mode === 'block' ? '#ff4d4f' : '#52c41a';
+    const color = '#ff4d4f';
     const pathD = makeSegPath(startM, endM, R_OUTER, R_INNER);
     const seg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     seg.setAttribute('d', pathD);
