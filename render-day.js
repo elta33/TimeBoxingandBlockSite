@@ -261,9 +261,9 @@ function renderDayView(boxes, wrap) {
     popupModeWrap.className = 'mini-toggle';
     popupModeWrap.style.marginLeft = '6px';
     const uid = `dpop_b${boxIndex}_${Date.now()}`;
-    const pBlkR = document.createElement('input'); pBlkR.type='radio'; pBlkR.id=`${uid}_blk`; pBlkR.name=uid; pBlkR.value='block'; pBlkR.checked=true;
+    const pBlkR = document.createElement('input'); pBlkR.type='radio'; pBlkR.id=`${uid}_blk`; pBlkR.name=uid; pBlkR.value='block'; pBlkR.checked=box.mode==='allow';
     const pBlkL = document.createElement('label'); pBlkL.htmlFor=pBlkR.id; pBlkL.textContent='차단';
-    const pAlwR = document.createElement('input'); pAlwR.type='radio'; pAlwR.id=`${uid}_alw`; pAlwR.name=uid; pAlwR.value='allow';
+    const pAlwR = document.createElement('input'); pAlwR.type='radio'; pAlwR.id=`${uid}_alw`; pAlwR.name=uid; pAlwR.value='allow'; pAlwR.checked=box.mode==='block';
     const pAlwL = document.createElement('label'); pAlwL.htmlFor=pAlwR.id; pAlwL.textContent='허용';
     popupModeWrap.append(pBlkR, pBlkL, pAlwR, pAlwL);
 

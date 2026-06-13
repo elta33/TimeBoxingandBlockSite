@@ -243,9 +243,9 @@ function renderWeekDetailPanel(box, boxIndex) {
   wPopupModeWrap.className = 'mini-toggle';
   wPopupModeWrap.style.marginLeft = '6px';
   const wUid = `wpop_b${boxIndex}_${Date.now()}`;
-  const wpBlkR = document.createElement('input'); wpBlkR.type='radio'; wpBlkR.id=`${wUid}_blk`; wpBlkR.name=wUid; wpBlkR.value='block'; wpBlkR.checked=true;
+  const wpBlkR = document.createElement('input'); wpBlkR.type='radio'; wpBlkR.id=`${wUid}_blk`; wpBlkR.name=wUid; wpBlkR.value='block'; wpBlkR.checked=box.mode==='allow';
   const wpBlkL = document.createElement('label'); wpBlkL.htmlFor=wpBlkR.id; wpBlkL.textContent='차단';
-  const wpAlwR = document.createElement('input'); wpAlwR.type='radio'; wpAlwR.id=`${wUid}_alw`; wpAlwR.name=wUid; wpAlwR.value='allow';
+  const wpAlwR = document.createElement('input'); wpAlwR.type='radio'; wpAlwR.id=`${wUid}_alw`; wpAlwR.name=wUid; wpAlwR.value='allow'; wpAlwR.checked=box.mode==='block';
   const wpAlwL = document.createElement('label'); wpAlwL.htmlFor=wpAlwR.id; wpAlwL.textContent='허용';
   wPopupModeWrap.append(wpBlkR, wpBlkL, wpAlwR, wpAlwL);
 
