@@ -448,21 +448,6 @@ function renderWeekView(boxes, wrap, scrollToMins) {
   wrap._weekScrollBody = scrollBody;
   scrollBody.addEventListener('scroll', () => { wrap._weekScrollTop = scrollBody.scrollTop; }, { passive: true });
 
-  // ── 드래그 스크롤 ──
-  let isDragging = false, startY = 0, startScrollTop = 0;
-  scrollBody.addEventListener('mousedown', e => {
-    if (e.button !== 0) return;
-    isDragging = true; startY = e.clientY; startScrollTop = scrollBody.scrollTop;
-    scrollBody.classList.add('grabbing'); e.preventDefault();
-  });
-  window.addEventListener('mousemove', e => {
-    if (!isDragging) return;
-    scrollBody.scrollTop = startScrollTop - (e.clientY - startY);
-  });
-  window.addEventListener('mouseup', () => {
-    isDragging = false; scrollBody.classList.remove('grabbing');
-  });
-
   if (scrollToMins !== undefined) {
     requestAnimationFrame(() => { scrollBody.scrollTop = Math.max(0, minsToPx(scrollToMins) - 40); });
   } else if (wrap._weekScrollTop !== undefined) {
