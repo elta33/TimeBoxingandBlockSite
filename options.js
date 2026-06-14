@@ -412,6 +412,22 @@ function renderWeekView(boxes, wrap, scrollToMins) {
     boxes
       .filter(box => { const d = box.days || []; return d.length === 0 || d.includes(internalDow); })
       .forEach(box => { col.appendChild(buildBoxCard(box, boxes.indexOf(box), true)); });
+
+    // 오늘 열에만 현재 시간선 표시
+    if (dow === todayDow) {
+      const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+      const nowPx = minsToPx(nowMins);
+
+      const timeLine = document.createElement('div');
+      timeLine.className = 'week-now-line';
+      timeLine.style.top = `${nowPx}px`;
+
+      const dot = document.createElement('div');
+      dot.className = 'week-now-dot';
+
+      timeLine.appendChild(dot);
+      col.appendChild(timeLine);
+    }
   });
 
   bodyGrid.appendChild(labelCol);
