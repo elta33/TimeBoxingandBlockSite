@@ -96,7 +96,7 @@ function initViewTabs(onViewChange) {
 }
 
 // ── 주간 뷰 전용 상수 ──
-const PX_PER_MIN = 80 / 60; // 1시간 = 80px
+const PX_PER_MIN = 100 / 60; // 1시간 = 80px
 const TOTAL_HEIGHT = TOTAL_MINS * PX_PER_MIN;
 function minsToPx(mins) { return mins * PX_PER_MIN; }
 
