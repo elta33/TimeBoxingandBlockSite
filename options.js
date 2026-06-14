@@ -156,8 +156,17 @@ function buildBoxCard(box, boxIndex, isWeek) {
     summaryEl.className = 'tbox-custom-summary';
     const first = box.customDomains[0].domain;
     const rest  = box.customDomains.length - 1;
-    summaryEl.textContent = rest > 0 ? `${first} 외 ${rest}개` : first;
-    card.appendChild(summaryEl);
+    if (rest > 0) {
+      summaryEl.textContent = first;
+      const restEl = document.createElement('div');
+      restEl.className = 'tbox-custom-summary';
+      restEl.textContent = `외 ${rest}개 예외`;
+      card.appendChild(summaryEl);
+      card.appendChild(restEl);
+    } else {
+      summaryEl.textContent = `${first} 예외`;
+      card.appendChild(summaryEl);
+    }
   }
 
   const delBtn = document.createElement('button');
