@@ -249,9 +249,9 @@ button { cursor: pointer; font-family: inherit; }
   background: #fff;
   border-radius: 16px;
   padding: 24px 24px 20px;
-  width: 580px;
-  max-width: 95vw;
-  max-height: 90vh;
+  width: 960px;
+  max-width: 96vw;
+  max-height: 92vh;
   overflow-y: auto;
   box-shadow: 0 8px 40px rgba(0,0,0,0.22);
   animation: popupIn 0.18s ease;
@@ -260,6 +260,19 @@ button { cursor: pointer; font-family: inherit; }
   from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
 }
+.day-popup-body {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.day-popup-form {
+  background: #fafafa;
+  border: 1px solid #efefef;
+  border-radius: 10px;
+  padding: 18px 18px 20px;
+}
+.day-popup-donut { min-width: 0; }
 .day-popup-close {
   position: absolute; top: 14px; right: 16px;
   background: none; border: none; font-size: 1.5rem;
@@ -395,7 +408,41 @@ button { cursor: pointer; font-family: inherit; }
     <div id="dayPopupModal" class="day-popup-modal">
       <button id="dayPopupCloseBtn" class="day-popup-close">&times;</button>
       <div id="dayPopupTitle" class="day-popup-title"></div>
-      <div id="dayPopupWrap"></div>
+      <div class="day-popup-body">
+        <div class="day-popup-form" id="dayPopupForm">
+          <div class="sector-title" style="font-size:1rem;margin-bottom:14px;">새 박스 추가</div>
+
+          <div class="form-section-title">박스 이름</div>
+          <div class="input-row" style="margin:0;">
+            <input type="text" id="popup_boxName" placeholder="예: 집중 코딩 시간">
+          </div>
+
+          <div class="form-section-title" style="margin-top:14px;">
+            시간 설정
+            <span id="popup_boxWarn" class="warn-text">시간이 격치니다.</span>
+          </div>
+          <div class="form-row">
+            <span class="form-label">시작</span>
+            <input type="time" id="popup_startTime" style="flex:1;">
+          </div>
+          <div class="form-row">
+            <span class="form-label">종료</span>
+            <input type="time" id="popup_endTime" style="flex:1;">
+          </div>
+
+          <hr class="form-divider">
+
+          <div class="form-section-title">차단 예외 주소 <span id="popup_customWarn" class="warn-text">이미 있습니다.</span></div>
+          <div class="input-row">
+            <input type="text" id="popup_customDomainInput" placeholder="예: github.com">
+            <button id="popup_addCustomStagingBtn" class="btn btn-sm">추가</button>
+          </div>
+          <ul id="popup_stagingCustomList" class="domain-list" style="margin-top:8px;"></ul>
+
+          <button id="popup_addBoxBtn" class="btn" style="width:100%;margin-top:18px;">박스 생성 완료</button>
+        </div>
+        <div id="dayPopupWrap" class="day-popup-donut"></div>
+      </div>
     </div>
   </div>
 

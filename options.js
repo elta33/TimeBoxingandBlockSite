@@ -332,32 +332,150 @@ function openDayPopup(dow, dayLabel, allBoxes) {
   const title   = document.getElementById('dayPopupTitle');
   if (!overlay || !wrap) return;
 
-  // 해당 요일의 박스만 필터
-  // weeklyBoxes: days 배열에 internalDow 포함 여부
-  // dailyBoxes: days 빈 배열 = 모든 요일
-  const internalDow = dow === 0 ? 6 : dow - 1; // JS요일(0=일) → 내부(0=월)
-  const filtered = allBoxes.filter(box => {
-    const d = box.days || [];
-    return d.length === 0 || d.includes(internalDow);
-  });
-
+  const internalDow = dow === 0 ? 6 : dow - 1;
   const DAY_NAMES = { 0: '일요일', 1: '월요일', 2: '화요일', 3: '수요일', 4: '목요일', 5: '금요일', 6: '토요일' };
   title.textContent = `${DAY_NAMES[dow]} 스케줄`;
 
-  // 이전 interval 정리
   if (_dayPopupClockInterval) { clearInterval(_dayPopupClockInterval); _dayPopupClockInterval = null; }
 
-  // wrap 안에 도넛 렌더링
-  wrap.innerHTML = '';
-  renderDayView(filtered, wrap);
+  // ── 도넛 렌더링 ──
+  function getFilteredBoxes() {
+    return currentBoxes.filter(box => {
+      const d = box.days || [];
+      return d.length === 0 || d.includes(internalDow);
+    });
+  }
 
-  // renderDayView가 dayViewClockInterval을 세팅하므로 저장해두고 팝업 닫을 때 정리
-  overlay.classList.remove('hidden');
+  function refreshDonut() {
+    wrap.innerHTML = '';
+    renderDayView(getFilteredBoxes(), wrap);
+  }
+  refreshDonut();
 
-  // 오버레이 클릭 시 닫기
-  overlay.onclick = (e) => {
-    if (e.target === overlay) closeDayPopup();
+  // ── 팝업 전용 스테이징 ──
+  let popupStagingDomains = [];
+
+  function renderPopupStagingList() {
+    const ul = document.getElementById('popup_stagingCustomList');
+    if (!ul) return;
+    ul.innerHTML = '';
+    popupStagingDomains.forEach((cd, index) => {
+      const li = createCustomDomainItemUI(
+        cd.domain, cd.mode, `popup_stg_c${index}`, 'li',
+        () => { popupStagingDomains.splice(index, 1); renderPopupStagingList(); }
+      );
+      ul.appendChild(li);
+    });
+  }
+
+  // 스테이징 입력 초기화
+  const popupCustomInput = document.getElementById('popup_customDomainInput');
+  const popupBoxName    = document.getElementById('popup_boxName');
+  const popupStartTime  = document.getElementById('popup_startTime');
+  const popupEndTime    = document.getElementById('popup_endTime');
+  if (popupCustomInput) popupCustomInput.value = '';
+  if (popupBoxName)    popupBoxName.value = '';
+  if (popupStartTime)  popupStartTime.value = '';
+  if (popupEndTime)    popupEndTime.value = '';
+  popupStagingDomains = [];
+  renderPopupStagingList();
+
+  // 입력 시 경고 숨김 (메인 폼과 동일 로직)
+  [popupBoxName, popupStartTime, popupEndTime].forEach(el => {
+    if (!el) return;
+    el.addEventListener('input',  () => { const w = document.getElementById('popup_boxWarn'); if (w) w.style.display = 'none'; });
+    el.addEventListener('change', () => { const w = document.getElementById('popup_boxWarn'); if (w) w.style.display = 'none'; });
+  });
+  if (popupCustomInput) {
+    popupCustomInput.addEventListener('input', () => { const w = document.getElementById('popup_customWarn'); if (w) w.style.display = 'none'; });
+  }
+
+  // 스테이징 주소 추가
+  const popupAddCustomBtn = document.getElementById('popup_addCustomStagingBtn');
+  const newPopupAddCustomBtn = popupAddCustomBtn.cloneNode(true);
+  popupAddCustomBtn.parentNode.replaceChild(newPopupAddCustomBtn, popupAddCustomBtn);
+  newPopupAddCustomBtn.onclick = () => {
+    const domain = cleanDomain((document.getElementById('popup_customDomainInput')?.value || '').trim());
+    if (!domain) return;
+    const existIdx = popupStagingDomains.findIndex(cd => cd.domain === domain);
+    if (existIdx !== -1) {
+      const ul = document.getElementById('popup_stagingCustomList');
+      if (ul && ul.children[existIdx]) triggerBounceAndWarn(ul.children[existIdx], 'popup_customWarn', '같은 주소가 이미 있습니다.');
+      return;
+    }
+    popupStagingDomains.push({ domain, mode: 'allow' });
+    document.getElementById('popup_customDomainInput').value = '';
+    const warnEl = document.getElementById('popup_customWarn');
+    if (warnEl) warnEl.style.display = 'none';
+    renderPopupStagingList();
   };
+
+  // 박스 생성
+  const popupAddBoxBtn = document.getElementById('popup_addBoxBtn');
+  const newPopupAddBoxBtn = popupAddBoxBtn.cloneNode(true);
+  popupAddBoxBtn.parentNode.replaceChild(newPopupAddBoxBtn, popupAddBoxBtn);
+  newPopupAddBoxBtn.addEventListener('click', () => {
+    const name      = (document.getElementById('popup_boxName')?.value || '').trim();
+    const startTime = document.getElementById('popup_startTime')?.value || null;
+    const endTime   = document.getElementById('popup_endTime')?.value   || null;
+    const warnEl    = document.getElementById('popup_boxWarn');
+
+    if (!name || !startTime || !endTime) { alert('박스 이름과 시간을 입력해주세요!'); return; }
+
+    let newStartMin = timeToMins(startTime);
+    let newEndMin   = timeToMins(endTime);
+    if (newEndMin <= newStartMin) newEndMin += 24 * 60;
+
+    const boxKey = 'weeklyBoxes';
+    chrome.storage.local.get([boxKey], function(result) {
+      const boxes = result[boxKey] || [];
+
+      // 겨침 검사 (해당 요일만)
+      const overlapIndices = [];
+      for (let i = 0; i < boxes.length; i++) {
+        const b = boxes[i];
+        const bDays = b.days || [];
+        if (bDays.length > 0 && !bDays.includes(internalDow)) continue;
+        let existStart = timeToMins(b.startTime);
+        let existEnd   = timeToMins(b.endTime);
+        if (existEnd <= existStart) existEnd += 24 * 60;
+        let isOverlap = Math.max(newStartMin, existStart) < Math.min(newEndMin, existEnd);
+        if (!isOverlap && newEndMin > 24 * 60) {
+          const ss = existStart + 24 * 60, se = existEnd + 24 * 60;
+          isOverlap = Math.max(newStartMin, ss) < Math.min(newEndMin, se);
+        }
+        if (isOverlap) overlapIndices.push(i);
+      }
+
+      if (overlapIndices.length > 0) {
+        if (warnEl) { warnEl.textContent = '시간이 겨치는 박스가 있습니다.'; warnEl.style.display = 'inline-block'; }
+        const filtered = getFilteredBoxes();
+        overlapIndices.forEach(i => {
+          const ob = boxes[i];
+          const filteredIdx = filtered.findIndex(b => b.startTime === ob.startTime && b.endTime === ob.endTime && b.name === ob.name);
+          if (filteredIdx !== -1 && wrap._pulseBox) wrap._pulseBox(filteredIdx);
+        });
+        return;
+      }
+
+      boxes.push({ name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains] });
+      chrome.storage.local.set({ [boxKey]: boxes }, () => {
+        currentBoxes = boxes;
+        if (popupBoxName)   popupBoxName.value = '';
+        if (popupStartTime) popupStartTime.value = '';
+        if (popupEndTime)   popupEndTime.value = '';
+        if (warnEl)         warnEl.style.display = 'none';
+        popupStagingDomains = [];
+        renderPopupStagingList();
+        refreshDonut();
+        // 메인 주간 뷰도 갱신
+        renderBoxes(boxes);
+      });
+    });
+  });
+
+  overlay.classList.remove('hidden');
+  overlay.onclick = (e) => { if (e.target === overlay) closeDayPopup(); };
 }
 
 function closeDayPopup() {
