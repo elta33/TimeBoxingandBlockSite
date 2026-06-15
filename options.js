@@ -323,6 +323,50 @@ function renderWeekDetailPanel(box, boxIndex) {
   panel.style.display = 'block';
 }
 
+// ── 요일 도넛 팝업 ──
+let _dayPopupClockInterval = null;
+
+function openDayPopup(dow, dayLabel, allBoxes) {
+  const overlay = document.getElementById('dayPopupOverlay');
+  const wrap    = document.getElementById('dayPopupWrap');
+  const title   = document.getElementById('dayPopupTitle');
+  if (!overlay || !wrap) return;
+
+  // 해당 요일의 박스만 필터
+  // weeklyBoxes: days 배열에 internalDow 포함 여부
+  // dailyBoxes: days 빈 배열 = 모든 요일
+  const internalDow = dow === 0 ? 6 : dow - 1; // JS요일(0=일) → 내부(0=월)
+  const filtered = allBoxes.filter(box => {
+    const d = box.days || [];
+    return d.length === 0 || d.includes(internalDow);
+  });
+
+  const DAY_NAMES = { 0: '일요일', 1: '월요일', 2: '화요일', 3: '수요일', 4: '목요일', 5: '금요일', 6: '토요일' };
+  title.textContent = `${DAY_NAMES[dow]} 스케줄`;
+
+  // 이전 interval 정리
+  if (_dayPopupClockInterval) { clearInterval(_dayPopupClockInterval); _dayPopupClockInterval = null; }
+
+  // wrap 안에 도넛 렌더링
+  wrap.innerHTML = '';
+  renderDayView(filtered, wrap);
+
+  // renderDayView가 dayViewClockInterval을 세팅하므로 저장해두고 팝업 닫을 때 정리
+  overlay.classList.remove('hidden');
+
+  // 오버레이 클릭 시 닫기
+  overlay.onclick = (e) => {
+    if (e.target === overlay) closeDayPopup();
+  };
+}
+
+function closeDayPopup() {
+  const overlay = document.getElementById('dayPopupOverlay');
+  if (overlay) overlay.classList.add('hidden');
+  // 팝업 도넛의 clock interval 정리
+  if (dayViewClockInterval) { clearInterval(dayViewClockInterval); dayViewClockInterval = null; }
+}
+
 // ── 요일 선택기 순서 동기화 ──
 let weekStartMonday = false;
 
@@ -384,6 +428,8 @@ function renderWeekView(boxes, wrap, scrollToMins) {
     const lbl = document.createElement('div');
     lbl.className   = 'week-day-label' + (dow === todayDow ? ' today' : '');
     lbl.textContent = label;
+    lbl.title = `${label}요일 스케줄 보기`;
+    lbl.addEventListener('click', () => openDayPopup(dow, label, boxes));
     headerRow.appendChild(lbl);
   });
   scrollBody.appendChild(headerRow);
@@ -642,6 +688,9 @@ function clearDaySelection() {
 
 // ── DOMContentLoaded 진입점 ──
 document.addEventListener('DOMContentLoaded', () => {
+  // 요일 팝업 닫기 버튼
+  document.getElementById('dayPopupCloseBtn')?.addEventListener('click', closeDayPopup);
+
   // 메인 탭
   document.querySelectorAll('.main-tab').forEach(tab => {
     tab.addEventListener('click', () => {

@@ -179,7 +179,8 @@ button { cursor: pointer; font-family: inherit; }
 
 /* ── 일주일 뷰 ── */
 .week-header-row { display: grid; position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #e4e4e4; }
-.week-day-label { text-align: center; font-size: 0.72rem; font-weight: 700; color: #777; padding: 6px 0; border-right: 1px solid #f0f0f0; }
+.week-day-label { text-align: center; font-size: 0.72rem; font-weight: 700; color: #777; padding: 6px 0; border-right: 1px solid #f0f0f0; cursor: pointer; transition: color 0.12s, background 0.12s; }
+.week-day-label:hover { color: #111; background: #fafafa; }
 .week-day-label:last-child { border-right: none; }
 .week-day-label.today { color: #faad14; }
 .week-day-col { position: relative; border-right: 1px solid #f0f0f0; }
@@ -235,6 +236,42 @@ button { cursor: pointer; font-family: inherit; }
 .scheduler-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .detail-master-row { display: flex; gap: 5px; margin-bottom: 8px; }
 .detail-empty { font-size: 0.82rem; color: #bbb; margin: 8px 0 0; }
+
+/* ── 요일 도넛 팝업 ── */
+.day-popup-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+}
+.day-popup-overlay.hidden { display: none; }
+.day-popup-modal {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 24px 20px;
+  width: 580px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+  animation: popupIn 0.18s ease;
+}
+@keyframes popupIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.day-popup-close {
+  position: absolute; top: 14px; right: 16px;
+  background: none; border: none; font-size: 1.5rem;
+  color: #aaa; cursor: pointer; line-height: 1;
+  padding: 2px 6px; border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+.day-popup-close:hover { color: #333; background: #f0f0f0; }
+.day-popup-title {
+  font-size: 1.1rem; font-weight: 700; color: #111;
+  margin-bottom: 12px; padding-right: 32px;
+}
   </style>
 </head>
 <body>
@@ -351,6 +388,14 @@ button { cursor: pointer; font-family: inherit; }
         <div id="weekDetailPanel"></div>
       </div>
 
+    </div>
+  </div>
+
+  <div id="dayPopupOverlay" class="day-popup-overlay hidden">
+    <div id="dayPopupModal" class="day-popup-modal">
+      <button id="dayPopupCloseBtn" class="day-popup-close">&times;</button>
+      <div id="dayPopupTitle" class="day-popup-title"></div>
+      <div id="dayPopupWrap"></div>
     </div>
   </div>
 
