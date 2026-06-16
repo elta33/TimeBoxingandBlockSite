@@ -41,12 +41,14 @@ async function updateBlockingRules() {
   const newRules = [];
   const finalAllowSet = new Set(); // 커스텀 allow 도메인 추적 (generalList 등록 시 필터링용)
 
-  function addDnrRule(domain, priority, isAllow) {
+  // reason: 'permanent' | 'general' | 'custom' — block.html에서 차단 사유 메시지 분기용
+  function addDnrRule(domain, priority, isAllow, reason) {
     if (!domain) return;
+    const redirectPath = reason ? `${BLOCK_PAGE_PATH}?reason=${reason}` : BLOCK_PAGE_PATH;
     newRules.push({
       id: ruleIdCounter++,
       priority: priority,
-      action: isAllow ? { type: "allow" } : { type: "redirect", redirect: { extensionPath: BLOCK_PAGE_PATH } },
+      action: isAllow ? { type: "allow" } : { type: "redirect", redirect: { extensionPath: redirectPath } },
       condition: {
         // || 기호를 붙여 서브도메인(www 등)까지 완벽 매칭하는 크롬 권장 문법
         urlFilter: "||" + domain,
@@ -57,7 +59,7 @@ async function updateBlockingRules() {
 
   // 1순위: 상시 차단 리스트 (계급 100)
   permanentList.forEach(d => {
-    addDnrRule(cleanDomain(d), 100, false);
+    addDnrRule(cleanDomain(d), 100, false, 'permanent');
   });
 
   const todayDow = (new Date().getDay() + 6) % 7; // 0=월…6=일
@@ -83,7 +85,7 @@ async function updateBlockingRules() {
         if (cd.mode === 'block') {
           // 차단 박스, 허용 박스 모두: 커스텀 block은 무조건 차단 규칙 등록
           // (단, permanentList는 계급 100으로 이미 커버되므로 중복 등록이지만 무해함)
-          addDnrRule(clean, 50, false);
+          addDnrRule(clean, 50, false, 'custom');
         } else if (cd.mode === 'allow') {
           if (!isPermanent) {
             // finalAllowSet에 기록해두어 generalList 등록 시 제외시킴
@@ -97,11 +99,11 @@ async function updateBlockingRules() {
     }
 
     generalList.forEach(d => {
-          const clean = cleanDomain(d);
-          if (!finalAllowSet.has(clean)) {
-            addDnrRule(clean, 10, false);
-          }
-        });
+      const clean = cleanDomain(d);
+      if (!finalAllowSet.has(clean)) {
+        addDnrRule(clean, 10, false, 'general');
+      }
+    });
   }
 
   // 크롬 엔진 덮어쓰기

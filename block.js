@@ -53,3 +53,19 @@ function pickRandom(arr) {
   if (quote) el.textContent = quote;
   else el.style.display = 'none';
 })();
+
+// 차단 사유별 하단 문구 분기
+(function applyReasonMessage() {
+  const params = new URLSearchParams(window.location.search);
+  const reason = params.get('reason');
+  const el = document.getElementById('subtitle');
+  if (!el) return;
+
+  const MESSAGES = {
+    permanent: '상시 차단에 의해 접속이 제한되었습니다.',
+    general:   '현재 스케줄에 의해 접속이 제한되었습니다.',
+    custom:    '현재 스케줄에 의해 접속이 제한되었습니다.',
+  };
+
+  el.textContent = MESSAGES[reason] || '현재 스케젨에 의해 접송이 제한되었습니다.';
+})();
