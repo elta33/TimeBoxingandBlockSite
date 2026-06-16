@@ -63,6 +63,7 @@ function renderDayView(boxes, wrap) {
 
     gaps.forEach(({ s, e }) => {
       if (e - s < 1) return;
+      if (e - s >= TOTAL_MINS) return; // 24시간 박스로 인해 gap이 없는 경우 스킵
       const pathD = makeArcPath(s, e);
       if (!pathD) return;
       const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -358,13 +359,19 @@ function renderDayView(boxes, wrap) {
     segGroup.querySelectorAll('.donut-seg').forEach((seg, i) => {
       const box = boxes[i];
       const isSelected = (i === selectedIndex);
-      seg.setAttribute('stroke', isSelected ? '#fff' : 'none');
-      seg.setAttribute('stroke-width', isSelected ? '3' : '0');
-      const midMins = (timeToMins(box.startTime) + (timeToMins(box.endTime) <= timeToMins(box.startTime) ? timeToMins(box.endTime) + TOTAL_MINS : timeToMins(box.endTime))) / 2;
-      const midAngle = minsToAngle(midMins);
-      const offset = isSelected ? 10 : 0;
-      const rad = (midAngle * Math.PI) / 180;
-      seg.setAttribute('transform', isSelected ? `translate(${offset * Math.cos(rad)}, ${offset * Math.sin(rad)})` : '');
+      // circle(24시간 박스)와 path 분리 처리
+      if (seg.tagName === 'circle') {
+        seg.setAttribute('opacity', isSelected ? '1' : '0.85');
+        seg.setAttribute('transform', '');
+      } else {
+        seg.setAttribute('stroke', isSelected ? '#fff' : 'none');
+        seg.setAttribute('stroke-width', isSelected ? '3' : '0');
+        const midMins = (timeToMins(box.startTime) + (timeToMins(box.endTime) <= timeToMins(box.startTime) ? timeToMins(box.endTime) + TOTAL_MINS : timeToMins(box.endTime))) / 2;
+        const midAngle = minsToAngle(midMins);
+        const offset = isSelected ? 10 : 0;
+        const rad = (midAngle * Math.PI) / 180;
+        seg.setAttribute('transform', isSelected ? `translate(${offset * Math.cos(rad)}, ${offset * Math.sin(rad)})` : '');
+      }
     });
     renderCenter(selectedIndex !== null ? boxes[selectedIndex] : null);
     renderDetailArea(selectedIndex !== null ? boxes[selectedIndex] : null, selectedIndex);
@@ -375,6 +382,19 @@ function renderDayView(boxes, wrap) {
     const segs = segGroup.querySelectorAll('.donut-seg');
     const seg = segs[idx];
     if (!seg) return;
+
+    // 24시간 박스(circle)는 opacity 폄이드로 대체
+    if (seg.tagName === 'circle') {
+      let count = 0;
+      const TOTAL_PULSES = 2;
+      function doPulseCircle() {
+        if (count >= TOTAL_PULSES) { seg.setAttribute('opacity', '0.85'); return; }
+        seg.setAttribute('opacity', '1');
+        setTimeout(() => { seg.setAttribute('opacity', '0.85'); count++; setTimeout(doPulseCircle, 150); }, 150);
+      }
+      doPulseCircle();
+      return;
+    }
 
     const box = boxes[idx];
     const midMins = (timeToMins(box.startTime) + (timeToMins(box.endTime) <= timeToMins(box.startTime) ? timeToMins(box.endTime) + TOTAL_MINS : timeToMins(box.endTime))) / 2;
@@ -428,11 +448,25 @@ function renderDayView(boxes, wrap) {
     let endM = timeToMins(box.endTime);
     if (endM <= startM) endM += TOTAL_MINS;
     const color = '#ff4d4f';
-    const pathD = makeSegPath(startM, endM, R_OUTER, R_INNER);
-    const seg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    seg.setAttribute('d', pathD);
-    seg.setAttribute('fill', color); seg.setAttribute('opacity', '0.85');
-    seg.setAttribute('stroke', 'none'); seg.setAttribute('stroke-width', '0');
+
+    let seg;
+    if (endM - startM >= TOTAL_MINS) {
+      // 24시간 박스: 웹패스 대신 원형(circle)으로 렌더
+      seg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      seg.setAttribute('cx', CX); seg.setAttribute('cy', CY);
+      seg.setAttribute('r', (R_OUTER + R_INNER) / 2);
+      seg.setAttribute('fill', 'none');
+      seg.setAttribute('stroke', color);
+      seg.setAttribute('stroke-width', R_OUTER - R_INNER);
+      seg.setAttribute('opacity', '0.85');
+    } else {
+      const pathD = makeSegPath(startM, endM, R_OUTER, R_INNER);
+      seg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      seg.setAttribute('d', pathD);
+      seg.setAttribute('fill', color); seg.setAttribute('opacity', '0.85');
+    }
+
+    seg.setAttribute('stroke-linejoin', 'round');
     seg.style.cursor = 'pointer';
     seg.style.transition = 'transform 0.18s ease, opacity 0.15s';
     seg.classList.add('donut-seg');

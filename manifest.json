@@ -18,5 +18,18 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "options_page": "options.html"
+  "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "*.gif",
+        "*.jpg",
+        "*.jpeg",
+        "*.png",
+        "*.webp",
+        "images/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

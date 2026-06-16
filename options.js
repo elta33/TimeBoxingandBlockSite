@@ -126,63 +126,76 @@ function buildTimeAxis(labelCol, bodyEl, slotCount) {
   }
 }
 
-// ── 주간 뷰: 박스 카드 DOM 생성 ──
+// ── 주간 뷰: 박스 카드 DOM 생성 (자정 넘기는 박스는 2개로 분할) ──
 function buildBoxCard(box, boxIndex, isWeek) {
   const startM = timeToMins(box.startTime);
-  let endM = timeToMins(box.endTime);
-  if (endM <= startM) endM += TOTAL_MINS;
-  const durationM = endM - startM;
+  const rawEndM = timeToMins(box.endTime);
+  const wraps = (rawEndM <= startM && !(rawEndM === 0 && startM === 0));
+  // 24시간 박스 (startM === rawEndM)
+  const isFullDay = (rawEndM === startM);
 
-  const card = document.createElement('div');
-  card.className = `tbox box-block`;
-  card.dataset.boxIndex = boxIndex;
-  card.style.top    = `${minsToPx(startM)}px`;
-  card.style.height = `${Math.max(minsToPx(durationM) - 3, 20)}px`;
+  function makeCard(topMins, heightMins, isWrapTop) {
+    const card = document.createElement('div');
+    card.className = 'tbox box-block';
+    card.dataset.boxIndex = boxIndex;
+    card.style.top    = `${minsToPx(topMins)}px`;
+    card.style.height = `${Math.max(minsToPx(heightMins) - 3, 20)}px`;
 
-  const nameEl = document.createElement('div');
-  nameEl.className = 'tbox-name'; nameEl.textContent = box.name;
-  card.appendChild(nameEl);
+    const nameEl = document.createElement('div');
+    nameEl.className = 'tbox-name';
+    nameEl.textContent = isWrapTop ? `↩ ${box.name}` : box.name;
+    card.appendChild(nameEl);
 
-  if (!isWeek || durationM >= 45) {
-    const timeEl = document.createElement('div');
-    timeEl.className = 'tbox-time';
-    timeEl.textContent = `${box.startTime}–${box.endTime}`;
-    card.appendChild(timeEl);
-  }
-
-  // 커스텀 주소 요약 텍스트
-  if (box.customDomains && box.customDomains.length > 0 && durationM >= 30) {
-    const summaryEl = document.createElement('div');
-    summaryEl.className = 'tbox-custom-summary';
-    const first = box.customDomains[0].domain;
-    const rest  = box.customDomains.length - 1;
-    if (rest > 0) {
-      summaryEl.textContent = first;
-      const restEl = document.createElement('div');
-      restEl.className = 'tbox-custom-summary';
-      restEl.textContent = `외 ${rest}개 예외`;
-      card.appendChild(summaryEl);
-      card.appendChild(restEl);
-    } else {
-      summaryEl.textContent = `${first} 예외`;
-      card.appendChild(summaryEl);
+    if (!isWeek || heightMins >= 45) {
+      const timeEl = document.createElement('div');
+      timeEl.className = 'tbox-time';
+      timeEl.textContent = `${box.startTime}–${box.endTime}`;
+      card.appendChild(timeEl);
     }
+
+    if (box.customDomains && box.customDomains.length > 0 && heightMins >= 30) {
+      const summaryEl = document.createElement('div');
+      summaryEl.className = 'tbox-custom-summary';
+      const first = box.customDomains[0].domain;
+      const rest  = box.customDomains.length - 1;
+      if (rest > 0) {
+        summaryEl.textContent = first;
+        const restEl = document.createElement('div');
+        restEl.className = 'tbox-custom-summary';
+        restEl.textContent = `외 ${rest}개 예외`;
+        card.appendChild(summaryEl);
+        card.appendChild(restEl);
+      } else {
+        summaryEl.textContent = `${first} 예외`;
+        card.appendChild(summaryEl);
+      }
+    }
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'tbox-del'; delBtn.textContent = '삭제'; delBtn.title = '이 박스 삭제';
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteBox(boxIndex); };
+    card.appendChild(delBtn);
+
+    if (box.customDomains && box.customDomains.length > 0) {
+      card.addEventListener('click', (e) => {
+        if (e.target === delBtn) return;
+        renderWeekDetailPanel(box, boxIndex);
+      });
+    }
+    return card;
   }
 
-  const delBtn = document.createElement('button');
-  delBtn.className = 'tbox-del'; delBtn.textContent = '삭제'; delBtn.title = '이 박스 삭제';
-  delBtn.onclick = (e) => { e.stopPropagation(); deleteBox(boxIndex); };
-  card.appendChild(delBtn);
-
-  // 박스 클릭 → 하단 외부 패널 열기
-  if (box.customDomains && box.customDomains.length > 0) {
-    card.addEventListener('click', (e) => {
-      if (e.target === delBtn) return;
-      renderWeekDetailPanel(box, boxIndex);
-    });
+  if (isFullDay) {
+    // 24시간 박스: 컴럼 전체
+    return [makeCard(0, TOTAL_MINS, false)];
+  } else if (wraps) {
+    // 자정 넘기는 박스: 두 조각
+    const bottomH = TOTAL_MINS - startM;  // startM ~ 24:00
+    const topH    = rawEndM;              // 00:00 ~ endTime
+    return [makeCard(startM, bottomH, false), makeCard(0, topH, true)];
+  } else {
+    return [makeCard(startM, rawEndM - startM, false)];
   }
-
-  return card;
 }
 
 // ── 주간 뷰: 스케줄러 하단 커스텀 주소 패널 ──
@@ -584,7 +597,9 @@ function renderWeekView(boxes, wrap, scrollToMins) {
     const internalDow = dow === 0 ? 6 : dow - 1;
     boxes
       .filter(box => { const d = box.days || []; return d.length === 0 || d.includes(internalDow); })
-      .forEach(box => { col.appendChild(buildBoxCard(box, boxes.indexOf(box), true)); });
+      .forEach(box => {
+        buildBoxCard(box, boxes.indexOf(box), true).forEach(card => col.appendChild(card));
+      });
 
     // 오늘 열에만 현재 시간선 표시
     if (dow === todayDow) {
