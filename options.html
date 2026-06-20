@@ -287,6 +287,16 @@ button { cursor: pointer; font-family: inherit; }
   font-size: 1.1rem; font-weight: 700; color: #111;
   margin-bottom: 12px; padding-right: 32px;
 }
+
+/* ── 하루 스케줄 토글 스위치 ── */
+.schedule-toggle-row { display: flex; align-items: center; margin-bottom: 14px; }
+.switch-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 0.88rem; color: #555; }
+.switch-label input[type="checkbox"] { display: none; }
+.switch-track { width: 40px; height: 22px; background: #ddd; border-radius: 11px; position: relative; transition: background 0.2s; flex-shrink: 0; }
+.switch-label input[type="checkbox"]:checked + .switch-track { background: #ff4d4f; }
+.switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 0.2s; }
+.switch-label input[type="checkbox"]:checked + .switch-track .switch-thumb { left: 20px; }
+#timetableWrap.daily-disabled .donut-container { filter: saturate(0.15) brightness(0.85); transition: filter 0.3s; }
   </style>
 </head>
 <body>
@@ -398,6 +408,13 @@ button { cursor: pointer; font-family: inherit; }
               <button class="view-tab" data-view="week">일주일</button>
             </div>
           </div>
+        </div>
+        <div id="dailyScheduleToggleRow" class="schedule-toggle-row" style="display:none;">
+          <label class="switch-label">
+            <input type="checkbox" id="dailyScheduleDisableToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span>하루 스케줄 비활성화</span>
+          </label>
         </div>
         <div id="timetableWrap"></div>
         <div id="weekDetailPanel"></div>

@@ -2,6 +2,7 @@
 // ※ 로드 순서: storage.js → render-day.js → options.js
 
 let stagingCustomDomains = [];
+let dailyScheduleEnabled = true;
 
 // ── 도메인 정규화 ──
 function cleanDomain(d) {
@@ -825,6 +826,17 @@ function clearDaySelection() {
   document.querySelectorAll('input[name="days"]').forEach(cb => cb.checked = false);
 }
 
+function applyDailyScheduleVisual() {
+  const wrap = document.getElementById('timetableWrap');
+  if (!wrap) return;
+  wrap.classList.toggle('daily-disabled', !dailyScheduleEnabled);
+}
+
+function updateDailyToggleVisibility() {
+  const row = document.getElementById('dailyScheduleToggleRow');
+  if (row) row.style.display = currentView === 'day' ? 'flex' : 'none';
+}
+
 // ── DOMContentLoaded 진입점 ──
 document.addEventListener('DOMContentLoaded', () => {
   // 요일 팝업 닫기 버튼
@@ -857,12 +869,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // 하루 스케줄 활성화 토글
+  chrome.storage.local.get(['dailyScheduleEnabled'], result => {
+    dailyScheduleEnabled = result.dailyScheduleEnabled !== false;
+    const toggle = document.getElementById('dailyScheduleDisableToggle');
+    if (toggle) toggle.checked = !dailyScheduleEnabled;
+    applyDailyScheduleVisual();
+  });
+  document.getElementById('dailyScheduleDisableToggle')?.addEventListener('change', e => {
+    dailyScheduleEnabled = !e.target.checked;
+    chrome.storage.local.set({ dailyScheduleEnabled });
+    applyDailyScheduleVisual();
+  });
+
   function updateWeekStartToggleVisibility() {
     if (weekStartWrap) weekStartWrap.style.display = currentView === 'week' ? 'flex' : 'none';
   }
   updateWeekStartToggleVisibility();
+  updateDailyToggleVisibility();
 
-  initViewTabs(updateWeekStartToggleVisibility);
+  initViewTabs(() => {
+    updateWeekStartToggleVisibility();
+    updateDailyToggleVisibility();
+    applyDailyScheduleVisual();
+  });
   loadSettings();
 
   // 입력 시 경고 숨김

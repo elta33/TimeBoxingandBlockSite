@@ -29,11 +29,12 @@ function cleanDomain(d) {
 }
 
 async function updateBlockingRules() {
-  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes']);
+  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled']);
   const generalList = data.generalList || [];
   const permanentList = data.permanentList || [];
   // dailyBoxes: 요일 무관 오늘만 / weeklyBoxes: 요일 필터 적용
-  const dailyBoxes = (data.dailyBoxes || []).map(b => ({ ...b, days: [] })); // 강제로 매일 적용
+  const dailyEnabled = data.dailyScheduleEnabled !== false;
+  const dailyBoxes = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : []; // 강제로 매일 적용
   const weeklyBoxes = data.weeklyBoxes || [];
   const timeBoxes = [...dailyBoxes, ...weeklyBoxes];
 
@@ -151,11 +152,12 @@ async function shouldUrlBeBlocked(url) {
     return hostname === clean || hostname.endsWith('.' + clean);
   }
 
-  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes']);
+  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled']);
   const permanentList = data.permanentList || [];
   if (permanentList.some(d => matches(d))) return { blocked: true, reason: 'permanent' };
 
-  const dailyBoxes = (data.dailyBoxes || []).map(b => ({ ...b, days: [] }));
+  const dailyEnabled = data.dailyScheduleEnabled !== false;
+  const dailyBoxes = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : [];
   const weeklyBoxes = data.weeklyBoxes || [];
   const todayDow = (new Date().getDay() + 6) % 7;
   const activeBox = [...dailyBoxes, ...weeklyBoxes].find(box => {
