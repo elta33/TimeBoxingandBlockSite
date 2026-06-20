@@ -382,6 +382,8 @@ function openDayPopup(dow, dayLabel, allBoxes) {
   }
 
   // 스테이징 입력 초기화
+  const _oldPopupCustomInput = document.getElementById('popup_customDomainInput');
+  if (_oldPopupCustomInput) _oldPopupCustomInput.parentNode.replaceChild(_oldPopupCustomInput.cloneNode(true), _oldPopupCustomInput);
   const popupCustomInput = document.getElementById('popup_customDomainInput');
   const popupBoxName    = document.getElementById('popup_boxName');
   const popupStartTime  = document.getElementById('popup_startTime');
@@ -407,6 +409,10 @@ function openDayPopup(dow, dayLabel, allBoxes) {
   const popupAddCustomBtn = document.getElementById('popup_addCustomStagingBtn');
   const newPopupAddCustomBtn = popupAddCustomBtn.cloneNode(true);
   popupAddCustomBtn.parentNode.replaceChild(newPopupAddCustomBtn, popupAddCustomBtn);
+  if (popupCustomInput) {
+    popupCustomInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') newPopupAddCustomBtn.click(); });
+  }
+
   newPopupAddCustomBtn.onclick = () => {
     const domain = cleanDomain((document.getElementById('popup_customDomainInput')?.value || '').trim());
     if (!domain) return;
@@ -869,4 +875,8 @@ document.addEventListener('DOMContentLoaded', () => {
     el?.addEventListener('input',  () => hideWarn('boxWarn'));
     el?.addEventListener('change', () => hideWarn('boxWarn'));
   });
+
+  document.getElementById('permanentDomainInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('addPermanentBtn').click(); });
+  document.getElementById('generalDomainInput')?.addEventListener('keydown',   e => { if (e.key === 'Enter') document.getElementById('addGeneralBtn').click(); });
+  document.getElementById('customDomainInput')?.addEventListener('keydown',    e => { if (e.key === 'Enter') document.getElementById('addCustomStagingBtn').click(); });
 });

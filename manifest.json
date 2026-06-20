@@ -4,8 +4,8 @@
   "version": "1.0",
   "description": "타임박싱 스케쥴러와 웹사이트 차단 기능을 통해 집중력을 높여주는 도구입니다.",
   "permissions": [
-    "storage", 
-    "declarativeNetRequest", 
+    "storage",
+    "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
     "alarms"
   ],
@@ -19,15 +19,30 @@
     "default_popup": "popup.html"
   },
   "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["page-world.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
   "web_accessible_resources": [
     {
       "resources": [
+        "block.html",
         "*.gif",
         "*.jpg",
         "*.jpeg",
         "*.png",
         "*.webp",
-        "images/*"
+        "images/*",
+        "Image/*"
       ],
       "matches": ["<all_urls>"]
     }

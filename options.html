@@ -47,7 +47,7 @@ body {
 .sector-desc { font-size: 0.9rem; color: #888; margin: 0 0 12px; }
 
 /* ── 레이아웃 그리드 ── */
-.block-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.block-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .scheduler-grid { display: grid; grid-template-columns: 420px 1fr; gap: 15px; align-items: start; }
 
 /* ── 입력 행 공통 ── */
@@ -66,7 +66,7 @@ button { cursor: pointer; font-family: inherit; }
 .btn-ghost:hover { background: #f5f5f5; }
 
 /* ── 도메인 리스트 및 텍스트 ── */
-.domain-list { list-style: none; padding: 0; margin: 10px 0 0 0; max-height: 260px; overflow-y: auto; }
+.domain-list { list-style: none; padding: 0; margin: 10px 0 0 0; max-height: 260px; overflow-y: auto; overflow-x: hidden; }
 .domain-text { font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; margin-right: 10px; }
 
 /* ── 경고 텍스트 ── */
@@ -100,7 +100,9 @@ button { cursor: pointer; font-family: inherit; }
   width: 100%;
   box-sizing: border-box;
   list-style: none;
+  overflow: hidden;
 }
+.custom-domain-item > .btn-danger { flex-shrink: 0; }
 .custom-domain-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 
 /* ── 바운스 애니메이션 ── */

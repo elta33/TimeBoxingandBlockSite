@@ -124,3 +124,65 @@ chrome.alarms.create("timeboxTicker", { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(alarm => { if (alarm.name === "timeboxTicker") updateBlockingRules(); });
 chrome.runtime.onStartup.addListener(updateBlockingRules);
 chrome.runtime.onInstalled.addListener(updateBlockingRules);
+
+// ── content.js SPA 차단 판별 요청 처리 ──
+// DNR이 잡지 못한 SPA 내비게이션(pushState/replaceState)에 대해
+// content.js가 현재 URL을 보내면 차단 여부를 계산해 돌려준다.
+async function shouldUrlBeBlocked(url) {
+  let urlObj;
+  try { urlObj = new URL(url); } catch { return { blocked: false }; }
+  if (urlObj.protocol === 'chrome-extension:') return { blocked: false };
+
+  const hostname = urlObj.hostname.replace(/^www\./, '');
+
+  function matches(entry) {
+    const clean = cleanDomain(entry);
+    const sepIdx = clean.search(/[/?#]/);
+    if (sepIdx !== -1) {
+      // 경로 또는 쿼리 파라미터 포함 (예: youtube.com/shorts, youtube.com/watch?v=xxx)
+      const bHost = clean.slice(0, sepIdx);
+      const bTail = clean.slice(sepIdx); // "/shorts" 또는 "/watch?v=xxx"
+      if (!(hostname === bHost || hostname.endsWith('.' + bHost))) return false;
+      const urlTail = urlObj.pathname + urlObj.search + urlObj.hash;
+      // 접두사 일치 + 경계 확인 (youtube.com/watch?v=abc 가 ?v=abcXXX 에 오매칭되지 않도록)
+      return urlTail.startsWith(bTail) &&
+        (urlTail.length === bTail.length || '/?&=#'.includes(urlTail[bTail.length]));
+    }
+    return hostname === clean || hostname.endsWith('.' + clean);
+  }
+
+  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes']);
+  const permanentList = data.permanentList || [];
+  if (permanentList.some(d => matches(d))) return { blocked: true, reason: 'permanent' };
+
+  const dailyBoxes = (data.dailyBoxes || []).map(b => ({ ...b, days: [] }));
+  const weeklyBoxes = data.weeklyBoxes || [];
+  const todayDow = (new Date().getDay() + 6) % 7;
+  const activeBox = [...dailyBoxes, ...weeklyBoxes].find(box => {
+    const days = box.days || [];
+    if (days.length > 0 && !days.includes(todayDow)) return false;
+    return isTimeInBox(box.startTime, box.endTime);
+  });
+  if (!activeBox) return { blocked: false };
+
+  const allowSet = new Set();
+  if (activeBox.customDomains) {
+    for (const cd of activeBox.customDomains) {
+      if (cd.mode === 'allow') allowSet.add(cleanDomain(cd.domain));
+      else if (cd.mode === 'block' && matches(cd.domain)) return { blocked: true, reason: 'custom' };
+    }
+  }
+
+  const generalList = data.generalList || [];
+  for (const d of generalList) {
+    if (!allowSet.has(cleanDomain(d)) && matches(d)) return { blocked: true, reason: 'general' };
+  }
+
+  return { blocked: false };
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type !== 'checkBlock') return false;
+  shouldUrlBeBlocked(msg.url).then(sendResponse);
+  return true; // 비동기 응답
+});
