@@ -81,8 +81,15 @@
       text-shadow: 0 1px 8px rgba(0,0,0,0.8);
     }
 
-    #openSettings {
+    .btn-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
       margin-top: 28px;
+    }
+
+    #openSettings, #customizeBtn {
       padding: 8px 22px;
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.3);
@@ -93,7 +100,343 @@
       cursor: pointer;
       transition: background 0.2s, color 0.2s;
     }
-    #openSettings:hover { background: rgba(255,255,255,0.22); color: #fff; }
+    #openSettings:hover, #customizeBtn:hover {
+      background: rgba(255,255,255,0.22);
+      color: #fff;
+    }
+
+    /* ──────────────── 커스텀 팝업 ──────────────── */
+    #customize-backdrop {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.78);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    #customize-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    #customize-popup {
+      position: relative;
+      background: #1e1e2e;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 28px 28px 24px;
+      width: min(760px, 93vw);
+      max-height: 85vh;
+      overflow-y: auto;
+      color: #fff;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.65);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+    }
+    #customize-popup::-webkit-scrollbar { width: 6px; }
+    #customize-popup::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+    #customize-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 28px; height: 28px;
+      background: rgba(255,255,255,0.1);
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 1rem; line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    #customize-close:hover { background: rgba(255,255,255,0.22); }
+
+    #customize-popup h2 {
+      margin: 0 0 20px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      padding-right: 36px;
+    }
+
+    .cust-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .cust-col { min-width: 0; }
+
+    .cust-col-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .cust-col-header span {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.55);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .cust-clear-all {
+      font-size: 0.73rem;
+      color: #ff6b6b;
+      background: none; border: none;
+      cursor: pointer; padding: 2px 7px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .cust-clear-all:hover { background: rgba(255,107,107,0.18); }
+
+    .cust-list {
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 8px;
+      min-height: 90px;
+      max-height: 260px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 5px;
+      margin-bottom: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.12) transparent;
+    }
+    .cust-list::-webkit-scrollbar { width: 5px; }
+    .cust-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+    .cust-list-empty {
+      text-align: center;
+      padding: 22px 0;
+      color: rgba(255,255,255,0.28);
+      font-size: 0.82rem;
+      pointer-events: none;
+    }
+
+    .cust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 6px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .cust-item.clickable { cursor: pointer; }
+    .cust-item.clickable:hover { background: rgba(255,255,255,0.07); }
+
+    .cust-thumb {
+      width: 34px; height: 34px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.08);
+      display: block;
+    }
+
+    .cust-item-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.86rem;
+      color: rgba(255,255,255,0.82);
+    }
+
+    .cust-del {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      background: rgba(255,80,80,0.12);
+      border: none; border-radius: 4px;
+      color: #ff7070; font-size: 0.9rem; line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .cust-del:hover { background: rgba(255,80,80,0.28); }
+
+    .cust-add-btn {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px dashed rgba(255,255,255,0.18);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.52);
+      font-size: 0.84rem;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+    .cust-add-btn:hover {
+      background: rgba(255,255,255,0.09);
+      color: rgba(255,255,255,0.85);
+      border-color: rgba(255,255,255,0.3);
+    }
+
+    .cust-quote-input-area {
+      margin-top: 10px;
+      display: none;
+    }
+    .cust-quote-input-area.open { display: block; }
+    .cust-quote-input-area textarea {
+      width: 100%;
+      min-height: 72px;
+      padding: 9px 11px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 7px;
+      color: #fff;
+      font-size: 0.86rem;
+      resize: vertical;
+      font-family: inherit;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .cust-quote-input-area textarea:focus {
+      outline: none;
+      border-color: rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.09);
+    }
+    .cust-quote-confirm {
+      padding: 6px 16px;
+      background: rgba(99,179,237,0.15);
+      border: 1px solid rgba(99,179,237,0.35);
+      border-radius: 7px;
+      color: #7ec8f0;
+      font-size: 0.82rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .cust-quote-confirm:hover { background: rgba(99,179,237,0.28); }
+
+    /* ──────────────── 링크 섹션 ──────────────── */
+    .cust-divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      margin: 18px 0;
+    }
+
+    #linkList { max-height: 180px; }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 6px;
+      gap: 4px;
+      transition: background 0.15s;
+    }
+    .link-item:hover { background: rgba(255,255,255,0.05); }
+
+    .link-img-part {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 0 0 38%;
+      min-width: 0;
+    }
+    .link-img-thumb {
+      width: 28px; height: 28px;
+      object-fit: cover;
+      border-radius: 3px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.08);
+    }
+    .link-img-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.81rem;
+      color: rgba(255,255,255,0.82);
+    }
+    .link-connector {
+      flex-shrink: 0;
+      width: 32px;
+      height: 1px;
+      background: rgba(255,255,255,0.22);
+      margin: 0 4px;
+    }
+    .link-quote-part {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.81rem;
+      color: rgba(255,255,255,0.58);
+      font-style: italic;
+    }
+    .link-unlink-btn {
+      flex-shrink: 0;
+      margin-left: 6px;
+      width: 22px; height: 22px;
+      background: rgba(255,140,50,0.12);
+      border: none; border-radius: 4px;
+      color: #ffaa70; font-size: 0.9rem; line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .link-unlink-btn:hover { background: rgba(255,140,50,0.28); }
+
+    /* 선택 완료 바 */
+    .sel-confirm-bar {
+      display: none;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: rgba(99,179,237,0.07);
+      border: 1px solid rgba(99,179,237,0.18);
+      border-radius: 8px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    #customize-popup.selecting-mode .sel-confirm-bar { display: flex; }
+    #customize-popup.selecting-mode #addLinkBtn {
+      border-color: rgba(255,160,80,0.45);
+      color: rgba(255,185,110,0.9);
+    }
+    .sel-status {
+      font-size: 0.79rem;
+      color: rgba(255,255,255,0.52);
+      flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .sel-complete-btn {
+      flex-shrink: 0;
+      padding: 5px 14px;
+      background: rgba(99,179,237,0.18);
+      border: 1px solid rgba(99,179,237,0.35);
+      border-radius: 6px;
+      color: #7ec8f0;
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .sel-complete-btn:hover:not(:disabled) { background: rgba(99,179,237,0.32); }
+    .sel-complete-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ──────────────── 선택 모드 ──────────────── */
+    #customize-popup.selecting-mode.img-selected   #imageList .cust-item:not(.sel-selected):not(.sel-disabled) { opacity: 0.4; }
+    #customize-popup.selecting-mode.quote-selected #quoteList .cust-item:not(.sel-selected):not(.sel-disabled) { opacity: 0.4; }
+    .cust-item.sel-disabled  { opacity: 0.2 !important; cursor: not-allowed !important; }
+    .cust-item.sel-selected  { outline: 2px solid rgba(99,179,237,0.85); background: rgba(99,179,237,0.1); opacity: 1 !important; }
+
+    /* ──────────────── 이미지 미리보기 팝업 ──────────────── */
+    #img-preview-backdrop {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.92);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.15s;
+      cursor: zoom-out;
+    }
+    #img-preview-backdrop.open { opacity: 1; pointer-events: auto; }
+    #img-preview-el {
+      max-width: 90vw; max-height: 90vh;
+      object-fit: contain;
+      border-radius: 6px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    }
   </style>
 </head>
 <body>
@@ -105,7 +448,68 @@
     <div id="quote"></div>
     <p class="subtitle" id="subtitle">현재 스케줄에 의해 접속이 제한되었습니다.</p>
     <p id="remaining-time" style="display:none;"></p>
-    <button id="openSettings">설정 열기</button>
+    <div class="btn-row">
+      <button id="openSettings">설정 열기</button>
+      <button id="customizeBtn">차단 화면 커스텀</button>
+    </div>
+  </div>
+
+  <!-- 커스텀 팝업 -->
+  <div id="customize-backdrop">
+    <div id="customize-popup">
+      <button id="customize-close" title="닫기">×</button>
+      <h2>차단 화면 커스텀</h2>
+
+      <!-- 링크 섹션 -->
+      <div class="cust-section-links">
+        <div class="cust-col-header">
+          <span>이미지-인용구 링크</span>
+          <button class="cust-clear-all" id="clearAllLinks">모두 해제</button>
+        </div>
+        <div class="cust-list" id="linkList"></div>
+        <button class="cust-add-btn" id="addLinkBtn">+ 링크 추가</button>
+        <div class="sel-confirm-bar">
+          <span class="sel-status" id="selStatus">이미지: 미선택 / 인용구: 미선택</span>
+          <button class="sel-complete-btn" id="selCompleteBtn" disabled>선택 완료</button>
+        </div>
+      </div>
+
+      <hr class="cust-divider">
+
+      <div class="cust-grid">
+
+        <!-- 좌측: 배경 이미지 -->
+        <div class="cust-col">
+          <div class="cust-col-header">
+            <span>배경 이미지</span>
+            <button class="cust-clear-all" id="clearAllImages">모두 삭제</button>
+          </div>
+          <div class="cust-list" id="imageList"></div>
+          <label class="cust-add-btn" for="imageFileInput">+ 이미지 추가</label>
+          <input type="file" id="imageFileInput" accept="image/*" multiple style="display:none">
+        </div>
+
+        <!-- 우측: 인용구 -->
+        <div class="cust-col">
+          <div class="cust-col-header">
+            <span>인용구</span>
+            <button class="cust-clear-all" id="clearAllQuotes">모두 삭제</button>
+          </div>
+          <div class="cust-list" id="quoteList"></div>
+          <button class="cust-add-btn" id="addQuoteBtn">+ 문구 추가</button>
+          <div class="cust-quote-input-area" id="quoteInputArea">
+            <textarea id="quoteInput" placeholder="문구를 입력하세요… (Enter로 추가)"></textarea>
+            <button class="cust-quote-confirm" id="quoteConfirm">추가</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 이미지 전체화면 미리보기 -->
+  <div id="img-preview-backdrop">
+    <img id="img-preview-el" alt="미리보기">
   </div>
 
   <script src="block.js"></script>
