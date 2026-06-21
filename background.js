@@ -77,24 +77,13 @@ async function updateBlockingRules() {
     //   해결책: 커스텀 allow 도메인은 generalList 규칙 자체를 올리지 않는 방식으로 우회.
     //   (finalAllowSet에 기록 → generalList 등록 시 필터링)
 
-    // 커스텀 도메인 처리 (계급 50)
+    // 커스텀 허용 도메인 처리 (계급 50): permanentList 제외 후 generalList 차단에서 면제
     if (activeBox.customDomains) {
       activeBox.customDomains.forEach(cd => {
         const clean = cleanDomain(cd.domain);
-        const isPermanent = permanentList.some(p => cleanDomain(p) === clean);
-
-        if (cd.mode === 'block') {
-          // 차단 박스, 허용 박스 모두: 커스텀 block은 무조건 차단 규칙 등록
-          // (단, permanentList는 계급 100으로 이미 커버되므로 중복 등록이지만 무해함)
-          addDnrRule(clean, 50, false, 'custom');
-        } else if (cd.mode === 'allow') {
-          if (!isPermanent) {
-            // finalAllowSet에 기록해두어 generalList 등록 시 제외시킴
-            finalAllowSet.add(clean);
-            // 허용 박스에서는 allow 규칙 자체가 의미 없지만(generalList가 안 올라오므로),
-            // 차단 박스에서 혹시 generalList에 없는 도메인을 명시적으로 허용하려는 의도를 위해 등록 유지
-            addDnrRule(clean, 50, true);
-          }
+        if (!permanentList.some(p => cleanDomain(p) === clean)) {
+          finalAllowSet.add(clean);
+          addDnrRule(clean, 50, true);
         }
       });
     }
@@ -167,13 +156,9 @@ async function shouldUrlBeBlocked(url) {
   });
   if (!activeBox) return { blocked: false };
 
-  const allowSet = new Set();
-  if (activeBox.customDomains) {
-    for (const cd of activeBox.customDomains) {
-      if (cd.mode === 'allow') allowSet.add(cleanDomain(cd.domain));
-      else if (cd.mode === 'block' && matches(cd.domain)) return { blocked: true, reason: 'custom' };
-    }
-  }
+  const allowSet = new Set(
+    (activeBox.customDomains || []).map(cd => cleanDomain(cd.domain))
+  );
 
   const generalList = data.generalList || [];
   for (const d of generalList) {

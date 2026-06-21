@@ -63,10 +63,9 @@ function createCustomDomainItemUI(domain, mode, idPrefix, elType, onDelete) {
   const controls = document.createElement('div');
   controls.className = 'custom-domain-controls';
 
-  // 모드 배지 (읽기 전용)
   const modeBadge = document.createElement('span');
-  modeBadge.className = 'mode-badge ' + (mode === 'allow' ? 'mode-badge-allow' : 'mode-badge-block');
-  modeBadge.textContent = mode === 'allow' ? '허용' : '차단';
+  modeBadge.className = 'mode-badge mode-badge-allow';
+  modeBadge.textContent = '허용';
   controls.appendChild(modeBadge);
 
   const delBtn = document.createElement('button');

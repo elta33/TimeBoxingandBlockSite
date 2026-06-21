@@ -69,28 +69,6 @@ function deleteCustomDomain(boxIndex, cdIndex, onDone) {
   });
 }
 
-// ── 커스텀 도메인 모드 변경 ──
-function updateCustomMode(boxIndex, cdIndex, newMode, onDone) {
-  const boxKey = getBoxKey();
-  chrome.storage.local.get([boxKey], function(result) {
-    result[boxKey][boxIndex].customDomains[cdIndex].mode = newMode;
-    chrome.storage.local.set({ [boxKey]: result[boxKey] }, () => {
-      if (onDone) onDone(result[boxKey]); else loadSettings();
-    });
-  });
-}
-
-// ── 박스 커스텀 도메인 일괄 모드 변경 ──
-function setBoxMasterMode(boxIndex, newMode, onDone) {
-  const boxKey = getBoxKey();
-  chrome.storage.local.get([boxKey], function(result) {
-    result[boxKey][boxIndex].customDomains.forEach(cd => cd.mode = newMode);
-    chrome.storage.local.set({ [boxKey]: result[boxKey] }, () => {
-      if (onDone) onDone(result[boxKey]); else loadSettings();
-    });
-  });
-}
-
 // ── 리스트 전체 초기화 ──
 function clearAll(storageKey, confirmMsg, inputIdsToClear) {
   if (!confirm(confirmMsg)) return;

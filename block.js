@@ -67,5 +67,5 @@ function pickRandom(arr) {
     custom:    '현재 스케줄에 의해 접속이 제한되었습니다.',
   };
 
-  el.textContent = MESSAGES[reason] || '현재 스케젨에 의해 접송이 제한되었습니다.';
+  el.textContent = MESSAGES[reason] || '현재 스케줄에 의해 접속이 제한되었습니다.';
 })();
