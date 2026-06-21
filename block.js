@@ -54,18 +54,80 @@ function pickRandom(arr) {
   else el.style.display = 'none';
 })();
 
+const _params = new URLSearchParams(window.location.search);
+const _reason = _params.get('reason');
+
 // 차단 사유별 하단 문구 분기
 (function applyReasonMessage() {
-  const params = new URLSearchParams(window.location.search);
-  const reason = params.get('reason');
   const el = document.getElementById('subtitle');
   if (!el) return;
-
   const MESSAGES = {
     permanent: '상시 차단에 의해 접속이 제한되었습니다.',
     general:   '현재 스케줄에 의해 접속이 제한되었습니다.',
     custom:    '현재 스케줄에 의해 접속이 제한되었습니다.',
   };
+  el.textContent = MESSAGES[_reason] || '현재 스케줄에 의해 접속이 제한되었습니다.';
+})();
 
-  el.textContent = MESSAGES[reason] || '현재 스케줄에 의해 접속이 제한되었습니다.';
+// 설정 열기 버튼
+document.getElementById('openSettings')?.addEventListener('click', () => {
+  chrome.runtime.openOptionsPage();
+});
+
+// 남은 차단 시간 표시 (상시 차단 제외)
+(function applyRemainingTime() {
+  if (_reason === 'permanent') return;
+
+  function timeToMins(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function isActive(box) {
+    const now = new Date();
+    let nowM = now.getHours() * 60 + now.getMinutes();
+    const startM = timeToMins(box.startTime);
+    const [eH, eMin] = box.endTime.split(':').map(Number);
+    let endM = eH * 60 + eMin;
+    if (endM <= startM) {
+      endM += 24 * 60;
+      if (nowM <= eH * 60 + eMin) nowM += 24 * 60;
+    }
+    return nowM >= startM && nowM < endM;
+  }
+
+  function getRemainingMins(endStr) {
+    const [eH, eM] = endStr.split(':').map(Number);
+    const now = new Date();
+    const nowM = now.getHours() * 60 + now.getMinutes();
+    let endM = eH * 60 + eM;
+    if (endM <= nowM) endM += 24 * 60;
+    return endM - nowM;
+  }
+
+  function fmt(mins) {
+    const h = Math.floor(mins / 60), m = mins % 60;
+    if (h > 0 && m > 0) return `${h}시간 ${m}분 후 해제`;
+    if (h > 0) return `${h}시간 후 해제`;
+    return `${m}분 후 해제`;
+  }
+
+  chrome.storage.local.get(['dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled'], data => {
+    const dailyEnabled = data.dailyScheduleEnabled !== false;
+    const dailyBoxes = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : [];
+    const weeklyBoxes = data.weeklyBoxes || [];
+    const todayDow = (new Date().getDay() + 6) % 7;
+
+    const activeBox = [...dailyBoxes, ...weeklyBoxes].find(box => {
+      const days = box.days || [];
+      if (days.length > 0 && !days.includes(todayDow)) return false;
+      return isActive(box);
+    });
+    if (!activeBox) return;
+
+    const remaining = getRemainingMins(activeBox.endTime);
+    if (remaining <= 0) return;
+    const el = document.getElementById('remaining-time');
+    if (el) { el.textContent = fmt(remaining); el.style.display = 'block'; }
+  });
 })();

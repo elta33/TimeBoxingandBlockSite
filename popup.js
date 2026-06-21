@@ -21,6 +21,30 @@ function isBoxActiveNow(box) {
   return nowM >= startM && nowM < endM;
 }
 
+function calcEndRemaining(box) {
+  const startM = timeToMins(box.startTime);
+  const [eH, eMin] = box.endTime.split(':').map(Number);
+  let endM = eH * 60 + eMin;
+  let nowM = new Date().getHours() * 60 + new Date().getMinutes();
+  if (endM <= startM) {
+    endM += 24 * 60;
+    if (nowM <= eH * 60 + eMin) nowM += 24 * 60;
+  }
+  return Math.max(0, endM - nowM);
+}
+
+function calcStartRemaining(box) {
+  const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+  return Math.max(0, timeToMins(box.startTime) - nowM);
+}
+
+function fmtMins(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (h > 0 && m > 0) return `${h}시간 ${m}분`;
+  if (h > 0) return `${h}시간`;
+  return `${m}분`;
+}
+
 function matchesDomain(hostname, entry) {
   const clean = cleanDomain(entry);
   const sep = clean.search(/[/?#]/);
@@ -76,6 +100,15 @@ function buildActiveCard(box) {
   time.textContent = `${box.startTime} – ${box.endTime}`;
   card.appendChild(time);
 
+  const rem = calcEndRemaining(box);
+  if (rem > 0) {
+    const remEl = document.createElement('div');
+    remEl.className = 'p-box-time-active';
+    remEl.style.opacity = '0.55';
+    remEl.textContent = `${fmtMins(rem)} 후 종료`;
+    card.appendChild(remEl);
+  }
+
   return card;
 }
 
@@ -98,10 +131,24 @@ function buildUpcomingRow(box) {
   left.appendChild(buildTypeBadge(box));
   row.appendChild(left);
 
-  const time = document.createElement('span');
-  time.className = 'p-box-row-time';
-  time.textContent = `${box.startTime} – ${box.endTime}`;
-  row.appendChild(time);
+  const timeWrap = document.createElement('div');
+  timeWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;';
+
+  const timeRange = document.createElement('span');
+  timeRange.className = 'p-box-row-time';
+  timeRange.textContent = `${box.startTime} – ${box.endTime}`;
+  timeWrap.appendChild(timeRange);
+
+  const rem = calcStartRemaining(box);
+  if (rem > 0) {
+    const remEl = document.createElement('span');
+    remEl.className = 'p-box-row-time';
+    remEl.style.opacity = '0.55';
+    remEl.textContent = `${fmtMins(rem)} 후 시작`;
+    timeWrap.appendChild(remEl);
+  }
+
+  row.appendChild(timeWrap);
 
   return row;
 }

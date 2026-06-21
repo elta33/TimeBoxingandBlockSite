@@ -304,6 +304,7 @@ button { cursor: pointer; font-family: inherit; }
     <span class="app-title">Focus Timeboxer</span>
     <button class="main-tab active" data-tab="block">차단 관리</button>
     <button class="main-tab" data-tab="scheduler">타임박스 스케줄러</button>
+    <button class="main-tab" data-tab="settings">설정</button>
   </header>
 
   <div class="tab-panel active" id="tab-block">
@@ -419,6 +420,19 @@ button { cursor: pointer; font-family: inherit; }
         <div id="weekDetailPanel"></div>
       </div>
 
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-settings">
+    <div class="sector" style="max-width:500px;">
+      <div class="sector-title">데이터 백업 / 복원</div>
+      <p class="sector-desc">도메인 목록, 타임박스 스케줄, 설정을 파일로 저장하거나 불러옵니다.</p>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <button id="exportBtn" class="btn">내보내기 (Export)</button>
+        <button id="importBtn" class="btn">불러오기 (Import)</button>
+        <input type="file" id="importFile" accept=".json" style="display:none;">
+      </div>
+      <p style="font-size:0.82rem; color:#bbb; margin:0;">불러오기는 기존 데이터를 완전히 덮어씁니다.</p>
     </div>
   </div>
 

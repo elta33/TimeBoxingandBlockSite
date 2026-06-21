@@ -14,8 +14,13 @@ function requestBlockCheck(url) {
 }
 
 // SPA 내비게이션 감지 (page-world.js → postMessage)
+// 200ms 쓰로틀: 악성 사이트의 postMessage 폭주로 background 과부하 방지
+let _lastNavCheck = 0;
 window.addEventListener('message', (e) => {
   if (!e.data || e.data.type !== '__TBB_NAV__' || typeof e.data.url !== 'string') return;
+  const now = Date.now();
+  if (now - _lastNavCheck < 200) return;
+  _lastNavCheck = now;
   requestBlockCheck(e.data.url);
 });
 

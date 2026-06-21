@@ -73,6 +73,27 @@
       opacity: 0.75;
       text-shadow: 0 1px 8px rgba(0,0,0,0.8);
     }
+
+    #remaining-time {
+      margin-top: 6px;
+      font-size: 0.9rem;
+      opacity: 0.6;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+    }
+
+    #openSettings {
+      margin-top: 28px;
+      padding: 8px 22px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    #openSettings:hover { background: rgba(255,255,255,0.22); color: #fff; }
   </style>
 </head>
 <body>
@@ -82,7 +103,9 @@
   <div class="block-content">
     <h1>🚫 타임박스 차단 발동!</h1>
     <div id="quote"></div>
-    <p class="subtitle" id="subtitle">현재 스케쥴에 의해 접속이 제한되었습니다.</p>
+    <p class="subtitle" id="subtitle">현재 스케줄에 의해 접속이 제한되었습니다.</p>
+    <p id="remaining-time" style="display:none;"></p>
+    <button id="openSettings">설정 열기</button>
   </div>
 
   <script src="block.js"></script>

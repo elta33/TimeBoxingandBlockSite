@@ -825,6 +825,36 @@ function clearDaySelection() {
   document.querySelectorAll('input[name="days"]').forEach(cb => cb.checked = false);
 }
 
+function exportSettings() {
+  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday'];
+  chrome.storage.local.get(KEYS, data => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `focus-timeboxer-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+function importSettings(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    let data;
+    try { data = JSON.parse(e.target.result); }
+    catch { alert('올바른 JSON 파일이 아닙니다.'); return; }
+    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday']);
+    const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
+    if (Object.keys(safe).length === 0) { alert('복원할 설정 데이터가 없습니다.'); return; }
+    chrome.storage.local.set(safe, () => {
+      alert('설정을 불러왔습니다.');
+      loadSettings();
+    });
+  };
+  reader.readAsText(file);
+}
+
 function applyDailyScheduleVisual() {
   const wrap = document.getElementById('timetableWrap');
   if (!wrap) return;
@@ -908,4 +938,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('permanentDomainInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('addPermanentBtn').click(); });
   document.getElementById('generalDomainInput')?.addEventListener('keydown',   e => { if (e.key === 'Enter') document.getElementById('addGeneralBtn').click(); });
   document.getElementById('customDomainInput')?.addEventListener('keydown',    e => { if (e.key === 'Enter') document.getElementById('addCustomStagingBtn').click(); });
+
+  // 내보내기 / 불러오기
+  document.getElementById('exportBtn')?.addEventListener('click', exportSettings);
+  document.getElementById('importBtn')?.addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('importFile')?.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) { importSettings(file); e.target.value = ''; }
+  });
 });
