@@ -58,7 +58,17 @@ function loadData() {
 function applyBgAndQuote(imgs, quotes, links) {
   const img  = pickRandom(imgs);
   const link = img ? links.find(l => l.imgName === img.name) : null;
-  const q    = link ? link.quote : pickRandom(quotes);
+
+  let q;
+  if (link) {
+    // 링크된 이미지 → 반드시 대응 문구 사용
+    q = link.quote;
+  } else {
+    // 링크되지 않은 이미지 → 링크에 묶인 문구는 후보에서 제외
+    const linkedQuoteSet = new Set(links.map(l => l.quote));
+    const freeQuotes     = quotes.filter(qt => !linkedQuoteSet.has(qt));
+    q = pickRandom(freeQuotes); // 자유 문구가 없으면 null → 문구 숨김
+  }
 
   if (img) {
     const src = getImgSrc(img);
