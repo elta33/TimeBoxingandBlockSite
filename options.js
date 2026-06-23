@@ -826,7 +826,7 @@ function clearDaySelection() {
 }
 
 function exportSettings() {
-  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday'];
+  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings'];
   chrome.storage.local.get(KEYS, data => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -844,7 +844,7 @@ function importSettings(file) {
     let data;
     try { data = JSON.parse(e.target.result); }
     catch { alert('올바른 JSON 파일이 아닙니다.'); return; }
-    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday']);
+    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings']);
     const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
     if (Object.keys(safe).length === 0) { alert('복원할 설정 데이터가 없습니다.'); return; }
     chrome.storage.local.set(safe, () => {
@@ -946,4 +946,358 @@ document.addEventListener('DOMContentLoaded', () => {
     const file = e.target.files[0];
     if (file) { importSettings(file); e.target.value = ''; }
   });
+});
+
+// ═══════════════════════════════════════════════
+// 포모도로 타이머 탭
+// ═══════════════════════════════════════════════
+
+let _pomoInterval      = null;
+let _pomoPreviewActive = false;
+let _pomoPreviewTimer  = null;
+
+function _fmtPomoTime(secs) {
+  const m = Math.floor(secs / 60), s = secs % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function renderPomoList(list) {
+  const ul = document.getElementById('pomoList');
+  if (!ul) return;
+  ul.innerHTML = '';
+  list.forEach((domain, i) => {
+    const li   = document.createElement('li');
+    li.className = 'custom-domain-item';
+    const span = document.createElement('span');
+    span.textContent = domain; span.title = domain; span.className = 'domain-text';
+    const del  = document.createElement('button');
+    del.textContent = '삭제'; del.className = 'btn-danger btn-sm';
+    del.onclick = () => {
+      chrome.storage.local.get(['pomodoroList'], r => {
+        const arr = r.pomodoroList || [];
+        arr.splice(i, 1);
+        chrome.storage.local.set({ pomodoroList: arr }, loadPomoData);
+      });
+    };
+    li.append(span, del);
+    ul.appendChild(li);
+  });
+}
+
+function updatePomoDisplay(state, settings) {
+  if (_pomoPreviewActive) return;
+  const display  = document.getElementById('pomoDisplay');
+  const phaseEl  = document.getElementById('pomoPhaseLabel');
+  const timeEl   = document.getElementById('pomoTimeLabel');
+  const cycleEl  = document.getElementById('pomoCycleLabel');
+  const startBtn = document.getElementById('pomoStartBtn');
+  if (!display) return;
+
+  const phase       = state?.phase || 'idle';
+  const totalCycles = state?.totalCycles || settings.cycles;
+  const cycle       = state?.cycle       || 1;
+  const isActive    = !!state?.active;
+
+  display.className = 'pomo-display' + (phase !== 'idle' ? ' phase-' + phase : '');
+
+  const phaseNames = { work: '🍅 작업', rest: '☕ 휴식', done: '✅ 완료', idle: '대기' };
+  if (phaseEl) phaseEl.textContent = phaseNames[phase] || '대기';
+
+  if (timeEl) {
+    if (isActive && state.endTime) {
+      const rem = Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000));
+      timeEl.textContent = _fmtPomoTime(rem);
+    } else if (!isActive && state?.pausedRemaining != null) {
+      timeEl.textContent = _fmtPomoTime(state.pausedRemaining);
+    } else if (phase === 'done') {
+      timeEl.textContent = '00:00';
+    } else {
+      timeEl.textContent = _fmtPomoTime(settings.workMins * 60);
+    }
+  }
+
+  if (cycleEl) {
+    cycleEl.textContent = phase === 'idle'
+      ? `1 / ${settings.cycles}`
+      : `${cycle} / ${totalCycles}`;
+  }
+
+  if (startBtn) {
+    startBtn.disabled = phase === 'done';
+    if (isActive)                              startBtn.textContent = '⏸ 일시정지';
+    else if (phase === 'work' || phase === 'rest') startBtn.textContent = '▶ 재개';
+    else                                       startBtn.textContent = '▶ 시작';
+  }
+
+  const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal'];
+  settingsBtns.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isActive; });
+}
+
+function _previewPomoDisplay(previewPhase, secs, cycles) {
+  const display = document.getElementById('pomoDisplay');
+  if (display) display.className = 'pomo-display phase-' + previewPhase;
+  const phaseEl = document.getElementById('pomoPhaseLabel');
+  if (phaseEl) phaseEl.textContent = previewPhase === 'work' ? '🍅 작업' : '☕ 휴식';
+  const timeEl = document.getElementById('pomoTimeLabel');
+  if (timeEl) timeEl.textContent = _fmtPomoTime(secs);
+  const cycleEl = document.getElementById('pomoCycleLabel');
+  if (cycleEl) cycleEl.textContent = `1 / ${cycles}`;
+}
+
+function _advancePomoPhase(state, settings) {
+  const now         = Date.now();
+  const cycle       = state.cycle       || 1;
+  const totalCycles = state.totalCycles || settings.cycles;
+  let newState;
+
+  if (state.phase === 'work') {
+    newState = cycle >= totalCycles
+      ? { active: false, phase: 'done', endTime: null, cycle, totalCycles }
+      : { ...state,      phase: 'rest', endTime: now + settings.restMins * 60 * 1000 };
+  } else if (state.phase === 'rest') {
+    newState = { ...state, phase: 'work', endTime: now + settings.workMins * 60 * 1000, cycle: cycle + 1 };
+  }
+
+  if (newState) chrome.storage.local.set({ pomodoroState: newState });
+}
+
+function _pomoTick() {
+  chrome.storage.local.get(['pomodoroState', 'pomodoroSettings'], data => {
+    const state    = data.pomodoroState    || { active: false, phase: 'idle' };
+    const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+    if (state.active && state.endTime && Date.now() >= state.endTime) {
+      _advancePomoPhase(state, settings);
+    } else {
+      updatePomoDisplay(state, settings);
+    }
+    // endTime 기준 초 경계에 정렬해 다음 tick 예약 — setInterval 드리프트 방지
+    let delay = 1000;
+    if (state.active && state.endTime) {
+      const rem = state.endTime - Date.now();
+      if (rem > 0) delay = (rem % 1000) || 1000;
+    }
+    _pomoInterval = setTimeout(_pomoTick, delay);
+  });
+}
+
+function loadPomoData() {
+  chrome.storage.local.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState'], data => {
+    const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+    const list     = data.pomodoroList     || [];
+    const state    = data.pomodoroState    || { active: false, phase: 'idle' };
+
+    const wEl = document.getElementById('pomoWorkVal');
+    const rEl = document.getElementById('pomoRestVal');
+    const cEl = document.getElementById('pomoCyclesVal');
+    if (wEl) wEl.value = settings.workMins;
+    if (rEl) rEl.value = settings.restMins;
+    if (cEl) cEl.value = settings.cycles;
+
+    renderPomoList(list);
+    updatePomoDisplay(state, settings);
+  });
+}
+
+function _getPomoSettingsFromUI() {
+  return {
+    workMins: parseInt(document.getElementById('pomoWorkVal')?.value) || 25,
+    restMins: parseInt(document.getElementById('pomoRestVal')?.value) || 5,
+    cycles:   parseInt(document.getElementById('pomoCyclesVal')?.value) || 2,
+  };
+}
+
+function _savePomoSettings(s, previewPhase) {
+  chrome.storage.local.set({ pomodoroSettings: s });
+  const wEl = document.getElementById('pomoWorkVal');
+  const rEl = document.getElementById('pomoRestVal');
+  const cEl = document.getElementById('pomoCyclesVal');
+  if (wEl) wEl.value = s.workMins;
+  if (rEl) rEl.value = s.restMins;
+  if (cEl) cEl.value = s.cycles;
+
+  if (previewPhase) {
+    // onChanged → loadPomoData → updatePomoDisplay 연쇄가 preview를 덮어쓰지 못하도록 플래그 설정
+    _pomoPreviewActive = true;
+    clearTimeout(_pomoPreviewTimer);
+    _pomoPreviewTimer = setTimeout(() => {
+      _pomoPreviewActive = false;
+      chrome.storage.local.get(['pomodoroState', 'pomodoroSettings'], d => {
+        updatePomoDisplay(d.pomodoroState || { active: false, phase: 'idle' }, d.pomodoroSettings || s);
+      });
+    }, 1500);
+    const secs = previewPhase === 'work' ? s.workMins * 60 : s.restMins * 60;
+    _previewPomoDisplay(previewPhase, secs, s.cycles);
+  } else {
+    chrome.storage.local.get(['pomodoroState'], d => {
+      const state = d.pomodoroState || { active: false, phase: 'idle' };
+      if (!state.active) updatePomoDisplay(state, s);
+    });
+  }
+}
+
+function _importFromList(storageKey) {
+  chrome.storage.local.get([storageKey, 'pomodoroList'], data => {
+    const source  = data[storageKey]  || [];
+    const current = data.pomodoroList || [];
+    const curSet  = new Set(current);
+    const toAdd   = source.filter(d => !curSet.has(d));
+    if (!toAdd.length) { alert('추가할 새 항목이 없습니다.'); return; }
+    chrome.storage.local.set({ pomodoroList: [...current, ...toAdd] }, loadPomoData);
+  });
+  document.getElementById('pomoImportMenu')?.classList.remove('open');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ── 반복 입력 헬퍼 (누르고 있으면 연속 입력) ──
+  function _makeRepeatBtn(id, action) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    let timer = null;
+    const stop = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    const schedule = (delay) => {
+      timer = setTimeout(() => {
+        action();
+        schedule(Math.max(80, Math.floor(delay * 0.65)));
+      }, delay);
+    };
+    btn.addEventListener('mousedown', e => { e.preventDefault(); action(); schedule(400); });
+    btn.addEventListener('mouseup', stop);
+    btn.addEventListener('mouseleave', stop);
+  }
+
+  // ── 설정 +/- 버튼 ──
+  [
+    { decr: 'workDecrBtn',   incr: 'workIncrBtn',   key: 'workMins', min: 1, max: 60, preview: 'work' },
+    { decr: 'restDecrBtn',   incr: 'restIncrBtn',   key: 'restMins', min: 1, max: 60, preview: 'rest' },
+    { decr: 'cyclesDecrBtn', incr: 'cyclesIncrBtn', key: 'cycles',   min: 1, max: 10, preview: null   },
+  ].forEach(({ decr, incr, key, min, max, preview }) => {
+    _makeRepeatBtn(decr, () => {
+      const s = _getPomoSettingsFromUI(); if (s[key] <= min) return;
+      s[key]--; _savePomoSettings(s, preview);
+    });
+    _makeRepeatBtn(incr, () => {
+      const s = _getPomoSettingsFromUI(); if (s[key] >= max) return;
+      s[key]++; _savePomoSettings(s, preview);
+    });
+  });
+
+  // ── 숫자 직접 입력 처리 ──
+  [
+    { id: 'pomoWorkVal',   key: 'workMins', min: 1, max: 60, fallback: 25, preview: 'work' },
+    { id: 'pomoRestVal',   key: 'restMins', min: 1, max: 60, fallback: 5,  preview: 'rest' },
+    { id: 'pomoCyclesVal', key: 'cycles',   min: 1, max: 10, fallback: 2,  preview: null   },
+  ].forEach(({ id, key, min, max, fallback, preview }) => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let val = parseInt(el.value);
+      if (isNaN(val)) val = fallback;
+      val = Math.max(min, Math.min(max, val));
+      el.value = val;
+      const s = _getPomoSettingsFromUI();
+      s[key] = val;
+      _savePomoSettings(s, preview);
+    });
+  });
+
+  // ── 시작 / 일시정지 / 재개 ──
+  document.getElementById('pomoStartBtn')?.addEventListener('click', () => {
+    chrome.storage.local.get(['pomodoroState', 'pomodoroSettings'], data => {
+      const state    = data.pomodoroState    || { active: false, phase: 'idle' };
+      const settings = data.pomodoroSettings || _getPomoSettingsFromUI();
+
+      if (state.active) {
+        const rem = Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000));
+        chrome.storage.local.set({ pomodoroState: { ...state, active: false, endTime: null, pausedRemaining: rem } });
+      } else if (state.phase === 'idle' || state.phase === 'done') {
+        const s = _getPomoSettingsFromUI();
+        chrome.storage.local.set({
+          pomodoroSettings: s,
+          pomodoroState: { active: true, phase: 'work', endTime: Date.now() + s.workMins * 60 * 1000, cycle: 1, totalCycles: s.cycles },
+        });
+      } else {
+        const rem = state.pausedRemaining ?? (state.phase === 'work' ? settings.workMins * 60 : settings.restMins * 60);
+        chrome.storage.local.set({ pomodoroState: { ...state, active: true, endTime: Date.now() + rem * 1000, pausedRemaining: null } });
+      }
+    });
+  });
+
+  // ── 중지 ──
+  document.getElementById('pomoResetBtn')?.addEventListener('click', () => {
+    chrome.storage.local.get(['pomodoroSettings'], d => {
+      const s = d.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+      chrome.storage.local.set({ pomodoroState: { active: false, phase: 'idle', endTime: null, cycle: 1, totalCycles: s.cycles } });
+    });
+  });
+
+  // ── PiP 버튼 ──
+  document.getElementById('pomoPipBtn')?.addEventListener('click', () => {
+    const pipUrl = chrome.runtime.getURL('pomodoro-pip.html');
+    chrome.windows.getAll({ populate: true }, wins => {
+      const existing = wins.find(w => w.type === 'popup' && w.tabs?.some(t => t.url === pipUrl));
+      if (existing) {
+        chrome.windows.update(existing.id, { focused: true });
+      } else {
+        chrome.windows.create({ url: pipUrl, type: 'popup', width: 280, height: 340 });
+      }
+    });
+  });
+
+  // ── 도메인 추가 ──
+  function doAddPomoDomain() {
+    const input  = document.getElementById('pomoDomainInput');
+    const domain = cleanDomain((input?.value || '').trim());
+    if (!domain) return;
+    chrome.storage.local.get(['pomodoroList'], d => {
+      const arr = d.pomodoroList || [];
+      const idx = arr.indexOf(domain);
+      if (idx !== -1) {
+        const ul = document.getElementById('pomoList');
+        if (ul?.children[idx]) triggerBounceAndWarn(ul.children[idx], 'pomoWarn', '같은 주소가 이미 있습니다.');
+        return;
+      }
+      arr.push(domain);
+      chrome.storage.local.set({ pomodoroList: arr }, () => {
+        if (input) input.value = '';
+        hideWarn('pomoWarn');
+        loadPomoData();
+      });
+    });
+  }
+  document.getElementById('addPomoBtn')?.addEventListener('click', doAddPomoDomain);
+  document.getElementById('pomoDomainInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') doAddPomoDomain(); });
+  document.getElementById('pomoDomainInput')?.addEventListener('input', () => hideWarn('pomoWarn'));
+
+  // ── 전체 초기화 ──
+  document.getElementById('clearPomoListBtn')?.addEventListener('click', () => {
+    if (!confirm('포모도로 차단 목록을 모두 지우시겠습니까?')) return;
+    chrome.storage.local.set({ pomodoroList: [] }, loadPomoData);
+  });
+
+  // ── 불러오기 드롭다운 ──
+  const importBtn  = document.getElementById('pomoImportBtn');
+  const importMenu = document.getElementById('pomoImportMenu');
+  importBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    importMenu?.classList.toggle('open');
+  });
+  document.addEventListener('click', e => {
+    if (!document.getElementById('pomoImportWrap')?.contains(e.target)) {
+      importMenu?.classList.remove('open');
+    }
+  });
+  document.getElementById('importFromPermanent')?.addEventListener('click', () => _importFromList('permanentList'));
+  document.getElementById('importFromGeneral')?.addEventListener('click',   () => _importFromList('generalList'));
+
+  // ── 스토리지 변경 시 UI 동기화 ──
+  chrome.storage.onChanged.addListener(changes => {
+    if (changes.pomodoroState || changes.pomodoroSettings || changes.pomodoroList) {
+      loadPomoData();
+    }
+  });
+
+  // ── 초기 로드 + 틱 시작 ──
+  loadPomoData();
+  _pomoTick();
 });

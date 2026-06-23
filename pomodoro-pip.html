@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>포모도로 타이머</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #181824;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      user-select: none;
+      overflow: hidden;
+      padding: 0 16px 14px;
+      transition: background 0.45s;
+    }
+    body.phase-work   { background: #1e0e0e; }
+    body.phase-rest   { background: #0d1b12; }
+    body.phase-done   { background: #19170a; }
+    body.preview-work { background: #1e0e0e; }
+    body.preview-rest { background: #0d1b12; }
+
+    /* ── 상단 위상 바 ── */
+    .phase-bar {
+      width: 100%; height: 3px; flex-shrink: 0;
+      border-radius: 0 0 3px 3px;
+      background: rgba(255,255,255,0.1);
+      transition: background 0.4s;
+      margin-bottom: 14px;
+    }
+    body.phase-work   .phase-bar { background: #e05050; }
+    body.phase-rest   .phase-bar { background: #45b865; }
+    body.phase-done   .phase-bar { background: #d4a017; }
+    body.preview-work .phase-bar { background: #e05050; }
+    body.preview-rest .phase-bar { background: #45b865; }
+
+    /* ── 타이머 디스플레이 ── */
+    .timer-section {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; min-height: 0;
+    }
+
+    #phase-label {
+      font-size: 0.64rem; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      transition: color 0.35s;
+      margin-bottom: 1px;
+    }
+    body.phase-work   #phase-label { color: #e05050; }
+    body.phase-rest   #phase-label { color: #45b865; }
+    body.phase-done   #phase-label { color: #d4a017; }
+    body.preview-work #phase-label { color: #e05050; }
+    body.preview-rest #phase-label { color: #45b865; }
+
+    #time-display {
+      font-size: 3.1rem; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em; color: #fff; line-height: 1;
+    }
+
+    #cycle-label {
+      font-size: 0.63rem; color: rgba(255,255,255,0.22); margin-top: 3px;
+    }
+    body.phase-work #cycle-label, body.phase-rest #cycle-label,
+    body.preview-work #cycle-label, body.preview-rest #cycle-label {
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* ── 구분선 ── */
+    .divider {
+      width: 100%; height: 1px;
+      background: rgba(255,255,255,0.07);
+      margin: 10px 0; flex-shrink: 0;
+    }
+
+    /* ── 제어 버튼 ── */
+    .controls { display: flex; gap: 6px; width: 100%; flex-shrink: 0; }
+
+    .ctrl-btn {
+      flex: 1; padding: 7px 6px; border: none; border-radius: 7px;
+      cursor: pointer; font-size: 0.75rem; font-weight: 600;
+      font-family: inherit; transition: background 0.35s, opacity 0.12s;
+    }
+    .ctrl-btn:active { opacity: 0.68; }
+    .ctrl-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+    #startBtn { background: rgba(255,255,255,0.18); color: #fff; }
+    body.phase-work   #startBtn { background: #e05050; }
+    body.phase-rest   #startBtn { background: #45b865; }
+    body.phase-done   #startBtn { background: rgba(255,255,255,0.12); }
+    body.preview-work #startBtn { background: #e05050; }
+    body.preview-rest #startBtn { background: #45b865; }
+
+    #stopBtn { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); }
+
+    /* ── 설정 ── */
+    .settings { width: 100%; display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; margin-top: 9px; }
+    .setting-row { display: flex; align-items: center; gap: 4px; }
+    .setting-label { font-size: 0.63rem; color: rgba(255,255,255,0.32); width: 24px; flex-shrink: 0; }
+
+    .num-btn {
+      width: 22px; height: 22px; border: none; border-radius: 4px;
+      background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.75);
+      cursor: pointer; font-size: 1rem; line-height: 1; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: inherit; transition: opacity 0.1s;
+    }
+    .num-btn:active { opacity: 0.6; }
+    .num-btn:disabled { opacity: 0.18; cursor: not-allowed; }
+
+    .num-val {
+      flex: 1; text-align: center; font-size: 0.82rem; font-weight: 700;
+      color: #fff; background: transparent; border: none;
+      -moz-appearance: textfield; appearance: textfield;
+      outline: none; min-width: 0; font-family: inherit;
+    }
+    .num-val::-webkit-outer-spin-button,
+    .num-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .num-val:disabled { opacity: 0.26; }
+
+    .unit { font-size: 0.57rem; color: rgba(255,255,255,0.22); flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <div class="phase-bar"></div>
+  <div class="timer-section">
+    <div id="phase-label">대기</div>
+    <div id="time-display">--:--</div>
+    <div id="cycle-label"></div>
+  </div>
+  <div class="divider"></div>
+  <div class="controls">
+    <button class="ctrl-btn" id="startBtn">▶ 시작</button>
+    <button class="ctrl-btn" id="stopBtn">⏹ 중지</button>
+  </div>
+  <div class="settings">
+    <div class="setting-row">
+      <span class="setting-label">작업</span>
+      <button class="num-btn" id="workDecr">−</button>
+      <input type="number" class="num-val" id="workVal" value="25" min="1" max="60">
+      <span class="unit">분</span>
+      <button class="num-btn" id="workIncr">+</button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">휴식</span>
+      <button class="num-btn" id="restDecr">−</button>
+      <input type="number" class="num-val" id="restVal" value="5" min="1" max="60">
+      <span class="unit">분</span>
+      <button class="num-btn" id="restIncr">+</button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">반복</span>
+      <button class="num-btn" id="cyclesDecr">−</button>
+      <input type="number" class="num-val" id="cyclesVal" value="2" min="1" max="10">
+      <span class="unit">회</span>
+      <button class="num-btn" id="cyclesIncr">+</button>
+    </div>
+  </div>
+  <script src="pomodoro-pip.js"></script>
+</body>
+</html>

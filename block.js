@@ -99,8 +99,16 @@ const _reason = _params.get('reason');
     permanent: '상시 차단에 의해 접속이 제한되었습니다.',
     general:   '현재 스케줄에 의해 접속이 제한되었습니다.',
     custom:    '현재 스케줄에 의해 접속이 제한되었습니다.',
+    pomodoro:  '집중 시간에는 접속이 차단됩니다.',
   };
   el.textContent = MESSAGES[_reason] || '현재 스케줄에 의해 접속이 제한되었습니다.';
+
+  if (_reason === 'pomodoro') {
+    const h1 = document.querySelector('h1');
+    if (h1) h1.textContent = '🍅 포모도로 타임!';
+    const quoteEl = document.getElementById('quote');
+    if (quoteEl) quoteEl.style.display = 'none';
+  }
 })();
 
 document.getElementById('openSettings')?.addEventListener('click', () => {
@@ -111,7 +119,7 @@ document.getElementById('openSettings')?.addEventListener('click', () => {
 // 남은 차단 시간 표시
 // ─────────────────────────────────────────────
 (function applyRemainingTime() {
-  if (_reason === 'permanent') return;
+  if (_reason === 'permanent' || _reason === 'pomodoro') return;
 
   function timeToMins(t) {
     const [h, m] = t.split(':').map(Number);

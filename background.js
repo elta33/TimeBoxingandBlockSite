@@ -29,7 +29,7 @@ function cleanDomain(d) {
 }
 
 async function updateBlockingRules() {
-  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled']);
+  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
   const generalList = data.generalList || [];
   const permanentList = data.permanentList || [];
   // dailyBoxes: 요일 무관 오늘만 / weeklyBoxes: 요일 필터 적용
@@ -96,6 +96,13 @@ async function updateBlockingRules() {
     });
   }
 
+  // 포모도로 차단 (작업 페이즈 중에만 활성화, 계급 30)
+  const pomodoroState = data.pomodoroState || { active: false };
+  const pomodoroList  = data.pomodoroList  || [];
+  if (pomodoroState.active && pomodoroState.phase === 'work') {
+    pomodoroList.forEach(d => addDnrRule(cleanDomain(d), 30, false, 'pomodoro'));
+  }
+
   // 크롬 엔진 덮어쓰기
   const oldRules = await chrome.declarativeNetRequest.getDynamicRules();
   const oldRuleIds = oldRules.map(rule => rule.id);
@@ -108,10 +115,40 @@ async function updateBlockingRules() {
   console.log("우선순위 규칙 업데이트 성공! 생성된 규칙 수:", newRules.length);
 }
 
+// 포모도로 페이즈 자동 전환 (1분 알람 틱마다 체크)
+async function checkPomodoroPhase() {
+  const data     = await chrome.storage.local.get(['pomodoroState', 'pomodoroSettings']);
+  const state    = data.pomodoroState;
+  const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+
+  if (!state?.active || !state.endTime) return;
+  const now = Date.now();
+  if (now < state.endTime) return;
+
+  const cycle       = state.cycle       || 1;
+  const totalCycles = state.totalCycles || settings.cycles;
+  let newState;
+
+  if (state.phase === 'work') {
+    newState = cycle >= totalCycles
+      ? { active: false, phase: 'done', endTime: null, cycle, totalCycles }
+      : { ...state,      phase: 'rest', endTime: now + settings.restMins * 60 * 1000 };
+  } else if (state.phase === 'rest') {
+    newState = { ...state, phase: 'work', endTime: now + settings.workMins * 60 * 1000, cycle: cycle + 1 };
+  }
+
+  if (newState) await chrome.storage.local.set({ pomodoroState: newState });
+}
+
 // 데이터 변경 및 타이머 연동
 chrome.storage.onChanged.addListener(updateBlockingRules);
 chrome.alarms.create("timeboxTicker", { periodInMinutes: 1 });
-chrome.alarms.onAlarm.addListener(alarm => { if (alarm.name === "timeboxTicker") updateBlockingRules(); });
+chrome.alarms.onAlarm.addListener(async alarm => {
+  if (alarm.name === "timeboxTicker") {
+    await checkPomodoroPhase();
+    updateBlockingRules();
+  }
+});
 chrome.runtime.onStartup.addListener(updateBlockingRules);
 chrome.runtime.onInstalled.addListener(updateBlockingRules);
 
@@ -141,9 +178,15 @@ async function shouldUrlBeBlocked(url) {
     return hostname === clean || hostname.endsWith('.' + clean);
   }
 
-  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled']);
+  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
   const permanentList = data.permanentList || [];
   if (permanentList.some(d => matches(d))) return { blocked: true, reason: 'permanent' };
+
+  const pomodoroState = data.pomodoroState || { active: false };
+  const pomodoroList  = data.pomodoroList  || [];
+  if (pomodoroState.active && pomodoroState.phase === 'work') {
+    if (pomodoroList.some(d => matches(d))) return { blocked: true, reason: 'pomodoro' };
+  }
 
   const dailyEnabled = data.dailyScheduleEnabled !== false;
   const dailyBoxes = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : [];
