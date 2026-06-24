@@ -8,7 +8,7 @@
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
     "alarms",
-    "tabs",
+    "activeTab",
     "windows"
   ],
   "host_permissions": [

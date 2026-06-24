@@ -3,6 +3,7 @@
 
 let stagingCustomDomains = [];
 let dailyScheduleEnabled = true;
+let weekViewClockInterval = null;
 
 // ── 도메인 정규화 ──
 function cleanDomain(d) {
@@ -546,6 +547,7 @@ function getWeekOrder() {
 
 // ── 주간 뷰 렌더링 ──
 function renderWeekView(boxes, wrap, scrollToMins) {
+  if (weekViewClockInterval) { clearInterval(weekViewClockInterval); weekViewClockInterval = null; }
   const weekOrder = getWeekOrder();
   const todayDow  = new Date().getDay();
 
@@ -609,18 +611,20 @@ function renderWeekView(boxes, wrap, scrollToMins) {
 
     // 오늘 열에만 현재 시간선 표시
     if (dow === todayDow) {
-      const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
-      const nowPx = minsToPx(nowMins);
-
       const timeLine = document.createElement('div');
       timeLine.className = 'week-now-line';
-      timeLine.style.top = `${nowPx}px`;
 
       const dot = document.createElement('div');
       dot.className = 'week-now-dot';
-
       timeLine.appendChild(dot);
       col.appendChild(timeLine);
+
+      function updateWeekNowLine() {
+        const m = new Date().getHours() * 60 + new Date().getMinutes();
+        timeLine.style.top = `${minsToPx(m)}px`;
+      }
+      updateWeekNowLine();
+      weekViewClockInterval = setInterval(updateWeekNowLine, 60000);
     }
   });
 
@@ -652,6 +656,9 @@ function renderBoxes(boxes, scrollToMins) {
 
   if (currentView !== 'day' && dayViewClockInterval) {
     clearInterval(dayViewClockInterval); dayViewClockInterval = null;
+  }
+  if (currentView !== 'week' && weekViewClockInterval) {
+    clearInterval(weekViewClockInterval); weekViewClockInterval = null;
   }
 
   if (currentView === 'day') renderDayView(boxes, wrap);
@@ -1238,16 +1245,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── PiP 버튼 ──
   document.getElementById('pomoPipBtn')?.addEventListener('click', () => {
-    const pipUrl = chrome.runtime.getURL('pomodoro-pip.html');
-    chrome.windows.getAll({ populate: true }, wins => {
-      const existing = wins.find(w => w.type === 'popup' && w.tabs?.some(t => t.url === pipUrl));
-      if (existing) {
-        chrome.windows.update(existing.id, { focused: true });
+    chrome.storage.local.get(['pipWindowId'], ({ pipWindowId }) => {
+      if (pipWindowId) {
+        chrome.windows.get(pipWindowId, win => {
+          if (chrome.runtime.lastError || !win) {
+            _createPipWindow();
+          } else {
+            chrome.windows.update(pipWindowId, { focused: true });
+          }
+        });
       } else {
-        chrome.windows.create({ url: pipUrl, type: 'popup', width: 280, height: 340 });
+        _createPipWindow();
       }
     });
   });
+
+  function _createPipWindow() {
+    const pipUrl = chrome.runtime.getURL('pomodoro-pip.html');
+    chrome.windows.create({ url: pipUrl, type: 'popup', width: 280, height: 340 }, win => {
+      chrome.storage.local.set({ pipWindowId: win.id });
+    });
+  }
 
   // ── 도메인 추가 ──
   function doAddPomoDomain() {

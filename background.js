@@ -155,6 +155,13 @@ chrome.alarms.onAlarm.addListener(async alarm => {
 chrome.runtime.onStartup.addListener(updateBlockingRules);
 chrome.runtime.onInstalled.addListener(updateBlockingRules);
 
+// PiP 창이 닫히면 저장된 ID 제거
+chrome.windows.onRemoved.addListener(windowId => {
+  chrome.storage.local.get(['pipWindowId'], ({ pipWindowId }) => {
+    if (pipWindowId === windowId) chrome.storage.local.remove('pipWindowId');
+  });
+});
+
 // ── content.js SPA 차단 판별 요청 처리 ──
 // DNR이 잡지 못한 SPA 내비게이션(pushState/replaceState)에 대해
 // content.js가 현재 URL을 보내면 차단 여부를 계산해 돌려준다.
