@@ -95,19 +95,18 @@ const _reason = _params.get('reason');
 (function applyReasonMessage() {
   const el = document.getElementById('subtitle');
   if (!el) return;
-  const MESSAGES = {
-    permanent: '상시 차단에 의해 접속이 제한되었습니다.',
-    general:   '현재 스케줄에 의해 접속이 제한되었습니다.',
-    custom:    '현재 스케줄에 의해 접속이 제한되었습니다.',
-    pomodoro:  '집중 시간에는 접속이 차단됩니다.',
-  };
-  el.textContent = MESSAGES[_reason] || '현재 스케줄에 의해 접속이 제한되었습니다.';
+  const h1 = document.querySelector('h1');
 
-  if (_reason === 'pomodoro') {
-    const h1 = document.querySelector('h1');
+  if (_reason === 'general' || _reason === 'custom') {
+    if (h1) h1.textContent = '📅 타임박스 차단 발동!';
+    el.innerHTML = '현재 <span class="reason-keyword">스케줄</span>에 의해 접속이 제한되었습니다.';
+  } else if (_reason === 'permanent') {
+    el.innerHTML = '<span class="reason-keyword">상시 차단</span>에 의해 접속이 제한되었습니다.';
+  } else if (_reason === 'pomodoro') {
     if (h1) h1.textContent = '🍅 포모도로 타임!';
-    const quoteEl = document.getElementById('quote');
-    if (quoteEl) quoteEl.style.display = 'none';
+    el.innerHTML = '<span class="reason-keyword">집중 시간</span>에는 접속이 차단됩니다.';
+  } else {
+    el.innerHTML = '현재 <span class="reason-keyword">스케줄</span>에 의해 접속이 제한되었습니다.';
   }
 })();
 
