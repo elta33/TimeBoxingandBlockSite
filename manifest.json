@@ -2,13 +2,14 @@
   "manifest_version": 3,
   "name": "Focus Timeboxer (가칭)",
   "version": "1.0",
-  "description": "타임박싱 스케쥴러와 웹사이트 차단 기능을 통해 집중력을 높여주는 도구입니다.",
+  "description": "타임박싱 스케줄러와 웹사이트 차단 기능을 통해 집중력을 높여주는 도구입니다.",
   "permissions": [
     "storage",
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
     "alarms",
-    "tabs"
+    "tabs",
+    "windows"
   ],
   "host_permissions": [
     "<all_urls>"

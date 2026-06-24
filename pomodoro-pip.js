@@ -189,6 +189,11 @@ makeRepeatBtn('cyclesIncr', function() { var s = getUISettings(); if (s.cycles >
 ].forEach(function(cfg) {
   var el = document.getElementById(cfg.id);
   if (!el) return;
+  // 입력 중 최대값 초과 시 즉시 클램핑 (저장은 change에서만)
+  el.addEventListener('input', function() {
+    var v = parseInt(this.value);
+    if (!isNaN(v) && v > cfg.max) this.value = cfg.max;
+  });
   el.addEventListener('change', function() {
     var val = Math.max(cfg.min, Math.min(cfg.max, parseInt(this.value) || cfg.min));
     this.value = val;

@@ -124,6 +124,9 @@ async function checkPomodoroPhase() {
   if (!state?.active || !state.endTime) return;
   const now = Date.now();
   if (now < state.endTime) return;
+  // options.js / pomodoro-pip.js의 _pomoTick이 먼저 전환했을 경우 중복 전환 방지.
+  // advancedAt이 10초 이내면 UI가 이미 처리한 것으로 간주하고 넘어감.
+  if (state.advancedAt && now - state.advancedAt < 10000) return;
 
   const cycle       = state.cycle       || 1;
   const totalCycles = state.totalCycles || settings.cycles;

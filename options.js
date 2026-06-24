@@ -1052,10 +1052,10 @@ function _advancePomoPhase(state, settings) {
 
   if (state.phase === 'work') {
     newState = cycle >= totalCycles
-      ? { active: false, phase: 'done', endTime: null, cycle, totalCycles }
-      : { ...state,      phase: 'rest', endTime: now + settings.restMins * 60 * 1000 };
+      ? { active: false, phase: 'done', endTime: null, cycle, totalCycles, advancedAt: now }
+      : { ...state, phase: 'rest', endTime: now + settings.restMins * 60 * 1000, advancedAt: now };
   } else if (state.phase === 'rest') {
-    newState = { ...state, phase: 'work', endTime: now + settings.workMins * 60 * 1000, cycle: cycle + 1 };
+    newState = { ...state, phase: 'work', endTime: now + settings.workMins * 60 * 1000, cycle: cycle + 1, advancedAt: now };
   }
 
   if (newState) chrome.storage.local.set({ pomodoroState: newState });
@@ -1188,9 +1188,14 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'pomoRestVal',   key: 'restMins', min: 1, max: 60, fallback: 5,  preview: 'rest' },
     { id: 'pomoCyclesVal', key: 'cycles',   min: 1, max: 10, fallback: 2,  preview: null   },
   ].forEach(({ id, key, min, max, fallback, preview }) => {
-    document.getElementById(id)?.addEventListener('change', () => {
-      const el = document.getElementById(id);
-      if (!el) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    // 입력 중 최대값 초과 시 즉시 클램핑 (저장은 change에서만)
+    el.addEventListener('input', () => {
+      const v = parseInt(el.value);
+      if (!isNaN(v) && v > max) el.value = max;
+    });
+    el.addEventListener('change', () => {
       let val = parseInt(el.value);
       if (isNaN(val)) val = fallback;
       val = Math.max(min, Math.min(max, val));
