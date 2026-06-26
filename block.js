@@ -4,7 +4,7 @@
 // 기본값 (스토리지가 비어있을 때 최초 1회 시딩)
 // ─────────────────────────────────────────────
 const DEFAULT_IMAGES = [
-  { name: 'red-gaze.gif', builtin: 'Image/red-gaze.gif' },
+  { name: 'red-gaze.gif', builtin: 'images/red-gaze.gif' },
 ];
 const DEFAULT_QUOTES = [
   '고작 이런 곳에 쓰려고 당신의 시계가 되돌아가는 것은 아닐 겁니다, 관리자 단테헤...',

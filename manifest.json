@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Focus Timeboxer (가칭)",
+  "name": "FocusBox: WebsiteBlock & TimeBoxing Planner",
   "version": "1.0",
   "description": "타임박싱 스케줄러와 웹사이트 차단 기능을 통해 집중력을 높여주는 도구입니다.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "storage",
     "declarativeNetRequest",
@@ -43,8 +48,7 @@
         "*.jpeg",
         "*.png",
         "*.webp",
-        "images/*",
-        "Image/*"
+        "images/*"
       ],
       "matches": ["<all_urls>"]
     }
