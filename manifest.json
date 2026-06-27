@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "FocusBox: WebsiteBlock & TimeBoxing Planner",
+  "name": "__MSG_appName__",
+  "default_locale": "ko",
   "version": "1.0",
-  "description": "타임박싱 스케줄러와 웹사이트 차단 기능을 통해 집중력을 높여주는 도구입니다.",
+  "description": "__MSG_appDescription__",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

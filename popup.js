@@ -40,9 +40,9 @@ function calcStartRemaining(box) {
 
 function fmtMins(mins) {
   const h = Math.floor(mins / 60), m = mins % 60;
-  if (h > 0 && m > 0) return `${h}시간 ${m}분`;
-  if (h > 0) return `${h}시간`;
-  return `${m}분`;
+  if (h > 0 && m > 0) return T('timeHM', [String(h), String(m)]);
+  if (h > 0) return T('timeH', [String(h)]);
+  return T('timeM', [String(m)]);
 }
 
 function matchesDomain(hostname, entry) {
@@ -61,17 +61,19 @@ function getDomainStatus(hostname, permanentList, generalList) {
   return null;
 }
 
-const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+function getDAY_LABELS() {
+  return [T('dayMon'),T('dayTue'),T('dayWed'),T('dayThu'),T('dayFri'),T('daySat'),T('daySun')];
+}
 
 function buildTypeBadge(box) {
   const badge = document.createElement('span');
   badge.className = 'p-type-badge';
   if (box._type === 'daily') {
     badge.classList.add('p-badge-daily');
-    badge.textContent = '하루';
+    badge.textContent = T('typeBadgeDaily');
   } else {
     badge.classList.add('p-badge-weekly');
-    badge.textContent = (box.days || []).map(d => DAY_LABELS[d]).join('·');
+    badge.textContent = (box.days || []).map(d => getDAY_LABELS()[d]).join('·');
   }
   return badge;
 }
@@ -105,7 +107,7 @@ function buildActiveCard(box) {
     const remEl = document.createElement('div');
     remEl.className = 'p-box-time-active';
     remEl.style.opacity = '0.55';
-    remEl.textContent = `${fmtMins(rem)} 후 종료`;
+    remEl.textContent = T('afterEnd', [fmtMins(rem)]);
     card.appendChild(remEl);
   }
 
@@ -144,7 +146,7 @@ function buildUpcomingRow(box) {
     const remEl = document.createElement('span');
     remEl.className = 'p-box-row-time';
     remEl.style.opacity = '0.55';
-    remEl.textContent = `${fmtMins(rem)} 후 시작`;
+    remEl.textContent = T('afterStart', [fmtMins(rem)]);
     timeWrap.appendChild(remEl);
   }
 
@@ -211,12 +213,12 @@ function renderAll() {
   if (currentHostname) {
     const status = getDomainStatus(currentHostname, permanentList, generalList);
     if (status === 'permanent') {
-      domainStatusEl.textContent = '상시 차단됨';
+      domainStatusEl.textContent = T('popupPermanentBlocked');
       domainStatusEl.className = 'p-domain-badge p-badge-permanent';
       domainStatusEl.style.display = 'inline-block';
       addBtnsEl.style.display = 'none';
     } else if (status === 'general') {
-      domainStatusEl.textContent = '일반 차단됨';
+      domainStatusEl.textContent = T('popupGeneralBlocked');
       domainStatusEl.className = 'p-domain-badge p-badge-general';
       domainStatusEl.style.display = 'inline-block';
       addBtnsEl.style.display = 'none';
@@ -248,7 +250,7 @@ function renderAll() {
   } else {
     const empty = document.createElement('div');
     empty.className = 'p-empty';
-    empty.textContent = '현재 활성 박스 없음';
+    empty.textContent = T('popupNoActiveBox');
     currentBoxWrap.appendChild(empty);
   }
 

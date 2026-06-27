@@ -133,7 +133,7 @@
       </svg>
       <span class="p-title">Focus Timeboxer</span>
     </div>
-    <button id="settingsBtn" class="p-settings-btn" title="설정 열기" aria-label="설정 열기">
+    <button id="settingsBtn" class="p-settings-btn" data-i18n-title="popupSettingsTitle" data-i18n-aria-label="popupSettingsTitle" title="설정 열기" aria-label="설정 열기">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -143,13 +143,13 @@
 
   <!-- 현재 페이지 -->
   <div id="currentPageSection" class="p-section" style="display:none;">
-    <div class="p-section-label">현재 페이지</div>
+    <div class="p-section-label" data-i18n="popupCurrentPage">현재 페이지</div>
     <div class="p-page-row">
       <span id="currentDomain" class="p-domain"></span>
       <span id="domainStatus" class="p-domain-badge" style="display:none;"></span>
       <div class="p-add-btns" id="addBtns" style="display:none;">
-        <button id="addPermanentBtn" class="p-add-btn">+ 상시</button>
-        <button id="addGeneralBtn" class="p-add-btn">+ 일반</button>
+        <button id="addPermanentBtn" class="p-add-btn" data-i18n="popupAddPermanent">+ 상시</button>
+        <button id="addGeneralBtn" class="p-add-btn" data-i18n="popupAddGeneral">+ 일반</button>
       </div>
     </div>
   </div>
@@ -157,24 +157,25 @@
   <!-- 하루 스케줄 토글 -->
   <div class="p-section">
     <div class="p-toggle-row">
-      <span>하루 스케줄</span>
+      <span data-i18n="popupDaySchedule">하루 스케줄</span>
       <div class="p-switch-wrap">
         <div id="switchTrack" class="p-switch-track" role="switch" aria-checked="false" tabindex="0">
           <div class="p-switch-thumb"></div>
         </div>
-        <span id="toggleLabel" class="p-toggle-lbl">비활성화</span>
+        <span id="toggleLabel" class="p-toggle-lbl" data-i18n="popupScheduleDisabled">비활성화</span>
       </div>
     </div>
   </div>
 
   <!-- 스케줄 섹션 -->
   <div id="scheduleSection" class="p-section">
-    <div class="p-section-label">현재 박스</div>
+    <div class="p-section-label" data-i18n="popupCurrentBox">현재 박스</div>
     <div id="currentBoxWrap"></div>
-    <div id="upcomingLabel" class="p-section-label p-upcoming-label" style="display:none;">다음 박스</div>
+    <div id="upcomingLabel" class="p-section-label p-upcoming-label" style="display:none;" data-i18n="popupNextBox">다음 박스</div>
     <div id="upcomingBoxWrap"></div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

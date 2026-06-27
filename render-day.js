@@ -152,7 +152,7 @@ function renderDayView(boxes, wrap) {
       modeEl.setAttribute('font-size', '11');
       modeEl.setAttribute('fill', '#ff4d4f');
       modeEl.setAttribute('font-family', 'inherit');
-      modeEl.textContent = '차단 박스';
+      modeEl.textContent = T('donutBlockBox');
       centerGroup.appendChild(modeEl);
     } else {
       const now = new Date();
@@ -171,7 +171,7 @@ function renderDayView(boxes, wrap) {
       hintEl.setAttribute('text-anchor', 'middle'); hintEl.setAttribute('dominant-baseline', 'middle');
       hintEl.setAttribute('font-size', '12'); hintEl.setAttribute('fill', '#bbb');
       hintEl.setAttribute('font-family', 'inherit');
-      hintEl.textContent = '박스 선택';
+      hintEl.textContent = T('donutSelectHint');
       centerGroup.appendChild(hintEl);
     }
   }
@@ -195,7 +195,7 @@ function renderDayView(boxes, wrap) {
 
     const hh = String(now.getHours()).padStart(2,'0');
     const mm = String(now.getMinutes()).padStart(2,'0');
-    const label = `현재 시각: ${hh}:${mm}`;
+    const label = T('donutNowTime', [`${hh}:${mm}`]);
     const lp = polarToXY(CX, CY, R_OUTER + 42, angle);
     const textW = label.length * 7.2 + 14;
     const textH = 22;
@@ -235,7 +235,7 @@ function renderDayView(boxes, wrap) {
     header.appendChild(titleSpan);
     const delBoxBtn = document.createElement('button');
     delBoxBtn.className = 'btn-danger btn-sm';
-    delBoxBtn.textContent = '박스 삭제';
+    delBoxBtn.textContent = T('donutDeleteBox');
     delBoxBtn.onclick = () => deleteBox(boxIndex);
     header.appendChild(delBoxBtn);
     detailArea.appendChild(header);
@@ -255,12 +255,12 @@ function renderDayView(boxes, wrap) {
 
     const popupInput = document.createElement('input');
     popupInput.type = 'text';
-    popupInput.placeholder = '예: github.com';
+    popupInput.placeholder = T('placeholderGithub');
     popupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
 
     const popupConfirmBtn = document.createElement('button');
     popupConfirmBtn.className = 'btn btn-sm';
-    popupConfirmBtn.textContent = '추가';
+    popupConfirmBtn.textContent = T('add');
     popupConfirmBtn.style.cssText = 'margin-left:6px;padding:7px 12px;flex-shrink:0;';
 
     const popupRow = document.createElement('div');
@@ -291,7 +291,7 @@ function renderDayView(boxes, wrap) {
 
     const addDomainInPanelBtn = document.createElement('button');
     addDomainInPanelBtn.className = 'btn-ghost btn-sm';
-    addDomainInPanelBtn.textContent = '+ 주소 추가';
+    addDomainInPanelBtn.textContent = T('addAddress');
     addDomainInPanelBtn.onclick = (e) => { e.stopPropagation(); openAddPopup(); };
     addPopupWrap.insertBefore(addDomainInPanelBtn, addDomainPopup);
 
@@ -307,7 +307,7 @@ function renderDayView(boxes, wrap) {
         if (!targetBox) return;
         if (!targetBox.customDomains) targetBox.customDomains = [];
         if (targetBox.customDomains.some(cd => cd.domain === domain)) {
-          popupWarn.textContent = '이미 등록된 주소입니다.';
+          popupWarn.textContent = T('alreadyRegisteredAddress');
           popupWarn.style.display = 'block';
           return;
         }
@@ -348,7 +348,7 @@ function renderDayView(boxes, wrap) {
 
       const empty = document.createElement('p');
       empty.className = 'detail-empty';
-      empty.textContent = '커스텀 주소 없음';
+      empty.textContent = T('donutNoCustom');
       detailArea.appendChild(empty);
     }
   }
@@ -494,7 +494,7 @@ function renderDayView(boxes, wrap) {
   if (boxes.length === 0) {
     const hint = document.createElement('div');
     hint.className = 'empty-hint';
-    hint.textContent = '등록된 타임박스가 없습니다.';
+    hint.textContent = T('donutNoBoxes');
     wrap.appendChild(hint);
   }
 

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>접속 차단됨</title>
+  <title data-i18n="blockPageTitle">접속 차단됨</title>
   <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; }
@@ -446,33 +446,33 @@
   <div id="bg-overlay"></div>
 
   <div class="block-content">
-    <h1>🚫 타임박스 차단 발동!</h1>
+    <h1 data-i18n="blockTitleDefault">🚫 타임박스 차단 발동!</h1>
     <div id="quote"></div>
-    <p class="subtitle" id="subtitle">현재 스케줄에 의해 접속이 제한되었습니다.</p>
+    <p class="subtitle" id="subtitle" data-i18n="blockSubtitleDefault">현재 스케줄에 의해 접속이 제한되었습니다.</p>
     <p id="remaining-time" style="display:none;"></p>
     <div class="btn-row">
-      <button id="openSettings">설정 열기</button>
-      <button id="customizeBtn">차단 화면 커스텀</button>
+      <button id="openSettings" data-i18n="blockOpenSettings">설정 열기</button>
+      <button id="customizeBtn" data-i18n="blockCustomize">차단 화면 커스텀</button>
     </div>
   </div>
 
   <!-- 커스텀 팝업 -->
   <div id="customize-backdrop">
     <div id="customize-popup">
-      <button id="customize-close" title="닫기">×</button>
-      <h2>차단 화면 커스텀</h2>
+      <button id="customize-close" data-i18n-title="close">×</button>
+      <h2 data-i18n="custPopupTitle">차단 화면 커스텀</h2>
 
       <!-- 링크 섹션 -->
       <div class="cust-section-links">
         <div class="cust-col-header">
-          <span>이미지-인용구 링크</span>
-          <button class="cust-clear-all" id="clearAllLinks">모두 해제</button>
+          <span data-i18n="custLinkSection">이미지-인용구 링크</span>
+          <button class="cust-clear-all" id="clearAllLinks" data-i18n="custClearLinks">모두 해제</button>
         </div>
         <div class="cust-list" id="linkList"></div>
-        <button class="cust-add-btn" id="addLinkBtn">+ 링크 추가</button>
+        <button class="cust-add-btn" id="addLinkBtn" data-i18n="custAddLink">+ 링크 추가</button>
         <div class="sel-confirm-bar">
-          <span class="sel-status" id="selStatus">이미지: 미선택 / 인용구: 미선택</span>
-          <button class="sel-complete-btn" id="selCompleteBtn" disabled>선택 완료</button>
+          <span class="sel-status" id="selStatus"></span>
+          <button class="sel-complete-btn" id="selCompleteBtn" disabled data-i18n="custSelComplete">선택 완료</button>
         </div>
       </div>
 
@@ -483,25 +483,25 @@
         <!-- 좌측: 배경 이미지 -->
         <div class="cust-col">
           <div class="cust-col-header">
-            <span>배경 이미지</span>
-            <button class="cust-clear-all" id="clearAllImages">모두 삭제</button>
+            <span data-i18n="custBgImages">배경 이미지</span>
+            <button class="cust-clear-all" id="clearAllImages" data-i18n="custClearImages">모두 삭제</button>
           </div>
           <div class="cust-list" id="imageList"></div>
-          <label class="cust-add-btn" for="imageFileInput">+ 이미지 추가</label>
+          <label class="cust-add-btn" for="imageFileInput" data-i18n="custAddImage">+ 이미지 추가</label>
           <input type="file" id="imageFileInput" accept="image/*" multiple style="display:none">
         </div>
 
         <!-- 우측: 인용구 -->
         <div class="cust-col">
           <div class="cust-col-header">
-            <span>인용구</span>
-            <button class="cust-clear-all" id="clearAllQuotes">모두 삭제</button>
+            <span data-i18n="custQuotes">인용구</span>
+            <button class="cust-clear-all" id="clearAllQuotes" data-i18n="custClearQuotes">모두 삭제</button>
           </div>
           <div class="cust-list" id="quoteList"></div>
-          <button class="cust-add-btn" id="addQuoteBtn">+ 문구 추가</button>
+          <button class="cust-add-btn" id="addQuoteBtn" data-i18n="custAddQuote">+ 문구 추가</button>
           <div class="cust-quote-input-area" id="quoteInputArea">
-            <textarea id="quoteInput" placeholder="문구를 입력하세요… (Enter로 추가)"></textarea>
-            <button class="cust-quote-confirm" id="quoteConfirm">추가</button>
+            <textarea id="quoteInput" data-i18n-placeholder="custQuotePlaceholder" placeholder="문구를 입력하세요… (Enter로 추가)"></textarea>
+            <button class="cust-quote-confirm" id="quoteConfirm" data-i18n="custQuoteConfirm">추가</button>
           </div>
         </div>
 
@@ -511,9 +511,10 @@
 
   <!-- 이미지 전체화면 미리보기 -->
   <div id="img-preview-backdrop">
-    <img id="img-preview-el" alt="미리보기">
+    <img id="img-preview-el" data-i18n-alt="imgPreviewAlt" alt="미리보기">
   </div>
 
+  <script src="i18n.js"></script>
   <script src="block.js"></script>
 </body>
 </html>

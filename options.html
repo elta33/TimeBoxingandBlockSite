@@ -339,10 +339,10 @@ button { cursor: pointer; font-family: inherit; }
 
   <header class="app-header">
     <span class="app-title">Focus Timeboxer</span>
-    <button class="main-tab active" data-tab="block">차단 관리</button>
-    <button class="main-tab" data-tab="scheduler">타임박스 스케줄러</button>
-    <button class="main-tab" data-tab="pomodoro">포모도로 타이머</button>
-    <button class="main-tab" data-tab="settings">설정</button>
+    <button class="main-tab active" data-tab="block" data-i18n="tabBlock">차단 관리</button>
+    <button class="main-tab" data-tab="scheduler" data-i18n="tabScheduler">타임박스 스케줄러</button>
+    <button class="main-tab" data-tab="pomodoro" data-i18n="tabPomodoro">포모도로 타이머</button>
+    <button class="main-tab" data-tab="settings" data-i18n="tabSettings">설정</button>
   </header>
 
   <div class="tab-panel active" id="tab-block">
@@ -350,26 +350,26 @@ button { cursor: pointer; font-family: inherit; }
 
       <div class="sector">
         <div class="sector-title">
-          상시 차단 도메인
-          <button id="clearPermanentBtn" class="btn-danger btn-sm">전체 초기화</button>
+          <span data-i18n="permanentBlockTitle">상시 차단 도메인</span>
+          <button id="clearPermanentBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
         </div>
-        <p class="sector-desc">스케줄 무관, 항상 차단됩니다. <span id="permanentWarn" class="warn-text">이미 있습니다.</span> </p>
+        <p class="sector-desc"><span data-i18n="permanentBlockDesc">스케줄 무관, 항상 차단됩니다.</span> <span id="permanentWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
         <div class="input-row">
-          <input type="text" id="permanentDomainInput" placeholder="예: netflix.com">
-          <button id="addPermanentBtn" class="btn btn-sm">추가</button>
+          <input type="text" id="permanentDomainInput" data-i18n-placeholder="placeholderNetflix" placeholder="예: netflix.com">
+          <button id="addPermanentBtn" class="btn btn-sm" data-i18n="add">추가</button>
         </div>
         <ul id="permanentList" class="domain-list"></ul>
       </div>
 
       <div class="sector">
         <div class="sector-title">
-          일반 차단 도메인
-          <button id="clearGeneralBtn" class="btn-danger btn-sm">전체 초기화</button>
+          <span data-i18n="generalBlockTitle">일반 차단 도메인</span>
+          <button id="clearGeneralBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
         </div>
-        <p class="sector-desc">차단 박스가 활성화된 시간대에 적용됩니다. <span id="generalWarn" class="warn-text">이미 있습니다.</span> </p>
+        <p class="sector-desc"><span data-i18n="generalBlockDesc">차단 박스가 활성화된 시간대에 적용됩니다.</span> <span id="generalWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
         <div class="input-row">
-          <input type="text" id="generalDomainInput" placeholder="예: youtube.com">
-          <button id="addGeneralBtn" class="btn btn-sm">추가</button>
+          <input type="text" id="generalDomainInput" data-i18n-placeholder="placeholderYoutube" placeholder="예: youtube.com">
+          <button id="addGeneralBtn" class="btn btn-sm" data-i18n="add">추가</button>
         </div>
         <ul id="generalList" class="domain-list"></ul>
       </div>
@@ -381,28 +381,28 @@ button { cursor: pointer; font-family: inherit; }
     <div class="scheduler-grid">
 
       <div class="sector">
-        <div class="sector-title">새 박스 추가</div>
+        <div class="sector-title" data-i18n="newBox">새 박스 추가</div>
 
-        <div class="form-section-title">박스 이름</div>
+        <div class="form-section-title" data-i18n="boxNameLabel">박스 이름</div>
         <div class="input-row" style="margin:0;">
-          <input type="text" id="boxName" placeholder="예: 집중 코딩 시간">
+          <input type="text" id="boxName" data-i18n-placeholder="placeholderBoxName" placeholder="예: 집중 코딩 시간">
         </div>
 
         <div class="form-section-title" style="margin-top:14px;">
-          시간 설정
-          <span id="boxWarn" class="warn-text">시간이 겹칩니다.</span>
+          <span data-i18n="timeSettings">시간 설정</span>
+          <span id="boxWarn" class="warn-text" data-i18n="timeOverlapWarn">시간이 겹칩니다.</span>
         </div>
         <div class="form-row">
-          <span class="form-label">시작</span>
+          <span class="form-label" data-i18n="formStart">시작</span>
           <input type="time" id="startTime" style="flex:1;">
         </div>
         <div class="form-row">
-          <span class="form-label">종료</span>
+          <span class="form-label" data-i18n="formEnd">종료</span>
           <input type="time" id="endTime" style="flex:1;">
         </div>
 
         <div id="daySelectRow">
-          <div class="form-section-title" style="margin-top:14px;">요일 선택</div>
+          <div class="form-section-title" style="margin-top:14px;" data-i18n="daySelect">요일 선택</div>
           <div class="day-selector">
             <input type="checkbox" id="day0" name="days" value="0"><label for="day0">월</label>
             <input type="checkbox" id="day1" name="days" value="1"><label for="day1">화</label>
@@ -416,34 +416,35 @@ button { cursor: pointer; font-family: inherit; }
 
         <hr class="form-divider">
 
-        <div class="form-section-title">차단 예외 주소 <span id="customWarn" class="warn-text">이미 있습니다.</span> </div>
+        <div class="form-section-title"><span data-i18n="exceptionAddress">차단 예외 주소</span> <span id="customWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></div>
         <div class="input-row">
-          <input type="text" id="customDomainInput" placeholder="예: github.com">
-          <button id="addCustomStagingBtn" class="btn btn-sm">추가</button>
+          <input type="text" id="customDomainInput" data-i18n-placeholder="placeholderGithub" placeholder="예: github.com">
+          <button id="addCustomStagingBtn" class="btn btn-sm" data-i18n="add">추가</button>
         </div>
         <ul id="stagingCustomList" class="domain-list" style="margin-top:8px;"></ul>
 
-        <button id="addBoxBtn" class="btn" style="width:100%;margin-top:18px;">박스 생성 완료</button>
+        <button id="addBoxBtn" class="btn" style="width:100%;margin-top:18px;" data-i18n="boxCreate">박스 생성 완료</button>
       </div>
 
       <div class="sector">
         <div class="scheduler-title-row">
-          <div class="sector-title" style="margin:0;padding:0;border:none;">타임박스 스케줄러
-            <button id="clearBoxesBtn" class="btn-danger btn-sm" style="margin-left:10px;">전체 초기화</button>
+          <div class="sector-title" style="margin:0;padding:0;border:none;">
+            <span data-i18n="schedulerTitle">타임박스 스케줄러</span>
+            <button id="clearBoxesBtn" class="btn-danger btn-sm" style="margin-left:10px;" data-i18n="clearAll">전체 초기화</button>
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
             <div class="week-start-toggle" id="weekStartToggleWrap">
-              <span>주 시작:</span>
+              <span data-i18n="weekStart">주 시작:</span>
               <div class="toggle-group">
                 <input type="radio" id="weekStartSun" name="weekStart" value="sun" checked>
-                <label for="weekStartSun">일요일</label>
+                <label for="weekStartSun" data-i18n="daySundayFull">일요일</label>
                 <input type="radio" id="weekStartMon" name="weekStart" value="mon">
-                <label for="weekStartMon">월요일</label>
+                <label for="weekStartMon" data-i18n="dayMondayFull">월요일</label>
               </div>
             </div>
             <div class="view-tab-group">
-              <button class="view-tab active" data-view="day">하루</button>
-              <button class="view-tab" data-view="week">일주일</button>
+              <button class="view-tab active" data-view="day" data-i18n="viewDay">하루</button>
+              <button class="view-tab" data-view="week" data-i18n="viewWeek">일주일</button>
             </div>
           </div>
         </div>
@@ -451,7 +452,7 @@ button { cursor: pointer; font-family: inherit; }
           <label class="switch-label">
             <input type="checkbox" id="dailyScheduleDisableToggle">
             <span class="switch-track"><span class="switch-thumb"></span></span>
-            <span>하루 스케줄 비활성화</span>
+            <span data-i18n="dailyScheduleDisable">하루 스케줄 비활성화</span>
           </label>
         </div>
         <div id="timetableWrap"></div>
@@ -465,71 +466,71 @@ button { cursor: pointer; font-family: inherit; }
     <div class="block-grid">
 
       <div class="sector">
-        <div class="sector-title">타이머 설정</div>
+        <div class="sector-title" data-i18n="pomoTimerSettings">타이머 설정</div>
 
         <div class="pomo-settings-row">
           <div class="pomo-setting">
-            <label>작업 시간</label>
+            <label data-i18n="pomoWorkTime">작업 시간</label>
             <div class="pomo-num-input">
               <button class="pomo-num-btn" id="workDecrBtn">−</button>
               <input type="number" class="pomo-num-val" id="pomoWorkVal" value="25" min="1" max="60">
               <button class="pomo-num-btn" id="workIncrBtn">+</button>
             </div>
-            <span>분</span>
+            <span data-i18n="pomoMin">분</span>
           </div>
           <div class="pomo-setting">
-            <label>휴식 시간</label>
+            <label data-i18n="pomoRestTime">휴식 시간</label>
             <div class="pomo-num-input">
               <button class="pomo-num-btn" id="restDecrBtn">−</button>
               <input type="number" class="pomo-num-val" id="pomoRestVal" value="5" min="1" max="60">
               <button class="pomo-num-btn" id="restIncrBtn">+</button>
             </div>
-            <span>분</span>
+            <span data-i18n="pomoMin">분</span>
           </div>
           <div class="pomo-setting">
-            <label>반복 횟수</label>
+            <label data-i18n="pomoCycles">반복 횟수</label>
             <div class="pomo-num-input">
               <button class="pomo-num-btn" id="cyclesDecrBtn">−</button>
               <input type="number" class="pomo-num-val" id="pomoCyclesVal" value="2" min="1" max="10">
               <button class="pomo-num-btn" id="cyclesIncrBtn">+</button>
             </div>
-            <span>회</span>
+            <span data-i18n="pomoTimes">회</span>
           </div>
         </div>
 
         <div class="pomo-display" id="pomoDisplay">
-          <div class="pomo-phase-label" id="pomoPhaseLabel">대기</div>
+          <div class="pomo-phase-label" id="pomoPhaseLabel" data-i18n="pomoIdle">대기</div>
           <div class="pomo-time" id="pomoTimeLabel">25:00</div>
           <div class="pomo-cycle-info" id="pomoCycleLabel">1 / 2</div>
         </div>
 
         <div class="pomo-controls">
-          <button class="btn" id="pomoStartBtn">▶ 시작</button>
-          <button class="btn-ghost" id="pomoResetBtn" style="padding:10px 16px;">⏹ 중지</button>
-          <button class="btn-ghost" id="pomoPipBtn" style="padding:10px 16px;">⧉ PiP</button>
+          <button class="btn" id="pomoStartBtn" data-i18n="pomoStart">▶ 시작</button>
+          <button class="btn-ghost" id="pomoResetBtn" style="padding:10px 16px;" data-i18n="pomoStop">⏹ 중지</button>
+          <button class="btn-ghost" id="pomoPipBtn" style="padding:10px 16px;" data-i18n="pomoPip">⧉ PiP</button>
         </div>
       </div>
 
       <div class="sector">
         <div class="sector-title">
-          포모도로 차단 리스트
+          <span data-i18n="pomoBlockList">포모도로 차단 리스트</span>
           <div style="display:flex;gap:8px;align-items:center;">
             <div class="pomo-import-wrap" id="pomoImportWrap">
-              <button class="btn-ghost btn-sm" id="pomoImportBtn">불러오기 ▼</button>
+              <button class="btn-ghost btn-sm" id="pomoImportBtn" data-i18n="pomoImport">불러오기 ▼</button>
               <div class="pomo-import-menu" id="pomoImportMenu">
-                <button class="pomo-import-item" id="importFromPermanent">상시 차단 목록</button>
-                <button class="pomo-import-item" id="importFromGeneral">일반 차단 목록</button>
+                <button class="pomo-import-item" id="importFromPermanent" data-i18n="pomoImportPermanent">상시 차단 목록</button>
+                <button class="pomo-import-item" id="importFromGeneral" data-i18n="pomoImportGeneral">일반 차단 목록</button>
               </div>
             </div>
-            <button class="btn-danger btn-sm" id="clearPomoListBtn">전체 초기화</button>
+            <button class="btn-danger btn-sm" id="clearPomoListBtn" data-i18n="clearAll">전체 초기화</button>
           </div>
         </div>
-        <p class="sector-desc">작업 타이머가 실행 중일 때만 차단됩니다.
-          <span id="pomoWarn" class="warn-text">이미 있습니다.</span>
+        <p class="sector-desc"><span data-i18n="pomoBlockDesc">작업 타이머가 실행 중일 때만 차단됩니다.</span>
+          <span id="pomoWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span>
         </p>
         <div class="input-row">
-          <input type="text" id="pomoDomainInput" placeholder="예: twitter.com">
-          <button class="btn btn-sm" id="addPomoBtn">추가</button>
+          <input type="text" id="pomoDomainInput" data-i18n-placeholder="placeholderTwitter" placeholder="예: twitter.com">
+          <button class="btn btn-sm" id="addPomoBtn" data-i18n="add">추가</button>
         </div>
         <ul id="pomoList" class="domain-list"></ul>
       </div>
@@ -539,14 +540,14 @@ button { cursor: pointer; font-family: inherit; }
 
   <div class="tab-panel" id="tab-settings">
     <div class="sector" style="max-width:500px;">
-      <div class="sector-title">데이터 백업 / 복원</div>
-      <p class="sector-desc">도메인 목록, 타임박스 스케줄, 설정을 파일로 저장하거나 불러옵니다.</p>
+      <div class="sector-title" data-i18n="settingsBackupTitle">데이터 백업 / 복원</div>
+      <p class="sector-desc" data-i18n="settingsBackupDesc">도메인 목록, 타임박스 스케줄, 설정을 파일로 저장하거나 불러옵니다.</p>
       <div style="display:flex; gap:10px; margin-bottom:12px;">
-        <button id="exportBtn" class="btn">내보내기 (Export)</button>
-        <button id="importBtn" class="btn">불러오기 (Import)</button>
+        <button id="exportBtn" class="btn" data-i18n="exportBtn">내보내기 (Export)</button>
+        <button id="importBtn" class="btn" data-i18n="importBtn">불러오기 (Import)</button>
         <input type="file" id="importFile" accept=".json" style="display:none;">
       </div>
-      <p style="font-size:0.82rem; color:#bbb; margin:0;">불러오기는 기존 데이터를 완전히 덮어씁니다.</p>
+      <p style="font-size:0.82rem; color:#bbb; margin:0;" data-i18n="importOverwriteNote">불러오기는 기존 데이터를 완전히 덮어씁니다.</p>
     </div>
   </div>
 
@@ -556,36 +557,36 @@ button { cursor: pointer; font-family: inherit; }
       <div id="dayPopupTitle" class="day-popup-title"></div>
       <div class="day-popup-body">
         <div class="day-popup-form" id="dayPopupForm">
-          <div class="sector-title" style="font-size:1rem;margin-bottom:14px;">새 박스 추가</div>
+          <div class="sector-title" style="font-size:1rem;margin-bottom:14px;" data-i18n="newBox">새 박스 추가</div>
 
-          <div class="form-section-title">박스 이름</div>
+          <div class="form-section-title" data-i18n="boxNameLabel">박스 이름</div>
           <div class="input-row" style="margin:0;">
-            <input type="text" id="popup_boxName" placeholder="예: 집중 코딩 시간">
+            <input type="text" id="popup_boxName" data-i18n-placeholder="placeholderBoxName" placeholder="예: 집중 코딩 시간">
           </div>
 
           <div class="form-section-title" style="margin-top:14px;">
-            시간 설정
-            <span id="popup_boxWarn" class="warn-text">시간이 격치니다.</span>
+            <span data-i18n="timeSettings">시간 설정</span>
+            <span id="popup_boxWarn" class="warn-text" data-i18n="timeOverlapWarn">시간이 겹칩니다.</span>
           </div>
           <div class="form-row">
-            <span class="form-label">시작</span>
+            <span class="form-label" data-i18n="formStart">시작</span>
             <input type="time" id="popup_startTime" style="flex:1;">
           </div>
           <div class="form-row">
-            <span class="form-label">종료</span>
+            <span class="form-label" data-i18n="formEnd">종료</span>
             <input type="time" id="popup_endTime" style="flex:1;">
           </div>
 
           <hr class="form-divider">
 
-          <div class="form-section-title">차단 예외 주소 <span id="popup_customWarn" class="warn-text">이미 있습니다.</span></div>
+          <div class="form-section-title"><span data-i18n="exceptionAddress">차단 예외 주소</span> <span id="popup_customWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></div>
           <div class="input-row">
-            <input type="text" id="popup_customDomainInput" placeholder="예: github.com">
-            <button id="popup_addCustomStagingBtn" class="btn btn-sm">추가</button>
+            <input type="text" id="popup_customDomainInput" data-i18n-placeholder="placeholderGithub" placeholder="예: github.com">
+            <button id="popup_addCustomStagingBtn" class="btn btn-sm" data-i18n="add">추가</button>
           </div>
           <ul id="popup_stagingCustomList" class="domain-list" style="margin-top:8px;"></ul>
 
-          <button id="popup_addBoxBtn" class="btn" style="width:100%;margin-top:18px;">박스 생성 완료</button>
+          <button id="popup_addBoxBtn" class="btn" style="width:100%;margin-top:18px;" data-i18n="boxCreate">박스 생성 완료</button>
         </div>
         <div id="dayPopupWrap" class="day-popup-donut"></div>
       </div>
@@ -593,6 +594,7 @@ button { cursor: pointer; font-family: inherit; }
   </div>
 
   <script src="storage.js"></script>
+  <script src="i18n.js"></script>
   <script src="render-day.js"></script>
   <script src="options.js"></script>
 </body>

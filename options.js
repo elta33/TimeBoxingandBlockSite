@@ -45,7 +45,7 @@ function renderList(elementId, items, storageKey, warnId) {
     span.textContent = item; span.title = item; span.className = 'domain-text';
     li.appendChild(span);
     const delBtn = document.createElement('button');
-    delBtn.textContent = '삭제'; delBtn.className = 'btn-danger btn-sm';
+    delBtn.textContent = T('delete'); delBtn.className = 'btn-danger btn-sm';
     delBtn.onclick = () => deleteItem(storageKey, index);
     li.appendChild(delBtn);
     ul.appendChild(li);
@@ -66,11 +66,11 @@ function createCustomDomainItemUI(domain, mode, idPrefix, elType, onDelete) {
 
   const modeBadge = document.createElement('span');
   modeBadge.className = 'mode-badge mode-badge-allow';
-  modeBadge.textContent = '허용';
+  modeBadge.textContent = T('allow');
   controls.appendChild(modeBadge);
 
   const delBtn = document.createElement('button');
-  delBtn.className = 'btn-danger btn-sm'; delBtn.textContent = '삭제';
+  delBtn.className = 'btn-danger btn-sm'; delBtn.textContent = T('delete');
   delBtn.onclick = (e) => { e.stopPropagation(); onDelete(); };
   controls.appendChild(delBtn);
 
@@ -163,17 +163,17 @@ function buildBoxCard(box, boxIndex, isWeek) {
         summaryEl.textContent = first;
         const restEl = document.createElement('div');
         restEl.className = 'tbox-custom-summary';
-        restEl.textContent = `외 ${rest}개 예외`;
+        restEl.textContent = T('moreExceptions', [String(rest)]);
         card.appendChild(summaryEl);
         card.appendChild(restEl);
       } else {
-        summaryEl.textContent = `${first} 예외`;
+        summaryEl.textContent = T('exceptionLabel', [first]);
         card.appendChild(summaryEl);
       }
     }
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'tbox-del'; delBtn.textContent = '삭제'; delBtn.title = '이 박스 삭제';
+    delBtn.className = 'tbox-del'; delBtn.textContent = T('delete'); delBtn.title = T('deleteBoxTitle');
     delBtn.onclick = (e) => { e.stopPropagation(); deleteBox(boxIndex); };
     card.appendChild(delBtn);
 
@@ -229,7 +229,7 @@ function renderWeekDetailPanel(box, boxIndex) {
   titleSpan.textContent = box.name;
   header.appendChild(titleSpan);
   const closeBtn = document.createElement('button');
-  closeBtn.className = 'btn-ghost btn-sm'; closeBtn.textContent = '닫기';
+  closeBtn.className = 'btn-ghost btn-sm'; closeBtn.textContent = T('donutClose');
   closeBtn.onclick = () => { panel.style.display = 'none'; panel.dataset.openIndex = ''; };
   header.appendChild(closeBtn);
   panel.appendChild(header);
@@ -249,12 +249,12 @@ function renderWeekDetailPanel(box, boxIndex) {
 
   const wPopupInput = document.createElement('input');
   wPopupInput.type = 'text';
-  wPopupInput.placeholder = '예: github.com';
+  wPopupInput.placeholder = T('placeholderGithub');
   wPopupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
 
   const wPopupConfirmBtn = document.createElement('button');
   wPopupConfirmBtn.className = 'btn btn-sm';
-  wPopupConfirmBtn.textContent = '추가';
+  wPopupConfirmBtn.textContent = T('add');
   wPopupConfirmBtn.style.cssText = 'margin-left:6px;padding:7px 12px;flex-shrink:0;';
 
   const wPopupRow = document.createElement('div');
@@ -284,7 +284,7 @@ function renderWeekDetailPanel(box, boxIndex) {
 
   const wAddDomainInPanelBtn = document.createElement('button');
   wAddDomainInPanelBtn.className = 'btn-ghost btn-sm';
-  wAddDomainInPanelBtn.textContent = '+ 주소 추가';
+  wAddDomainInPanelBtn.textContent = T('addAddress');
   wAddDomainInPanelBtn.onclick = (e) => { e.stopPropagation(); openWAddPopup(); };
   wAddPopupWrap.insertBefore(wAddDomainInPanelBtn, wAddDomainPopup);
 
@@ -300,7 +300,7 @@ function renderWeekDetailPanel(box, boxIndex) {
       if (!targetBox) return;
       if (!targetBox.customDomains) targetBox.customDomains = [];
       if (targetBox.customDomains.some(cd => cd.domain === domain)) {
-        wPopupWarn.textContent = '이미 등록된 주소입니다.';
+        wPopupWarn.textContent = T('alreadyRegisteredAddress');
         wPopupWarn.style.display = 'block';
         return;
       }
@@ -347,8 +347,8 @@ function openDayPopup(dow, dayLabel, allBoxes) {
   if (!overlay || !wrap) return;
 
   const internalDow = dow === 0 ? 6 : dow - 1;
-  const DAY_NAMES = { 0: '일요일', 1: '월요일', 2: '화요일', 3: '수요일', 4: '목요일', 5: '금요일', 6: '토요일' };
-  title.textContent = `${DAY_NAMES[dow]} 스케줄`;
+  const DAY_FULL_KEYS = { 0: 'daySundayFull', 1: 'dayMondayFull', 2: 'dayTuesdayFull', 3: 'dayWednesdayFull', 4: 'dayThursdayFull', 5: 'dayFridayFull', 6: 'daySaturdayFull' };
+  title.textContent = T('dayScheduleTitle', [T(DAY_FULL_KEYS[dow])]);
 
   if (_dayPopupClockInterval) { clearInterval(_dayPopupClockInterval); _dayPopupClockInterval = null; }
 
@@ -420,7 +420,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
     const existIdx = popupStagingDomains.findIndex(cd => cd.domain === domain);
     if (existIdx !== -1) {
       const ul = document.getElementById('popup_stagingCustomList');
-      if (ul && ul.children[existIdx]) triggerBounceAndWarn(ul.children[existIdx], 'popup_customWarn', '같은 주소가 이미 있습니다.');
+      if (ul && ul.children[existIdx]) triggerBounceAndWarn(ul.children[existIdx], 'popup_customWarn', T('alreadySameAddress'));
       return;
     }
     popupStagingDomains.push({ domain, mode: 'allow' });
@@ -440,7 +440,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
     const endTime   = document.getElementById('popup_endTime')?.value   || null;
     const warnEl    = document.getElementById('popup_boxWarn');
 
-    if (!name || !startTime || !endTime) { alert('박스 이름과 시간을 입력해주세요!'); return; }
+    if (!name || !startTime || !endTime) { alert(T('boxNameRequired')); return; }
 
     let newStartMin = timeToMins(startTime);
     let newEndMin   = timeToMins(endTime);
@@ -468,7 +468,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
       }
 
       if (overlapIndices.length > 0) {
-        if (warnEl) { warnEl.textContent = '시간이 겨치는 박스가 있습니다.'; warnEl.style.display = 'inline-block'; }
+        if (warnEl) { warnEl.textContent = T('timeOverlapWarn2'); warnEl.style.display = 'inline-block'; }
         const filtered = getFilteredBoxes();
         overlapIndices.forEach(i => {
           const ob = boxes[i];
@@ -514,7 +514,7 @@ function syncDaySelector() {
   const ORDER_MON = [0,1,2,3,4,5,6];
   const ORDER_SUN = [6,0,1,2,3,4,5];
   const order = weekStartMonday ? ORDER_MON : ORDER_SUN;
-  const LABELS = ['월','화','수','목','금','토','일'];
+  const LABELS = [T('dayMon'),T('dayTue'),T('dayWed'),T('dayThu'),T('dayFri'),T('daySat'),T('daySun')];
   const checked = new Set(
     Array.from(selector.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value)
   );
@@ -532,15 +532,19 @@ function syncDaySelector() {
 }
 
 function getWeekOrder() {
+  const mo = T('dayMon'), tu = T('dayTue'), we = T('dayWed'), th = T('dayThu'),
+        fr = T('dayFri'), sa = T('daySat'), su = T('daySun');
+  const moF = T('dayMondayFull'), tuF = T('dayTuesdayFull'), weF = T('dayWednesdayFull'),
+        thF = T('dayThursdayFull'), frF = T('dayFridayFull'), saF = T('daySaturdayFull'), suF = T('daySundayFull');
   if (weekStartMonday) {
     return [
-      { label: '월', dow: 1 }, { label: '화', dow: 2 }, { label: '수', dow: 3 },
-      { label: '목', dow: 4 }, { label: '금', dow: 5 }, { label: '토', dow: 6 }, { label: '일', dow: 0 },
+      { label: mo, fullLabel: moF, dow: 1 }, { label: tu, fullLabel: tuF, dow: 2 }, { label: we, fullLabel: weF, dow: 3 },
+      { label: th, fullLabel: thF, dow: 4 }, { label: fr, fullLabel: frF, dow: 5 }, { label: sa, fullLabel: saF, dow: 6 }, { label: su, fullLabel: suF, dow: 0 },
     ];
   } else {
     return [
-      { label: '일', dow: 0 }, { label: '월', dow: 1 }, { label: '화', dow: 2 },
-      { label: '수', dow: 3 }, { label: '목', dow: 4 }, { label: '금', dow: 5 }, { label: '토', dow: 6 },
+      { label: su, fullLabel: suF, dow: 0 }, { label: mo, fullLabel: moF, dow: 1 }, { label: tu, fullLabel: tuF, dow: 2 },
+      { label: we, fullLabel: weF, dow: 3 }, { label: th, fullLabel: thF, dow: 4 }, { label: fr, fullLabel: frF, dow: 5 }, { label: sa, fullLabel: saF, dow: 6 },
     ];
   }
 }
@@ -563,12 +567,12 @@ function renderWeekView(boxes, wrap, scrollToMins) {
   const cornerCell = document.createElement('div');
   cornerCell.style.cssText = 'width:52px;border-right:1px solid #e8e8e8;background:#fafafa;';
   headerRow.appendChild(cornerCell);
-  weekOrder.forEach(({ label, dow }) => {
+  weekOrder.forEach(({ label, fullLabel, dow }) => {
     const lbl = document.createElement('div');
     lbl.className   = 'week-day-label' + (dow === todayDow ? ' today' : '');
     lbl.textContent = label;
-    lbl.title = `${label}요일 스케줄 보기`;
-    lbl.addEventListener('click', () => openDayPopup(dow, label, boxes));
+    lbl.title = T('dayScheduleTooltip', [fullLabel]);
+    lbl.addEventListener('click', () => openDayPopup(dow, fullLabel, boxes));
     headerRow.appendChild(lbl);
   });
   scrollBody.appendChild(headerRow);
@@ -686,7 +690,7 @@ document.getElementById('addCustomStagingBtn').onclick = () => {
     const existIdx = stagingCustomDomains.findIndex(cd => cd.domain === domain);
     if (existIdx !== -1) {
       const ul = document.getElementById('stagingCustomList');
-      if (ul && ul.children[existIdx]) triggerBounceAndWarn(ul.children[existIdx], 'customWarn', '같은 주소가 이미 있습니다.');
+      if (ul && ul.children[existIdx]) triggerBounceAndWarn(ul.children[existIdx], 'customWarn', T('alreadySameAddress'));
       return;
     }
     stagingCustomDomains.push({ domain, mode });
@@ -705,8 +709,8 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
   const endTime   = getFormattedTime('endTime');
   const days      = currentView === 'week' ? getSelectedDays() : [];
 
-  if (!name || !startTime || !endTime) return alert('박스 이름과 시간을 입력해주세요!');
-  if (currentView === 'week' && days.length === 0) return alert('요일을 하나 이상 선택해주세요!');
+  if (!name || !startTime || !endTime) return alert(T('boxNameRequired'));
+  if (currentView === 'week' && days.length === 0) return alert(T('daysRequired'));
 
   let newStartMin = timeToMins(startTime);
   let newEndMin   = timeToMins(endTime);
@@ -773,13 +777,13 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
           });
         });
 
-        triggerBounceAndWarn(null, 'boxWarn', '시간이 겹치는 박스가 있습니다.');
+        triggerBounceAndWarn(null, 'boxWarn', T('timeOverlapWarn2'));
 
       } else if (currentView === 'day' && wrap && wrap._pulseBox) {
         overlapIndices.forEach(i => wrap._pulseBox(i));
-        triggerBounceAndWarn(null, 'boxWarn', '시간이 겹치는 박스가 있습니다.');
+        triggerBounceAndWarn(null, 'boxWarn', T('timeOverlapWarn2'));
       } else {
-        triggerBounceAndWarn(null, 'boxWarn', '시간이 겹치는 박스가 있습니다.');
+        triggerBounceAndWarn(null, 'boxWarn', T('timeOverlapWarn2'));
       }
 
       document.getElementById('startTime').focus();
@@ -812,10 +816,10 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
 // ── 차단 관리 탭 이벤트 핸들러 ──
 document.getElementById('addGeneralBtn').onclick   = () => addToList('generalDomainInput',   'generalList',   'generalList',   'generalWarn');
 document.getElementById('addPermanentBtn').onclick = () => addToList('permanentDomainInput', 'permanentList', 'permanentList', 'permanentWarn');
-document.getElementById('clearGeneralBtn').onclick   = () => clearAll('generalList',   '일반 차단 목록을 모두 지우시겠습니까?',    ['generalDomainInput']);
-document.getElementById('clearPermanentBtn').onclick = () => clearAll('permanentList', '상시 차단 목록을 모두 지우시겠습니까?', ['permanentDomainInput']);
+document.getElementById('clearGeneralBtn').onclick   = () => clearAll('generalList',   T('clearGeneralConfirm'),   ['generalDomainInput']);
+document.getElementById('clearPermanentBtn').onclick = () => clearAll('permanentList', T('clearPermanentConfirm'), ['permanentDomainInput']);
 document.getElementById('clearBoxesBtn').onclick = () => {
-  clearAll(getBoxKey(), '타임박스 스케쥴을 모두 지우시겠습니까?', ['boxName', 'customDomainInput']);
+  clearAll(getBoxKey(), T('clearBoxesConfirm'), ['boxName', 'customDomainInput']);
   clearCustomTimeInputs(); clearDaySelection();
 };
 
@@ -850,12 +854,12 @@ function importSettings(file) {
   reader.onload = e => {
     let data;
     try { data = JSON.parse(e.target.result); }
-    catch { alert('올바른 JSON 파일이 아닙니다.'); return; }
+    catch { alert(T('invalidJson')); return; }
     const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings']);
     const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
-    if (Object.keys(safe).length === 0) { alert('복원할 설정 데이터가 없습니다.'); return; }
+    if (Object.keys(safe).length === 0) { alert(T('noDataToRestore')); return; }
     chrome.storage.local.set(safe, () => {
-      alert('설정을 불러왔습니다.');
+      alert(T('importSuccess'));
       loadSettings();
     });
   };
@@ -978,7 +982,7 @@ function renderPomoList(list) {
     const span = document.createElement('span');
     span.textContent = domain; span.title = domain; span.className = 'domain-text';
     const del  = document.createElement('button');
-    del.textContent = '삭제'; del.className = 'btn-danger btn-sm';
+    del.textContent = T('delete'); del.className = 'btn-danger btn-sm';
     del.onclick = () => {
       chrome.storage.local.get(['pomodoroList'], r => {
         const arr = r.pomodoroList || [];
@@ -1007,8 +1011,8 @@ function updatePomoDisplay(state, settings) {
 
   display.className = 'pomo-display' + (phase !== 'idle' ? ' phase-' + phase : '');
 
-  const phaseNames = { work: '🍅 작업', rest: '☕ 휴식', done: '✅ 완료', idle: '대기' };
-  if (phaseEl) phaseEl.textContent = phaseNames[phase] || '대기';
+  const phaseNames = { work: T('pomoWork'), rest: T('pomoRest'), done: T('pomoDone'), idle: T('pomoIdle') };
+  if (phaseEl) phaseEl.textContent = phaseNames[phase] || T('pomoIdle');
 
   if (timeEl) {
     if (isActive && state.endTime) {
@@ -1031,9 +1035,9 @@ function updatePomoDisplay(state, settings) {
 
   if (startBtn) {
     startBtn.disabled = phase === 'done';
-    if (isActive)                              startBtn.textContent = '⏸ 일시정지';
-    else if (phase === 'work' || phase === 'rest') startBtn.textContent = '▶ 재개';
-    else                                       startBtn.textContent = '▶ 시작';
+    if (isActive)                              startBtn.textContent = T('pomoPause');
+    else if (phase === 'work' || phase === 'rest') startBtn.textContent = T('pomoResume');
+    else                                       startBtn.textContent = T('pomoStart');
   }
 
   const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal'];
@@ -1044,7 +1048,7 @@ function _previewPomoDisplay(previewPhase, secs, cycles) {
   const display = document.getElementById('pomoDisplay');
   if (display) display.className = 'pomo-display phase-' + previewPhase;
   const phaseEl = document.getElementById('pomoPhaseLabel');
-  if (phaseEl) phaseEl.textContent = previewPhase === 'work' ? '🍅 작업' : '☕ 휴식';
+  if (phaseEl) phaseEl.textContent = previewPhase === 'work' ? T('pomoWork') : T('pomoRest');
   const timeEl = document.getElementById('pomoTimeLabel');
   if (timeEl) timeEl.textContent = _fmtPomoTime(secs);
   const cycleEl = document.getElementById('pomoCycleLabel');
@@ -1148,7 +1152,7 @@ function _importFromList(storageKey) {
     const current = data.pomodoroList || [];
     const curSet  = new Set(current);
     const toAdd   = source.filter(d => !curSet.has(d));
-    if (!toAdd.length) { alert('추가할 새 항목이 없습니다.'); return; }
+    if (!toAdd.length) { alert(T('noNewItems')); return; }
     chrome.storage.local.set({ pomodoroList: [...current, ...toAdd] }, loadPomoData);
   });
   document.getElementById('pomoImportMenu')?.classList.remove('open');
@@ -1277,7 +1281,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const idx = arr.indexOf(domain);
       if (idx !== -1) {
         const ul = document.getElementById('pomoList');
-        if (ul?.children[idx]) triggerBounceAndWarn(ul.children[idx], 'pomoWarn', '같은 주소가 이미 있습니다.');
+        if (ul?.children[idx]) triggerBounceAndWarn(ul.children[idx], 'pomoWarn', T('alreadySameAddress'));
         return;
       }
       arr.push(domain);
@@ -1294,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 전체 초기화 ──
   document.getElementById('clearPomoListBtn')?.addEventListener('click', () => {
-    if (!confirm('포모도로 차단 목록을 모두 지우시겠습니까?')) return;
+    if (!confirm(T('clearPomoConfirm'))) return;
     chrome.storage.local.set({ pomodoroList: [] }, loadPomoData);
   });
 

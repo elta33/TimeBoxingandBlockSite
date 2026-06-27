@@ -15,9 +15,9 @@ function render() {
   // 버튼 / 입력 상태는 preview 중에도 항상 갱신
   if (startBtn) {
     startBtn.disabled = _state.phase === 'done';
-    startBtn.textContent = isActive ? '⏸ 일시정지'
-      : (_state.phase === 'work' || _state.phase === 'rest') ? '▶ 재개'
-      : '▶ 시작';
+    startBtn.textContent = isActive ? T('pomoPause')
+      : (_state.phase === 'work' || _state.phase === 'rest') ? T('pomoResume')
+      : T('pomoStart');
   }
   ['workDecr','workIncr','restDecr','restIncr','cyclesDecr','cyclesIncr'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.disabled = isActive;
@@ -40,8 +40,8 @@ function render() {
   var s = _state, g = _settings;
   document.body.className = (s.phase && s.phase !== 'idle') ? 'phase-' + s.phase : '';
 
-  var phaseNames = { work: '🍅 작업', rest: '☕ 휴식', done: '✅ 완료', idle: '대기' };
-  phaseEl.textContent = phaseNames[s.phase] || '대기';
+  var phaseNames = { work: T('pomoWork'), rest: T('pomoRest'), done: T('pomoDone'), idle: T('pomoIdle') };
+  phaseEl.textContent = phaseNames[s.phase] || T('pomoIdle');
 
   if (isActive && s.endTime) {
     var rem = Math.max(0, Math.ceil((s.endTime - Date.now()) / 1000));
@@ -69,7 +69,7 @@ function showPreview(previewPhase, secs, cycles) {
   var phaseEl = document.getElementById('phase-label');
   var timeEl  = document.getElementById('time-display');
   var cycleEl = document.getElementById('cycle-label');
-  if (phaseEl) phaseEl.textContent = previewPhase === 'work' ? '🍅 작업' : '☕ 휴식';
+  if (phaseEl) phaseEl.textContent = previewPhase === 'work' ? T('pomoWork') : T('pomoRest');
   if (timeEl)  timeEl.textContent  = fmt(secs);
   if (cycleEl) cycleEl.textContent = '1 / ' + cycles;
 

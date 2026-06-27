@@ -27,7 +27,7 @@ function addToList(inputId, storageKey, ulId, warnId) {
     const existingIndex = list.indexOf(domain);
     if (existingIndex !== -1) {
       const ul = document.getElementById(ulId);
-      if (ul && ul.children[existingIndex]) triggerBounceAndWarn(ul.children[existingIndex], warnId, '같은 주소가 이미 있습니다.');
+      if (ul && ul.children[existingIndex]) triggerBounceAndWarn(ul.children[existingIndex], warnId, T('alreadySameAddress'));
       return;
     }
     list.push(domain);

@@ -4,11 +4,21 @@
 // 기본값 (스토리지가 비어있을 때 최초 1회 시딩)
 // ─────────────────────────────────────────────
 const DEFAULT_IMAGES = [
-  { name: 'red-gaze.gif', builtin: 'images/red-gaze.gif' },
+  { name: 'Default_1.jpeg', builtin: 'images/Default_1.jpeg' },
+  { name: 'Default_2.jpeg', builtin: 'images/Default_2.jpeg' },
+  { name: 'Default_3.jpeg', builtin: 'images/Default_3.jpeg' },
+  { name: 'Default_4.jpeg', builtin: 'images/Default_4.jpeg' },
+  { name: 'Default_5.jpeg', builtin: 'images/Default_5.jpeg' },
 ];
-const DEFAULT_QUOTES = [
-  '고작 이런 곳에 쓰려고 당신의 시계가 되돌아가는 것은 아닐 겁니다, 관리자 단테헤...',
-];
+function getDefaultQuotes() {
+  return [
+    T('defaultQuote1'),
+    T('defaultQuote2'),
+    T('defaultQuote3'),
+    T('defaultQuote4'),
+    T('defaultQuote5'),
+  ];
+}
 
 // ─────────────────────────────────────────────
 // 스토리지 키
@@ -42,8 +52,8 @@ function loadData() {
       let links  = data[STORE_LINKS];
       const updates = {};
 
-      if (!Array.isArray(imgs))   { imgs   = DEFAULT_IMAGES;  updates[STORE_IMGS]   = imgs;   }
-      if (!Array.isArray(quotes)) { quotes = DEFAULT_QUOTES;  updates[STORE_QUOTES] = quotes; }
+      if (!Array.isArray(imgs))   { imgs   = DEFAULT_IMAGES;        updates[STORE_IMGS]   = imgs;   }
+      if (!Array.isArray(quotes)) { quotes = getDefaultQuotes();    updates[STORE_QUOTES] = quotes; }
       if (!Array.isArray(links))  { links  = [];              updates[STORE_LINKS]  = links;  }
 
       if (Object.keys(updates).length) chrome.storage.local.set(updates);
@@ -76,7 +86,7 @@ function applyBgAndQuote(imgs, quotes, links) {
       const layer = document.getElementById('bg-layer');
       const el = new Image();
       el.onload = () => { layer.style.backgroundImage = `url("${src}")`; layer.classList.add('loaded'); };
-      el.onerror = () => console.warn('배경 이미지 로드 실패:', img.name);
+      el.onerror = () => console.warn('bg image load failed:', img.name);
       el.src = src;
     }
   }
@@ -92,21 +102,33 @@ function applyBgAndQuote(imgs, quotes, links) {
 const _params = new URLSearchParams(window.location.search);
 const _reason = _params.get('reason');
 
+function setSubtitleWithKeyword(el, preKey, keywordKey, postKey) {
+  el.textContent = '';
+  const preText = T(preKey);
+  if (preText) el.appendChild(document.createTextNode(preText));
+  const span = document.createElement('span');
+  span.className = 'reason-keyword';
+  span.textContent = T(keywordKey);
+  el.appendChild(span);
+  const postText = T(postKey);
+  if (postText) el.appendChild(document.createTextNode(postText));
+}
+
 (function applyReasonMessage() {
   const el = document.getElementById('subtitle');
   if (!el) return;
   const h1 = document.querySelector('h1');
 
   if (_reason === 'general' || _reason === 'custom') {
-    if (h1) h1.textContent = '📅 타임박스 차단 발동!';
-    el.innerHTML = '현재 <span class="reason-keyword">스케줄</span>에 의해 접속이 제한되었습니다.';
+    if (h1) h1.textContent = T('blockTitleSchedule');
+    setSubtitleWithKeyword(el, 'blockReasonGeneralPre', 'blockReasonGeneralKeyword', 'blockReasonGeneralPost');
   } else if (_reason === 'permanent') {
-    el.innerHTML = '<span class="reason-keyword">상시 차단</span>에 의해 접속이 제한되었습니다.';
+    setSubtitleWithKeyword(el, 'blockReasonPermanentPre', 'blockReasonPermanentKeyword', 'blockReasonPermanentPost');
   } else if (_reason === 'pomodoro') {
-    if (h1) h1.textContent = '🍅 포모도로 타임!';
-    el.innerHTML = '<span class="reason-keyword">집중 시간</span>에는 접속이 차단됩니다.';
+    if (h1) h1.textContent = T('blockTitlePomodoro');
+    setSubtitleWithKeyword(el, 'blockReasonPomodoroPre', 'blockReasonPomodoroKeyword', 'blockReasonPomodoroPost');
   } else {
-    el.innerHTML = '현재 <span class="reason-keyword">스케줄</span>에 의해 접속이 제한되었습니다.';
+    setSubtitleWithKeyword(el, 'blockReasonGeneralPre', 'blockReasonGeneralKeyword', 'blockReasonGeneralPost');
   }
 })();
 
@@ -146,9 +168,10 @@ document.getElementById('openSettings')?.addEventListener('click', () => {
   }
   function fmt(mins) {
     const h = Math.floor(mins / 60), m = mins % 60;
-    if (h > 0 && m > 0) return `${h}시간 ${m}분 후 해제`;
-    if (h > 0) return `${h}시간 후 해제`;
-    return `${m}분 후 해제`;
+    const timeStr = h > 0 && m > 0 ? T('timeHM', [String(h), String(m)])
+                  : h > 0           ? T('timeH',  [String(h)])
+                  :                   T('timeM',  [String(m)]);
+    return T('afterRelease', [timeStr]);
   }
 
   chrome.storage.local.get(['dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled'], data => {
@@ -199,7 +222,7 @@ function renderLinkList() {
   if (!_links.length) {
     const empty = document.createElement('div');
     empty.className = 'cust-list-empty';
-    empty.textContent = '등록된 링크가 없습니다';
+    empty.textContent = T('custNoLinks');
     list.appendChild(empty);
     return;
   }
@@ -243,7 +266,7 @@ function renderLinkList() {
     const unlinkBtn = document.createElement('button');
     unlinkBtn.className = 'link-unlink-btn';
     unlinkBtn.textContent = '×';
-    unlinkBtn.title = '링크 해제';
+    unlinkBtn.title = T('custUnlinkTitle');
     unlinkBtn.addEventListener('click', e => { e.stopPropagation(); deleteLink(i); });
 
     item.append(imgPart, connector, quotePart, unlinkBtn);
@@ -261,7 +284,7 @@ function renderImageList() {
   if (!_imgs.length) {
     const empty = document.createElement('div');
     empty.className = 'cust-list-empty';
-    empty.textContent = '등록된 이미지가 없습니다';
+    empty.textContent = T('custNoImages');
     list.appendChild(empty);
     return;
   }
@@ -291,7 +314,7 @@ function renderImageList() {
     const del = document.createElement('button');
     del.className = 'cust-del';
     del.textContent = '×';
-    del.title = '삭제';
+    del.title = T('delete');
     del.addEventListener('click', e => { e.stopPropagation(); deleteImage(i); });
 
     item.append(thumb, name, del);
@@ -320,7 +343,7 @@ function renderQuoteList() {
   if (!_quotes.length) {
     const empty = document.createElement('div');
     empty.className = 'cust-list-empty';
-    empty.textContent = '등록된 문구가 없습니다';
+    empty.textContent = T('custNoQuotes');
     list.appendChild(empty);
     return;
   }
@@ -345,7 +368,7 @@ function renderQuoteList() {
     const del = document.createElement('button');
     del.className = 'cust-del';
     del.textContent = '×';
-    del.title = '삭제';
+    del.title = T('delete');
     del.addEventListener('click', e => { e.stopPropagation(); deleteQuote(i); });
 
     item.append(text, del);
@@ -437,9 +460,9 @@ function updateSelStatus() {
   const status = document.getElementById('selStatus');
   btn.disabled = (_selImg === null || _selQuote === null);
 
-  const imgLabel   = _selImg   !== null ? `"${_imgs[_selImg]?.name   || '?'}"` : '미선택';
-  const quoteLabel = _selQuote !== null ? '선택됨' : '미선택';
-  status.textContent = `이미지: ${imgLabel} / 인용구: ${quoteLabel}`;
+  const imgLabel   = _selImg   !== null ? `"${_imgs[_selImg]?.name || '?'}"` : T('custSelNone');
+  const quoteLabel = _selQuote !== null ? T('custSelSelected') : T('custSelNone');
+  status.textContent = T('custSelStatus', [imgLabel, quoteLabel]);
 }
 
 function enterSelectionMode() {
@@ -447,7 +470,7 @@ function enterSelectionMode() {
   _selImg   = null;
   _selQuote = null;
   document.getElementById('customize-popup').classList.add('selecting-mode');
-  document.getElementById('addLinkBtn').textContent = '선택 취소';
+  document.getElementById('addLinkBtn').textContent = T('custCancelLink');
   updateSelStatus();
   renderImageList();
   renderQuoteList();
@@ -459,7 +482,7 @@ function exitSelectionMode() {
   _selQuote = null;
   const popup = document.getElementById('customize-popup');
   popup.classList.remove('selecting-mode', 'img-selected', 'quote-selected');
-  document.getElementById('addLinkBtn').textContent = '+ 링크 추가';
+  document.getElementById('addLinkBtn').textContent = T('custAddLink');
   renderImageList();
   renderQuoteList();
 }
@@ -529,7 +552,7 @@ document.getElementById('imageFileInput').addEventListener('change', e => {
 // ─────────────────────────────────────────────
 document.getElementById('clearAllImages').addEventListener('click', () => {
   if (!_imgs.length) return;
-  if (confirm('배경 이미지를 모두 삭제할까요?\n연결된 링크도 모두 해제됩니다.')) {
+  if (confirm(T('custConfirmClearImages'))) {
     _imgs  = [];
     _links = [];
     saveImages(); saveLinks();
@@ -539,7 +562,7 @@ document.getElementById('clearAllImages').addEventListener('click', () => {
 
 document.getElementById('clearAllQuotes').addEventListener('click', () => {
   if (!_quotes.length) return;
-  if (confirm('인용구를 모두 삭제할까요?\n연결된 링크도 모두 해제됩니다.')) {
+  if (confirm(T('custConfirmClearQuotes'))) {
     _quotes = [];
     _links  = [];
     saveQuotes(); saveLinks();
@@ -549,7 +572,7 @@ document.getElementById('clearAllQuotes').addEventListener('click', () => {
 
 document.getElementById('clearAllLinks').addEventListener('click', () => {
   if (!_links.length) return;
-  if (confirm('모든 링크를 해제할까요?')) {
+  if (confirm(T('custConfirmClearLinks'))) {
     _links = [];
     saveLinks();
     renderLinkList();
