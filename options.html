@@ -297,6 +297,157 @@ button { cursor: pointer; font-family: inherit; }
 .switch-label input[type="checkbox"]:checked + .switch-track .switch-thumb { left: 20px; }
 #timetableWrap.daily-disabled .donut-container { filter: saturate(0.15) brightness(0.85); transition: filter 0.3s; }
 
+/* ── 통계 탭 ── */
+.stats-period-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.stats-heading { font-size: 1.05rem; font-weight: 700; color: #111; }
+.stats-period-tabs {
+  display: flex;
+  border: 1px solid #e0e0e0;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.stats-period-tab {
+  padding: 6px 16px; border: none; background: #fff;
+  font-size: 0.82rem; color: #888; cursor: pointer; font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.stats-period-tab + .stats-period-tab { border-left: 1px solid #e0e0e0; }
+.stats-period-tab.active { background: #111; color: #fff; font-weight: 700; }
+
+.stats-hero-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.stats-hero-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px 20px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  position: relative;
+  overflow: hidden;
+  border-left: 4px solid #eee;
+}
+.stats-hero-card.stats-streak { border-left-color: #faad14; }
+.stats-hero-card.stats-focus  { border-left-color: #1890ff; }
+.stats-hero-card.stats-block  { border-left-color: #ff4d4f; }
+.stats-hero-label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: #bbb; margin-bottom: 10px;
+}
+.stats-hero-value {
+  font-size: 2.2rem; font-weight: 800; color: #111;
+  letter-spacing: -0.03em; line-height: 1;
+}
+.stats-hero-unit { font-size: 0.95rem; font-weight: 500; color: #888; margin-left: 3px; }
+.stats-hero-sub  { font-size: 0.72rem; color: #bbb; margin-top: 8px; }
+
+.stats-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.stats-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* 바 차트 */
+.stats-bar-chart-inner {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding-bottom: 22px;
+}
+.stats-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+.stats-bar-wrap { width: 100%; flex: 1; display: flex; align-items: flex-end; position: relative; }
+.stats-bar {
+  width: 100%; border-radius: 5px 5px 0 0;
+  background: #d0e8ff; min-height: 3px;
+  position: relative; transition: height 0.25s;
+}
+.stats-bar.today { background: #1890ff; }
+.stats-bar-tooltip {
+  position: absolute; bottom: calc(100% + 3px); left: 50%;
+  transform: translateX(-50%);
+  background: #333; color: #fff; font-size: 0.65rem; font-weight: 700;
+  padding: 2px 5px; border-radius: 3px; white-space: nowrap;
+  pointer-events: none;
+}
+.stats-bar-day {
+  font-size: 0.68rem; color: #bbb; margin-top: 5px; font-weight: 600;
+  white-space: nowrap;
+}
+.stats-bar-day.today { color: #1890ff; font-weight: 700; }
+
+/* 상위 도메인 */
+.stats-domain-rank { list-style: none; padding: 0; margin: 0; }
+.stats-domain-rank-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid #f5f5f5;
+}
+.stats-domain-rank-item:last-child { border-bottom: none; }
+.stats-rank-num { width: 18px; font-size: 0.75rem; font-weight: 700; color: #ccc; flex-shrink: 0; }
+.stats-rank-num.top { color: #ff4d4f; }
+.stats-rank-info { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stats-rank-domain { font-size: 0.82rem; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stats-rank-bar-bg { height: 4px; background: #f5f5f5; border-radius: 2px; overflow: hidden; }
+.stats-rank-bar-fill { height: 100%; border-radius: 2px; background: #ffb3b3; }
+.stats-rank-bar-fill.top { background: #ff4d4f; }
+.stats-rank-count { font-size: 0.75rem; font-weight: 700; color: #999; flex-shrink: 0; }
+
+/* 포모도로 통계 */
+.stats-pomo-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px solid #f5f5f5;
+}
+.stats-pomo-row:last-child { border-bottom: none; }
+.stats-pomo-label { font-size: 0.82rem; color: #666; }
+.stats-pomo-val   { font-size: 0.95rem; font-weight: 700; color: #111; }
+
+/* 히트맵 */
+.stats-heatmap {
+  display: grid; grid-template-columns: repeat(24, 1fr);
+  gap: 3px; margin-top: 4px;
+}
+.stats-heatmap-cell {
+  aspect-ratio: 1; border-radius: 3px; background: #f0f0f0;
+  cursor: default;
+}
+.stats-heatmap-cell.h1 { background: #ffd5d5; }
+.stats-heatmap-cell.h2 { background: #ff9999; }
+.stats-heatmap-cell.h3 { background: #ff6666; }
+.stats-heatmap-cell.h4 { background: #ff4d4f; }
+.stats-heatmap-labels {
+  display: flex; justify-content: space-between; margin-top: 4px;
+}
+.stats-heatmap-labels span { font-size: 0.62rem; color: #ccc; }
+.stats-heatmap-legend {
+  display: flex; align-items: center; gap: 5px; margin-top: 10px;
+}
+.stats-heatmap-legend-label { font-size: 0.68rem; color: #bbb; }
+.stats-heatmap-legend-cells { display: flex; gap: 2px; }
+.stats-heatmap-legend-cells .stats-heatmap-cell { width: 12px; height: 12px; aspect-ratio: auto; }
+
+/* 빈 상태 */
+.stats-empty { font-size: 0.82rem; color: #ccc; padding: 20px 0; text-align: center; }
+
 /* ── 포모도로 타이머 ── */
 .pomo-settings-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
 .pomo-setting { display: flex; align-items: center; gap: 8px; color: #555; font-size: 0.9rem; }
@@ -342,6 +493,7 @@ button { cursor: pointer; font-family: inherit; }
     <button class="main-tab active" data-tab="block" data-i18n="tabBlock">차단 관리</button>
     <button class="main-tab" data-tab="scheduler" data-i18n="tabScheduler">타임박스 스케줄러</button>
     <button class="main-tab" data-tab="pomodoro" data-i18n="tabPomodoro">포모도로 타이머</button>
+    <button class="main-tab" data-tab="stats" data-i18n="tabStats">통계</button>
     <button class="main-tab" data-tab="settings" data-i18n="tabSettings">설정</button>
   </header>
 
@@ -535,6 +687,75 @@ button { cursor: pointer; font-family: inherit; }
         <ul id="pomoList" class="domain-list"></ul>
       </div>
 
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-stats">
+    <div class="stats-period-row">
+      <span class="stats-heading" data-i18n="statsTitle">집중 통계</span>
+      <div class="stats-period-tabs">
+        <button class="stats-period-tab active" data-period="today" data-i18n="statsPeriodToday">오늘</button>
+        <button class="stats-period-tab" data-period="7d"    data-i18n="statsPeriod7d">7일</button>
+        <button class="stats-period-tab" data-period="30d"   data-i18n="statsPeriod30d">30일</button>
+      </div>
+    </div>
+
+    <div class="stats-hero-row">
+      <div class="stats-hero-card stats-streak">
+        <div class="stats-hero-label" data-i18n="statsStreak">🔥 연속 집중 스트릭</div>
+        <div class="stats-hero-value">
+          <span id="stat-streak-val">0</span><span class="stats-hero-unit" data-i18n="statsDayUnit">일째</span>
+        </div>
+        <div class="stats-hero-sub" id="stat-streak-sub"></div>
+      </div>
+      <div class="stats-hero-card stats-focus">
+        <div class="stats-hero-label" data-i18n="statsFocusTime">⏱ 오늘 집중 시간</div>
+        <div class="stats-hero-value" id="stat-focus-val">—</div>
+        <div class="stats-hero-sub" data-i18n="statsFocusSub">오늘 예정된 타임박스 합산</div>
+      </div>
+      <div class="stats-hero-card stats-block">
+        <div class="stats-hero-label" data-i18n="statsBlockCount">🚫 차단 횟수</div>
+        <div class="stats-hero-value">
+          <span id="stat-block-val">0</span><span class="stats-hero-unit" data-i18n="statsBlockUnit">회</span>
+        </div>
+        <div class="stats-hero-sub" data-i18n="statsBlockSub">방어한 분산 시도</div>
+      </div>
+    </div>
+
+    <div class="stats-main-grid">
+      <div class="sector">
+        <div class="sector-title" id="stat-chart-title"></div>
+        <div id="stat-bar-chart"></div>
+      </div>
+      <div class="sector">
+        <div class="sector-title" data-i18n="statsTopDomains">상위 차단 도메인</div>
+        <ul class="stats-domain-rank" id="stat-top-domains"></ul>
+      </div>
+    </div>
+
+    <div class="stats-bottom-grid">
+      <div class="sector">
+        <div class="sector-title" data-i18n="statsPomoTitle">🍅 포모도로 통계</div>
+        <div id="stat-pomo-content"></div>
+      </div>
+      <div class="sector">
+        <div class="sector-title" data-i18n="statsHeatmapTitle">오늘 차단 시간대 분포</div>
+        <div class="stats-heatmap" id="stat-heatmap"></div>
+        <div class="stats-heatmap-labels">
+          <span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>23시</span>
+        </div>
+        <div class="stats-heatmap-legend">
+          <span class="stats-heatmap-legend-label" data-i18n="statsHeatmapLow">적음</span>
+          <div class="stats-heatmap-legend-cells">
+            <div class="stats-heatmap-cell"></div>
+            <div class="stats-heatmap-cell h1"></div>
+            <div class="stats-heatmap-cell h2"></div>
+            <div class="stats-heatmap-cell h3"></div>
+            <div class="stats-heatmap-cell h4"></div>
+          </div>
+          <span class="stats-heatmap-legend-label" data-i18n="statsHeatmapHigh">많음</span>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -102,6 +102,36 @@ function applyBgAndQuote(imgs, quotes, links) {
 const _params = new URLSearchParams(window.location.search);
 const _reason = _params.get('reason');
 
+// ─────────────────────────────────────────────
+// 통계: 차단 이벤트 로깅
+// ─────────────────────────────────────────────
+function _statsStreak(streak, dateStr) {
+  const s = streak || { current: 0, longest: 0, lastDate: '' };
+  if (s.lastDate === dateStr) return s;
+  const prev = new Date(dateStr);
+  prev.setDate(prev.getDate() - 1);
+  const yesterStr = prev.toISOString().slice(0, 10);
+  const cur = (s.lastDate === yesterStr) ? s.current + 1 : 1;
+  return { current: cur, longest: Math.max(s.longest, cur), lastDate: dateStr };
+}
+
+(function logBlockEvent() {
+  const domain = _params.get('domain');
+  if (!domain) return;
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const ts = Math.floor(Date.now() / 1000);
+  chrome.storage.local.get(['focusEvents', 'focusStreak'], data => {
+    let events = data.focusEvents || [];
+    let day = events.find(e => e.date === dateStr);
+    if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
+    day.blocks.push({ domain, reason: _reason || 'general', ts });
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+    events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
+    const streak = _statsStreak(data.focusStreak || null, dateStr);
+    chrome.storage.local.set({ focusEvents: events, focusStreak: streak });
+  });
+})();
+
 function setSubtitleWithKeyword(el, preKey, keywordKey, postKey) {
   el.textContent = '';
   const preText = T(preKey);

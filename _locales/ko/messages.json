@@ -178,5 +178,48 @@
   "pipTitle":        { "message": "포모도로 타이머" },
   "pipWorkLabel":    { "message": "작업" },
   "pipRestLabel":    { "message": "휴식" },
-  "pipRepeatLabel":  { "message": "반복" }
+  "pipRepeatLabel":  { "message": "반복" },
+
+  "tabStats": { "message": "통계" },
+
+  "statsTitle":         { "message": "집중 통계" },
+  "statsPeriodToday":   { "message": "오늘" },
+  "statsPeriod7d":      { "message": "7일" },
+  "statsPeriod30d":     { "message": "30일" },
+  "statsToday":         { "message": "오늘" },
+
+  "statsStreak":        { "message": "🔥 연속 집중 스트릭" },
+  "statsDayUnit":       { "message": "일째" },
+  "statsStreakBest":    { "message": "최장 기록: $1일", "placeholders": { "1": { "content": "$1" } } },
+  "statsStreakNone":    { "message": "아직 기록 없음" },
+
+  "statsFocusTime":     { "message": "⏱ 오늘 집중 시간" },
+  "statsFocusSub":      { "message": "오늘 예정된 타임박스 합산" },
+  "statsFocusNone":     { "message": "오늘 예정된 박스 없음" },
+
+  "statsBlockCount":    { "message": "🚫 차단 횟수" },
+  "statsBlockUnit":     { "message": "회" },
+  "statsBlockSub":      { "message": "방어한 분산 시도" },
+
+  "statsChartTitle7":   { "message": "최근 7일 일별 차단 횟수" },
+  "statsChartTitle30":  { "message": "최근 30일 일별 차단 횟수" },
+  "statsChartTitleToday": { "message": "최근 7일 일별 차단 횟수" },
+
+  "statsTopDomains":    { "message": "상위 차단 도메인" },
+  "statsTopDomainsSub": { "message": "기간 내 가장 많이 막은 사이트" },
+
+  "statsPomoTitle":       { "message": "🍅 포모도로 통계" },
+  "statsPomoTodayCycles": { "message": "오늘 완료 사이클" },
+  "statsPomoTodayMins":   { "message": "오늘 순 집중 시간" },
+  "statsPomoWeek":        { "message": "7일 누적" },
+  "statsPomoMonth":       { "message": "30일 누적" },
+  "statsPomoUnit":        { "message": "회" },
+
+  "statsHeatmapTitle":  { "message": "오늘 차단 시간대 분포" },
+  "statsHeatmapSub":    { "message": "0 ~ 23시" },
+  "statsHeatmapLow":    { "message": "적음" },
+  "statsHeatmapHigh":   { "message": "많음" },
+
+  "statsNoData":        { "message": "아직 데이터가 없습니다" },
+  "statsNoDataSub":     { "message": "차단이 발생하면 여기에 기록됩니다" }
 }

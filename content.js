@@ -6,9 +6,9 @@ function requestBlockCheck(url) {
   chrome.runtime.sendMessage({ type: 'checkBlock', url }, (res) => {
     if (chrome.runtime.lastError) return;
     if (res?.blocked) {
-      location.replace(
-        chrome.runtime.getURL('block.html') + '?reason=' + (res.reason || 'general')
-      );
+      let blockUrl = chrome.runtime.getURL('block.html') + '?reason=' + (res.reason || 'general');
+      if (res.domain) blockUrl += '&domain=' + encodeURIComponent(res.domain);
+      location.replace(blockUrl);
     }
   });
 }

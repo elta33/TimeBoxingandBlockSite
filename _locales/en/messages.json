@@ -178,5 +178,48 @@
   "pipTitle":        { "message": "Pomodoro Timer" },
   "pipWorkLabel":    { "message": "Work" },
   "pipRestLabel":    { "message": "Rest" },
-  "pipRepeatLabel":  { "message": "Rep" }
+  "pipRepeatLabel":  { "message": "Rep" },
+
+  "tabStats": { "message": "Stats" },
+
+  "statsTitle":         { "message": "Focus Stats" },
+  "statsPeriodToday":   { "message": "Today" },
+  "statsPeriod7d":      { "message": "7 days" },
+  "statsPeriod30d":     { "message": "30 days" },
+  "statsToday":         { "message": "Today" },
+
+  "statsStreak":        { "message": "🔥 Focus Streak" },
+  "statsDayUnit":       { "message": " days" },
+  "statsStreakBest":    { "message": "Best: $1 days", "placeholders": { "1": { "content": "$1" } } },
+  "statsStreakNone":    { "message": "No streak yet" },
+
+  "statsFocusTime":     { "message": "⏱ Today's Focus" },
+  "statsFocusSub":      { "message": "Sum of today's timeboxes" },
+  "statsFocusNone":     { "message": "No boxes scheduled today" },
+
+  "statsBlockCount":    { "message": "🚫 Blocks" },
+  "statsBlockUnit":     { "message": "×" },
+  "statsBlockSub":      { "message": "Distractions defended" },
+
+  "statsChartTitle7":   { "message": "Last 7 days — daily blocks" },
+  "statsChartTitle30":  { "message": "Last 30 days — daily blocks" },
+  "statsChartTitleToday": { "message": "Last 7 days — daily blocks" },
+
+  "statsTopDomains":    { "message": "Top Blocked Domains" },
+  "statsTopDomainsSub": { "message": "Most blocked sites in period" },
+
+  "statsPomoTitle":       { "message": "🍅 Pomodoro Stats" },
+  "statsPomoTodayCycles": { "message": "Today's cycles" },
+  "statsPomoTodayMins":   { "message": "Today's focus time" },
+  "statsPomoWeek":        { "message": "7-day total" },
+  "statsPomoMonth":       { "message": "30-day total" },
+  "statsPomoUnit":        { "message": "×" },
+
+  "statsHeatmapTitle":  { "message": "Today's Block Heatmap" },
+  "statsHeatmapSub":    { "message": "0–23h" },
+  "statsHeatmapLow":    { "message": "Low" },
+  "statsHeatmapHigh":   { "message": "High" },
+
+  "statsNoData":        { "message": "No data yet" },
+  "statsNoDataSub":     { "message": "Blocks will be recorded here" }
 }

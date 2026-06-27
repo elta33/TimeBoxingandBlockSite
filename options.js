@@ -877,6 +877,313 @@ function updateDailyToggleVisibility() {
   if (row) row.style.display = currentView === 'day' ? 'flex' : 'none';
 }
 
+// ── 통계 탭 ──
+
+let _statsPeriod = 'today';
+
+function _statsTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function _statsUpdateStreak(streak, dateStr) {
+  const s = streak || { current: 0, longest: 0, lastDate: '' };
+  if (s.lastDate === dateStr) return s;
+  const prev = new Date(dateStr);
+  prev.setDate(prev.getDate() - 1);
+  const yesterStr = prev.toISOString().slice(0, 10);
+  const cur = (s.lastDate === yesterStr) ? s.current + 1 : 1;
+  return { current: cur, longest: Math.max(s.longest, cur), lastDate: dateStr };
+}
+
+function _statsLogPomoSession(durationMins) {
+  const dateStr = _statsTodayStr();
+  chrome.storage.local.get(['focusEvents', 'focusStreak'], data => {
+    let events = data.focusEvents || [];
+    let day = events.find(e => e.date === dateStr);
+    if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
+    day.pomoSessions.push({ ts: Math.floor(Date.now() / 1000), durationMins });
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+    events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
+    const streak = _statsUpdateStreak(data.focusStreak || null, dateStr);
+    chrome.storage.local.set({ focusEvents: events, focusStreak: streak });
+  });
+}
+
+function _statsFormatMins(mins) {
+  if (!mins) return '—';
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (h > 0 && m > 0) return T('timeHM', [String(h), String(m)]);
+  if (h > 0) return T('timeH', [String(h)]);
+  return T('timeM', [String(m)]);
+}
+
+function _computeTodayFocusMins(data) {
+  const dailyEnabled = data.dailyScheduleEnabled !== false;
+  const dailyBoxes   = dailyEnabled ? (data.dailyBoxes  || []) : [];
+  const weeklyBoxes  = data.weeklyBoxes || [];
+  const todayDow     = (new Date().getDay() + 6) % 7;
+
+  function boxMins(box) {
+    const startM = timeToMins(box.startTime);
+    const rawEnd = timeToMins(box.endTime);
+    const endM   = rawEnd <= startM ? rawEnd + 24 * 60 : rawEnd;
+    return endM - startM;
+  }
+
+  let total = 0;
+  dailyBoxes.forEach(b => { total += boxMins(b); });
+  weeklyBoxes.forEach(b => {
+    const days = b.days || [];
+    if (days.length === 0 || days.includes(todayDow)) total += boxMins(b);
+  });
+  return total;
+}
+
+function _renderBlockBarChart(allEvents, period) {
+  const chartEl = document.getElementById('stat-bar-chart');
+  if (!chartEl) return;
+  chartEl.innerHTML = '';
+
+  const days = period === '30d' ? 30 : 7;
+  const today = new Date();
+  const bars  = [];
+  let maxCount = 1;
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const log   = allEvents.find(e => e.date === dateStr);
+    const count = log ? log.blocks.length : 0;
+    bars.push({ d, dateStr, isToday: i === 0, count });
+    if (count > maxCount) maxCount = count;
+  }
+
+  const dayKeys = ['daySun','dayMon','dayTue','dayWed','dayThu','dayFri','daySat'];
+  const inner = document.createElement('div');
+  inner.className = 'stats-bar-chart-inner';
+
+  bars.forEach(({ d, isToday, count }) => {
+    const col = document.createElement('div');
+    col.className = 'stats-bar-col';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'stats-bar-wrap';
+
+    const bar = document.createElement('div');
+    bar.className = 'stats-bar' + (isToday ? ' today' : '');
+    const pct = Math.round((count / maxCount) * 100);
+    bar.style.height = (count > 0 ? Math.max(pct, 4) : 0) + '%';
+
+    if (count > 0) {
+      const tip = document.createElement('span');
+      tip.className = 'stats-bar-tooltip';
+      tip.textContent = count + T('statsBlockUnit');
+      bar.appendChild(tip);
+    }
+    wrap.appendChild(bar);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'stats-bar-day' + (isToday ? ' today' : '');
+    if (days <= 7) {
+      lbl.textContent = isToday ? T('statsToday') : T(dayKeys[d.getDay()]);
+    } else {
+      lbl.textContent = (d.getMonth() + 1) + '/' + d.getDate();
+    }
+
+    col.append(wrap, lbl);
+    inner.appendChild(col);
+  });
+
+  chartEl.appendChild(inner);
+}
+
+function _renderTopDomains(filteredEvents) {
+  const listEl = document.getElementById('stat-top-domains');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  const counts = {};
+  filteredEvents.forEach(log => {
+    (log.blocks || []).forEach(b => {
+      counts[b.domain] = (counts[b.domain] || 0) + 1;
+    });
+  });
+
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  if (!sorted.length) {
+    const li = document.createElement('li');
+    li.className = 'stats-empty';
+    li.textContent = T('statsNoData');
+    listEl.appendChild(li);
+    return;
+  }
+
+  const maxCount = sorted[0][1];
+  sorted.forEach(([domain, count], i) => {
+    const li = document.createElement('li');
+    li.className = 'stats-domain-rank-item';
+
+    const rank = document.createElement('span');
+    rank.className = 'stats-rank-num' + (i < 2 ? ' top' : '');
+    rank.textContent = i + 1;
+
+    const info = document.createElement('div');
+    info.className = 'stats-rank-info';
+
+    const name = document.createElement('span');
+    name.className = 'stats-rank-domain';
+    name.textContent = domain;
+
+    const barBg = document.createElement('div');
+    barBg.className = 'stats-rank-bar-bg';
+    const barFill = document.createElement('div');
+    barFill.className = 'stats-rank-bar-fill' + (i < 2 ? ' top' : '');
+    barFill.style.width = Math.round((count / maxCount) * 100) + '%';
+    barBg.appendChild(barFill);
+
+    info.append(name, barBg);
+
+    const countEl = document.createElement('span');
+    countEl.className = 'stats-rank-count';
+    countEl.textContent = count + T('statsBlockUnit');
+
+    li.append(rank, info, countEl);
+    listEl.appendChild(li);
+  });
+}
+
+function _renderPomoStats(allEvents, period) {
+  const el = document.getElementById('stat-pomo-content');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const todayStr  = _statsTodayStr();
+  const todayLog  = allEvents.find(e => e.date === todayStr);
+  const todayCyc  = todayLog ? todayLog.pomoSessions.length : 0;
+  const todayMins = todayLog ? todayLog.pomoSessions.reduce((s, p) => s + p.durationMins, 0) : 0;
+
+  const cutoff = new Date();
+  if (period === '7d')  cutoff.setDate(cutoff.getDate() - 7);
+  else if (period === '30d') cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = period === 'today' ? todayStr : cutoff.toISOString().slice(0, 10);
+  const filtered  = period === 'today'
+    ? (todayLog ? [todayLog] : [])
+    : allEvents.filter(e => e.date >= cutoffStr);
+
+  const totalCyc  = filtered.reduce((s, e) => s + (e.pomoSessions || []).length, 0);
+  const totalMins = filtered.reduce((s, e) => s + (e.pomoSessions || []).reduce((s2, p) => s2 + p.durationMins, 0), 0);
+
+  function row(label, val) {
+    const div = document.createElement('div');
+    div.className = 'stats-pomo-row';
+    const l = document.createElement('span'); l.className = 'stats-pomo-label'; l.textContent = label;
+    const v = document.createElement('span'); v.className = 'stats-pomo-val';   v.textContent = val;
+    div.append(l, v);
+    el.appendChild(div);
+  }
+
+  row(T('statsPomoTodayCycles'), todayCyc + T('statsPomoUnit'));
+  row(T('statsPomoTodayMins'),   _statsFormatMins(todayMins));
+  if (period !== 'today') {
+    const periodLabel = period === '7d' ? T('statsPomoWeek') : T('statsPomoMonth');
+    row(periodLabel, totalCyc + T('statsPomoUnit') + '  /  ' + _statsFormatMins(totalMins));
+  }
+}
+
+function _renderHeatmap(todayLog) {
+  const el = document.getElementById('stat-heatmap');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const hourCounts = new Array(24).fill(0);
+  if (todayLog) {
+    (todayLog.blocks || []).forEach(b => {
+      const h = new Date(b.ts * 1000).getHours();
+      if (h >= 0 && h < 24) hourCounts[h]++;
+    });
+  }
+
+  const maxCount = Math.max(1, ...hourCounts);
+  for (let h = 0; h < 24; h++) {
+    const cell = document.createElement('div');
+    const intensity = hourCounts[h] === 0 ? 0 : Math.ceil((hourCounts[h] / maxCount) * 4);
+    cell.className = 'stats-heatmap-cell' + (intensity > 0 ? ` h${intensity}` : '');
+    cell.title = `${h}:00 — ${hourCounts[h]}${T('statsBlockUnit')}`;
+    el.appendChild(cell);
+  }
+}
+
+function renderStats(period) {
+  _statsPeriod = period || _statsPeriod;
+
+  document.querySelectorAll('.stats-period-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.period === _statsPeriod);
+  });
+
+  const keys = ['focusEvents', 'focusStreak', 'dailyBoxes', 'weeklyBoxes',
+                 'dailyScheduleEnabled', 'pomodoroSettings'];
+  chrome.storage.local.get(keys, data => {
+    const allEvents = data.focusEvents || [];
+    const streak    = data.focusStreak || { current: 0, longest: 0, lastDate: '' };
+    const todayStr  = _statsTodayStr();
+
+    // 스트릭 카드
+    const streakVal = document.getElementById('stat-streak-val');
+    const streakSub = document.getElementById('stat-streak-sub');
+    if (streakVal) streakVal.textContent = streak.current;
+    if (streakSub) {
+      streakSub.textContent = streak.longest > 0
+        ? T('statsStreakBest', [String(streak.longest)])
+        : T('statsStreakNone');
+    }
+
+    // 오늘 집중 시간 카드 (박스 합산)
+    const focusVal = document.getElementById('stat-focus-val');
+    if (focusVal) {
+      const mins = _computeTodayFocusMins(data);
+      focusVal.textContent = mins > 0 ? _statsFormatMins(mins) : '—';
+    }
+
+    // 차단 횟수 카드 (기간 필터)
+    const blockVal = document.getElementById('stat-block-val');
+    if (blockVal) {
+      const cutoff = new Date();
+      if (_statsPeriod === '7d')       cutoff.setDate(cutoff.getDate() - 7);
+      else if (_statsPeriod === '30d') cutoff.setDate(cutoff.getDate() - 30);
+      const cutStr   = cutoff.toISOString().slice(0, 10);
+      const filtered = _statsPeriod === 'today'
+        ? allEvents.filter(e => e.date === todayStr)
+        : allEvents.filter(e => e.date >= cutStr);
+      const total = filtered.reduce((s, e) => s + (e.blocks || []).length, 0);
+      blockVal.textContent = total;
+    }
+
+    // 차트 제목
+    const chartTitle = document.getElementById('stat-chart-title');
+    if (chartTitle) {
+      const key = _statsPeriod === '30d' ? 'statsChartTitle30' : 'statsChartTitle7';
+      chartTitle.textContent = T(key);
+    }
+
+    // 서브 렌더러들
+    _renderBlockBarChart(allEvents, _statsPeriod);
+    _renderTopDomains(
+      _statsPeriod === 'today'
+        ? allEvents.filter(e => e.date === todayStr)
+        : allEvents.filter(e => {
+            const c = new Date();
+            if (_statsPeriod === '7d') c.setDate(c.getDate() - 7);
+            else c.setDate(c.getDate() - 30);
+            return e.date >= c.toISOString().slice(0, 10);
+          })
+    );
+    _renderPomoStats(allEvents, _statsPeriod);
+    _renderHeatmap(allEvents.find(e => e.date === todayStr));
+  });
+}
+
 // ── DOMContentLoaded 진입점 ──
 document.addEventListener('DOMContentLoaded', () => {
   // 요일 팝업 닫기 버튼
@@ -889,7 +1196,13 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+      if (tab.dataset.tab === 'stats') renderStats(_statsPeriod);
     });
+  });
+
+  // 통계 기간 탭
+  document.querySelectorAll('.stats-period-tab').forEach(btn => {
+    btn.addEventListener('click', () => renderStats(btn.dataset.period));
   });
 
   // 주 시작 토글 복원
@@ -1065,6 +1378,7 @@ function _advancePomoPhase(state, settings) {
     newState = cycle >= totalCycles
       ? { active: false, phase: 'done', endTime: null, cycle, totalCycles, advancedAt: now }
       : { ...state, phase: 'rest', endTime: now + settings.restMins * 60 * 1000, advancedAt: now };
+    _statsLogPomoSession(settings.workMins);
   } else if (state.phase === 'rest') {
     newState = { ...state, phase: 'work', endTime: now + settings.workMins * 60 * 1000, cycle: cycle + 1, advancedAt: now };
   }

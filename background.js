@@ -45,7 +45,11 @@ async function updateBlockingRules() {
   // reason: 'permanent' | 'general' | 'custom' — block.html에서 차단 사유 메시지 분기용
   function addDnrRule(domain, priority, isAllow, reason) {
     if (!domain) return;
-    const redirectPath = reason ? `${BLOCK_PAGE_PATH}?reason=${reason}` : BLOCK_PAGE_PATH;
+    let redirectPath = BLOCK_PAGE_PATH;
+    if (!isAllow) {
+      redirectPath += `?domain=${encodeURIComponent(domain)}`;
+      if (reason) redirectPath += `&reason=${reason}`;
+    }
     newRules.push({
       id: ruleIdCounter++,
       priority: priority,
@@ -115,6 +119,34 @@ async function updateBlockingRules() {
   console.log("우선순위 규칙 업데이트 성공! 생성된 규칙 수:", newRules.length);
 }
 
+// ── 통계 로깅 헬퍼 ──
+function _statsTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function _statsUpdateStreak(streak, dateStr) {
+  const s = streak || { current: 0, longest: 0, lastDate: '' };
+  if (s.lastDate === dateStr) return s;
+  const prev = new Date(dateStr);
+  prev.setDate(prev.getDate() - 1);
+  const yesterStr = prev.toISOString().slice(0, 10);
+  const cur = (s.lastDate === yesterStr) ? s.current + 1 : 1;
+  return { current: cur, longest: Math.max(s.longest, cur), lastDate: dateStr };
+}
+
+async function _statsLogPomoSession(durationMins) {
+  const dateStr = _statsTodayStr();
+  const data = await chrome.storage.local.get(['focusEvents', 'focusStreak']);
+  let events = data.focusEvents || [];
+  let day = events.find(e => e.date === dateStr);
+  if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
+  day.pomoSessions.push({ ts: Math.floor(Date.now() / 1000), durationMins });
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+  events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
+  const streak = _statsUpdateStreak(data.focusStreak || null, dateStr);
+  await chrome.storage.local.set({ focusEvents: events, focusStreak: streak });
+}
+
 // 포모도로 페이즈 자동 전환 (1분 알람 틱마다 체크)
 async function checkPomodoroPhase() {
   const data     = await chrome.storage.local.get(['pomodoroState', 'pomodoroSettings']);
@@ -136,6 +168,7 @@ async function checkPomodoroPhase() {
     newState = cycle >= totalCycles
       ? { active: false, phase: 'done', endTime: null, cycle, totalCycles }
       : { ...state,      phase: 'rest', endTime: now + settings.restMins * 60 * 1000 };
+    await _statsLogPomoSession(settings.workMins);
   } else if (state.phase === 'rest') {
     newState = { ...state, phase: 'work', endTime: now + settings.workMins * 60 * 1000, cycle: cycle + 1 };
   }
@@ -190,12 +223,14 @@ async function shouldUrlBeBlocked(url) {
 
   const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
   const permanentList = data.permanentList || [];
-  if (permanentList.some(d => matches(d))) return { blocked: true, reason: 'permanent' };
+  const permBlocked = permanentList.find(d => matches(d));
+  if (permBlocked) return { blocked: true, reason: 'permanent', domain: cleanDomain(permBlocked) };
 
   const pomodoroState = data.pomodoroState || { active: false };
   const pomodoroList  = data.pomodoroList  || [];
   if (pomodoroState.active && pomodoroState.phase === 'work') {
-    if (pomodoroList.some(d => matches(d))) return { blocked: true, reason: 'pomodoro' };
+    const pomoBlocked = pomodoroList.find(d => matches(d));
+    if (pomoBlocked) return { blocked: true, reason: 'pomodoro', domain: cleanDomain(pomoBlocked) };
   }
 
   const dailyEnabled = data.dailyScheduleEnabled !== false;
@@ -215,7 +250,7 @@ async function shouldUrlBeBlocked(url) {
 
   const generalList = data.generalList || [];
   for (const d of generalList) {
-    if (!allowSet.has(cleanDomain(d)) && matches(d)) return { blocked: true, reason: 'general' };
+    if (!allowSet.has(cleanDomain(d)) && matches(d)) return { blocked: true, reason: 'general', domain: cleanDomain(d) };
   }
 
   return { blocked: false };
