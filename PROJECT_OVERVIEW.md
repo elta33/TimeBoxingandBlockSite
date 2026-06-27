@@ -1,0 +1,208 @@
+# FocusBox: WebsiteBlock & TimeBoxing Planner — 프로젝트 개요
+
+## 1. 개요
+
+**FocusBox**는 Manifest V3 기반의 Chrome 확장 프로그램으로, 타임박싱 스케줄러와 웹사이트 차단 기능을 통해 사용자의 집중력을 향상시킨다.
+
+- 설정한 시간대(타임박스)에 지정된 웹사이트를 자동으로 차단
+- 항상 차단할 사이트(상시 차단)와 스케줄에 따라 차단할 사이트(일반 차단)를 구분 관리
+- 포모도로 타이머와 연동하여 작업 시간 중 추가 차단 적용
+- 차단 화면을 사용자 지정 이미지·인용구로 꾸밀 수 있음
+- 한국어/영어 현지화 지원
+
+---
+
+## 2. 파일 구조
+
+```
+TimeBoxingandBlockSite/
+├── manifest.json          # 확장 선언 (MV3, 퍼미션, 스크립트 등록)
+│
+├── background.js          # Service Worker — DNR 규칙 관리, 알람, SPA 차단 판별
+│
+├── popup.html / popup.js  # 툴바 아이콘 클릭 시 나타나는 팝업
+├── options.html / options.js  # 전체 설정 페이지 (4개 탭)
+├── storage.js             # options.js가 공유하는 스토리지 CRUD 헬퍼
+├── render-day.js          # 하루 도넛(원형) 타임테이블 SVG 렌더러
+│
+├── block.html / block.js  # 차단 페이지 (배경 이미지, 인용구, 커스텀 UI)
+│
+├── content.js             # Isolated World: SPA 내비게이션 감지 → background 차단 요청
+├── page-world.js          # MAIN World: pushState/replaceState 후킹 → content.js 알림
+│
+├── pomodoro-pip.html / pomodoro-pip.js  # Picture-in-Picture 포모도로 창
+│
+├── i18n.js                # __MSG_key__ 처리 및 T() 헬퍼 함수
+└── _locales/
+    ├── ko/messages.json   # 한국어 문자열
+    └── en/messages.json   # 영어 문자열
+```
+
+---
+
+## 3. 핵심 기능
+
+### 3-1. 웹사이트 차단 (Declarative Net Request)
+
+차단은 Chrome의 `declarativeNetRequest` API(DNR)로 구현된다. 페이지 로드마다 크롬 엔진이 규칙을 직접 평가하므로 별도 요청 인터셉트 코드가 필요 없다.
+
+**차단 유형과 DNR 우선순위:**
+
+| 유형 | 조건 | 우선순위 | 차단 이유 파라미터 |
+|------|------|---------|--------------|
+| 상시 차단 (`permanentList`) | 항상 | 100 | `reason=permanent` |
+| 포모도로 차단 (`pomodoroList`) | 포모도로 work 페이즈 중 | 30 | `reason=pomodoro` |
+| 커스텀 허용 (`customDomains`) | 활성 타임박스 내 예외 | 50 | — (allow) |
+| 일반 차단 (`generalList`) | 활성 타임박스 시간 내 | 10 | `reason=general` |
+
+> **DNR 제약 우회:** Chrome DNR에서 `allow` 액션은 `block` 액션만 무력화하고 `redirect`는 무력화하지 못한다. 따라서 "커스텀 허용 → 일반 차단 리다이렉트" 충돌은 우선순위 규칙이 아닌 **generalList 규칙 자체를 등록하지 않는** 방식으로 해결한다 (`finalAllowSet`).
+
+### 3-2. SPA 차단 (History API 후킹)
+
+DNR은 최초 페이지 로드만 잡는다. YouTube Shorts처럼 `pushState`/`replaceState`로 URL이 바뀌는 SPA 내비게이션은 별도로 처리한다.
+
+```
+page-world.js (MAIN World)
+  └─ pushState / replaceState 오버라이드
+      └─ window.postMessage({ type: '__TBB_NAV__', url })
+          └─ content.js (Isolated World)
+              └─ chrome.runtime.sendMessage({ type: 'checkBlock', url })
+                  └─ background.js → shouldUrlBeBlocked()
+                      └─ 차단이면 location.replace(block.html?reason=...)
+```
+
+악성 사이트의 postMessage 폭주를 막기 위해 200ms 쓰로틀이 적용된다.
+
+### 3-3. 타임박스 스케줄러
+
+타임박스는 두 종류로 저장된다:
+
+| 스토리지 키 | 설명 | 요일 필드 |
+|------------|------|---------|
+| `dailyBoxes` | 하루 뷰 박스 (매일 동일 적용) | `days: []` (빈 배열 = 매일) |
+| `weeklyBoxes` | 주간 뷰 박스 (요일 지정) | `days: [0,1,...]` (0=월~6=일) |
+
+각 박스 객체 구조:
+```js
+{
+  name: "집중 코딩 시간",
+  startTime: "09:00",
+  endTime: "12:00",
+  mode: "block",
+  days: [0, 1, 2, 3, 4],       // 월~금 (weeklyBoxes만)
+  customDomains: [              // 이 박스 동안 허용할 도메인
+    { domain: "github.com", mode: "allow" }
+  ]
+}
+```
+
+자정을 넘기는 박스(예: 22:00~02:00)도 지원하며, 뷰에서 두 조각으로 분할 렌더링한다.
+
+### 3-4. 포모도로 타이머
+
+`pomodoroState` 스토리지로 상태를 공유하며, background.js / options.js / pomodoro-pip.js 세 곳이 동시에 구독한다.
+
+```js
+// pomodoroState 구조
+{
+  active: true,
+  phase: "work",      // "work" | "rest" | "done" | "idle"
+  endTime: 1700000000000,   // Unix ms
+  cycle: 1,
+  totalCycles: 4,
+  pausedRemaining: null,    // 일시정지 시 남은 초
+  advancedAt: 1700000000000 // 페이즈 전환 시각 (중복 전환 가드)
+}
+```
+
+- `background.js`: 1분 알람(`timeboxTicker`)마다 `checkPomodoroPhase()` 호출 → endTime 초과 시 페이즈 자동 전환
+- `options.js` / `pomodoro-pip.js`: setInterval 기반 1초 tick으로 카운트다운 표시 및 페이즈 전환
+- 경쟁 조건 방지: UI가 먼저 전환했을 경우 `advancedAt`이 10초 이내이면 background가 중복 전환하지 않음
+- **PiP 창**: `chrome.windows.create({ type: 'popup' })`로 별도 창 생성, `pipWindowId`로 이미 열린 창 재사용
+
+### 3-5. 차단 화면 커스터마이징
+
+`block.html`에서 제공하는 기능:
+
+- 배경 이미지: 파일로 업로드 → `chrome.storage.local`에 Base64로 저장
+- 인용구: 텍스트 입력 → 스토리지 저장
+- 이미지-인용구 링크: 특정 이미지와 인용구를 쌍으로 묶어 함께 표시
+- 미선택 시 기본 인용구 5개 중 랜덤 표시
+
+---
+
+## 4. 데이터 스토리지 (`chrome.storage.local`)
+
+| 키 | 타입 | 설명 |
+|----|------|------|
+| `permanentList` | `string[]` | 상시 차단 도메인 목록 |
+| `generalList` | `string[]` | 일반 차단 도메인 목록 |
+| `dailyBoxes` | `Box[]` | 하루 타임박스 배열 |
+| `weeklyBoxes` | `Box[]` | 주간 타임박스 배열 |
+| `dailyScheduleEnabled` | `boolean` | 하루 스케줄 활성화 여부 (기본 true) |
+| `weekStartMonday` | `boolean` | 주 시작 요일 (false=일요일) |
+| `pomodoroState` | `object` | 포모도로 현재 상태 |
+| `pomodoroSettings` | `object` | `{ workMins, restMins, cycles }` |
+| `pomodoroList` | `string[]` | 포모도로 차단 도메인 목록 |
+| `pipWindowId` | `number` | PiP 창 ID |
+| `blockBgImages` | `object[]` | 차단 화면 배경 이미지 (Base64) |
+| `blockQuotes` | `string[]` | 차단 화면 인용구 |
+| `blockLinks` | `object[]` | 이미지-인용구 쌍 링크 |
+
+---
+
+## 5. 설정 페이지 탭 구성 (`options.html`)
+
+| 탭 | 기능 |
+|----|------|
+| **차단 관리** | 상시 차단 / 일반 차단 도메인 추가·삭제 |
+| **타임박스 스케줄러** | 박스 추가 폼 + 하루(도넛) / 주간(세로 타임테이블) 뷰 |
+| **포모도로 타이머** | 타이머 설정, 시작/일시정지/중지, PiP, 포모도로 전용 차단 목록 |
+| **설정** | 전체 데이터 JSON 내보내기 / 불러오기 |
+
+### 타임테이블 뷰
+
+- **하루 뷰 (도넛)**: SVG 원형 시계로 24시간을 표현. 박스를 클릭하면 커스텀 예외 도메인을 인라인 편집
+- **주간 뷰**: 요일 × 시간 격자 테이블. 요일 헤더 클릭 시 해당 요일 전용 팝업 모달 오픈
+
+---
+
+## 6. 팝업 (`popup.html`)
+
+확장 아이콘 클릭 시 300px 너비의 팝업 표시:
+
+1. **현재 페이지** 도메인 표시 + 상시/일반 차단 여부 배지, 없으면 빠른 추가 버튼
+2. **하루 스케줄 토글** — 비활성화 시 generalList 차단 전체 중단
+3. **현재 활성 박스** + **다음 예정 박스** (최대 2개)
+
+---
+
+## 7. 국제화 (i18n)
+
+`i18n.js`가 `chrome.i18n.getMessage()`를 래핑하여 `T(key, [...substitutions])` 헬퍼를 제공한다.
+
+HTML에서는 `data-i18n`, `data-i18n-placeholder`, `data-i18n-title`, `data-i18n-aria-label` 속성으로 자동 치환한다.
+
+기본 로케일은 `ko`(한국어)이며 `en`(영어)를 지원한다.
+
+---
+
+## 8. 퍼미션
+
+| 퍼미션 | 용도 |
+|--------|------|
+| `storage` | 모든 설정 저장 |
+| `declarativeNetRequest` + `declarativeNetRequestWithHostAccess` | 동적 차단 규칙 |
+| `alarms` | 1분 주기 타임박스/포모도로 체크 |
+| `activeTab` | 팝업에서 현재 탭 URL 조회 |
+| `windows` | PiP 창 생성·관리 |
+| `<all_urls>` (host) | DNR 리다이렉트 및 content script 삽입 |
+
+---
+
+## 9. 알려진 설계 제약
+
+- **DNR `allow` vs `redirect`**: Chrome DNR은 `allow`가 `redirect`를 이길 수 없다. 커스텀 허용 도메인은 규칙 우선순위가 아닌 generalList 등록 필터링으로 구현해야 한다.
+- **SPA 차단 폴백**: content.js는 초기 로드 시에도 `requestBlockCheck(location.href)`를 호출해 DNR 리다이렉트 실패를 보완한다.
+- **포모도로 경쟁 조건**: background alarms와 UI tick이 동시에 페이즈 전환을 시도할 수 있어 `advancedAt` 필드로 10초 이내 중복 전환을 가드한다.
+- **Base64 이미지 저장**: `chrome.storage.local` 용량 한도(10MB)에 유의가 필요하다.
