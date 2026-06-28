@@ -917,53 +917,40 @@ function _statsFormatMins(mins) {
   return T('timeM', [String(m)]);
 }
 
-function _computeTodayFocusMins(data) {
-  const dailyEnabled = data.dailyScheduleEnabled !== false;
-  const dailyBoxes   = dailyEnabled ? (data.dailyBoxes  || []) : [];
-  const weeklyBoxes  = data.weeklyBoxes || [];
-  const todayDow     = (new Date().getDay() + 6) % 7;
-
-  function boxMins(box) {
-    const startM = timeToMins(box.startTime);
-    const rawEnd = timeToMins(box.endTime);
-    const endM   = rawEnd <= startM ? rawEnd + 24 * 60 : rawEnd;
-    return endM - startM;
-  }
-
-  let total = 0;
-  dailyBoxes.forEach(b => { total += boxMins(b); });
-  weeklyBoxes.forEach(b => {
-    const days = b.days || [];
-    if (days.length === 0 || days.includes(todayDow)) total += boxMins(b);
-  });
-  return total;
-}
-
 function _renderBlockBarChart(allEvents, period) {
   const chartEl = document.getElementById('stat-bar-chart');
   if (!chartEl) return;
   chartEl.innerHTML = '';
+  chartEl.style.position = 'relative';
+  chartEl.style.overflow  = 'visible';
 
-  const days = period === '30d' ? 30 : 7;
+  const days  = period === '30d' ? 30 : 7;
   const today = new Date();
   const bars  = [];
-  let maxCount = 1;
+  let maxFocusMins = 1;
 
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
+    const d       = new Date(today);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
-    const log   = allEvents.find(e => e.date === dateStr);
-    const count = log ? log.blocks.length : 0;
-    bars.push({ d, dateStr, isToday: i === 0, count });
-    if (count > maxCount) maxCount = count;
+    const dateStr   = d.toISOString().slice(0, 10);
+    const log       = allEvents.find(e => e.date === dateStr);
+    const focusMins = log ? (log.focusMins || 0) : 0;
+    const blocks    = log ? (log.blocks || []) : [];
+    bars.push({ d, dateStr, isToday: i === 0, focusMins, blocks });
+    if (focusMins > maxFocusMins) maxFocusMins = focusMins;
   }
+
+  // 공유 팝오버
+  const popover = document.createElement('div');
+  popover.className = 'stats-bar-popover';
+  chartEl.appendChild(popover);
 
   const dayKeys = ['daySun','dayMon','dayTue','dayWed','dayThu','dayFri','daySat'];
   const inner = document.createElement('div');
   inner.className = 'stats-bar-chart-inner';
+  inner.style.gap = days <= 7 ? '20px' : '5px';
 
-  bars.forEach(({ d, isToday, count }) => {
+  bars.forEach(({ d, isToday, focusMins, blocks }) => {
     const col = document.createElement('div');
     col.className = 'stats-bar-col';
 
@@ -972,26 +959,84 @@ function _renderBlockBarChart(allEvents, period) {
 
     const bar = document.createElement('div');
     bar.className = 'stats-bar' + (isToday ? ' today' : '');
-    const pct = Math.round((count / maxCount) * 100);
-    bar.style.height = (count > 0 ? Math.max(pct, 4) : 0) + '%';
+    const pct = Math.round((focusMins / maxFocusMins) * 100);
+    bar.style.height = (focusMins > 0 ? Math.max(pct, 4) : 0) + '%';
+    bar.style.width = days <= 7 ? '50px' : '100%';
 
-    if (count > 0) {
+    if (focusMins > 0) {
       const tip = document.createElement('span');
       tip.className = 'stats-bar-tooltip';
-      tip.textContent = count + T('statsBlockUnit');
+      tip.textContent = _statsFormatMins(focusMins);
       bar.appendChild(tip);
     }
     wrap.appendChild(bar);
 
     const lbl = document.createElement('div');
     lbl.className = 'stats-bar-day' + (isToday ? ' today' : '');
-    if (days <= 7) {
-      lbl.textContent = isToday ? T('statsToday') : T(dayKeys[d.getDay()]);
-    } else {
-      lbl.textContent = (d.getMonth() + 1) + '/' + d.getDate();
-    }
+    lbl.textContent = days <= 7
+      ? (isToday ? T('statsToday') : T(dayKeys[d.getDay()]))
+      : (d.getMonth() + 1) + '/' + d.getDate();
 
     col.append(wrap, lbl);
+
+    // 호버 팝오버
+    col.addEventListener('mouseenter', () => {
+      bar.classList.add('hovered');
+
+      popover.innerHTML = '';
+
+      const dateRow = document.createElement('div');
+      dateRow.className = 'stats-bar-popover-date';
+      dateRow.textContent =
+        (d.getMonth() + 1) + '/' + d.getDate() +
+        ' (' + T(dayKeys[d.getDay()]) + ') · ' + _statsFormatMins(focusMins);
+      popover.appendChild(dateRow);
+
+      // 상위 차단 도메인 (최대 3개)
+      const domainCounts = {};
+      blocks.forEach(b => { domainCounts[b.domain] = (domainCounts[b.domain] || 0) + 1; });
+      const top3 = Object.entries(domainCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+      const domainLabel = document.createElement('div');
+      domainLabel.className = 'stats-bar-popover-section';
+      domainLabel.textContent = T('statsTopDomains');
+      popover.appendChild(domainLabel);
+
+      if (top3.length) {
+        top3.forEach(([domain, count]) => {
+          const row = document.createElement('div');
+          row.className = 'stats-bar-popover-row';
+          const dn = document.createElement('span');
+          dn.className = 'stats-bar-popover-domain';
+          dn.textContent = domain;
+          const cnt = document.createElement('span');
+          cnt.className = 'stats-bar-popover-count';
+          cnt.textContent = count + T('statsBlockUnit');
+          row.append(dn, cnt);
+          popover.appendChild(row);
+        });
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'stats-bar-popover-empty';
+        empty.textContent = T('statsNoData');
+        popover.appendChild(empty);
+      }
+
+      // 위치: 바 상단 중앙
+      popover.style.display = 'block';
+      const barRect   = bar.getBoundingClientRect();
+      const chartRect = chartEl.getBoundingClientRect();
+      const colRect   = col.getBoundingClientRect();
+      popover.style.left      = (colRect.left + colRect.width / 2 - chartRect.left) + 'px';
+      popover.style.top       = (barRect.top - chartRect.top) + 'px';
+      popover.style.transform = 'translateX(-50%) translateY(calc(-100% - 8px))';
+    });
+
+    col.addEventListener('mouseleave', () => {
+      bar.classList.remove('hovered');
+      popover.style.display = 'none';
+    });
+
     inner.appendChild(col);
   });
 
@@ -1092,27 +1137,89 @@ function _renderPomoStats(allEvents, period) {
   }
 }
 
-function _renderHeatmap(todayLog) {
+function _renderHeatmap(allEvents, period) {
   const el = document.getElementById('stat-heatmap');
   if (!el) return;
   el.innerHTML = '';
 
-  const hourCounts = new Array(24).fill(0);
-  if (todayLog) {
-    (todayLog.blocks || []).forEach(b => {
+  const days = period === '30d' ? 30 : period === '7d' ? 7 : 1;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - (days - 1));
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  const hourSums = new Array(24).fill(0);
+  allEvents.filter(e => e.date >= cutoffStr).forEach(dayLog => {
+    (dayLog.blocks || []).forEach(b => {
       const h = new Date(b.ts * 1000).getHours();
-      if (h >= 0 && h < 24) hourCounts[h]++;
+      if (h >= 0 && h < 24) hourSums[h]++;
     });
+  });
+
+  const isToday = period === 'today';
+  const maxVal = Math.max(1, ...hourSums);
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const W = 220, H = 70, pT = 8, pB = 4, pL = 4, pR = 4;
+  const cW = W - pL - pR, cH = H - pT - pB;
+  const baseY = pT + cH;
+
+  const pts = hourSums.map((v, i) => [
+    pL + (i / 23) * cW,
+    pT + cH - (v / maxVal) * cH
+  ]);
+
+  function mk(tag, attrs, st) {
+    const e = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    if (st) e.setAttribute('style', st);
+    return e;
   }
 
-  const maxCount = Math.max(1, ...hourCounts);
-  for (let h = 0; h < 24; h++) {
-    const cell = document.createElement('div');
-    const intensity = hourCounts[h] === 0 ? 0 : Math.ceil((hourCounts[h] / maxCount) * 4);
-    cell.className = 'stats-heatmap-cell' + (intensity > 0 ? ` h${intensity}` : '');
-    cell.title = `${h}:00 — ${hourCounts[h]}${T('statsBlockUnit')}`;
-    el.appendChild(cell);
+  [6, 12, 18].forEach(h => {
+    const x = pL + (h / 23) * cW;
+    el.appendChild(mk('line', { x1: x, y1: pT, x2: x, y2: baseY, 'stroke-dasharray': '2,2' }, 'stroke:#efefef;stroke-width:0.5'));
+  });
+  el.appendChild(mk('line', { x1: pL, y1: baseY, x2: W - pR, y2: baseY }, 'stroke:#efefef;stroke-width:0.5'));
+
+  function bezSegs(p) {
+    let d = '';
+    for (let i = 0; i < p.length - 1; i++) {
+      const p0 = p[Math.max(0, i-1)], p1 = p[i], p2 = p[i+1], p3 = p[Math.min(p.length-1, i+2)];
+      const c1x = (p1[0] + (p2[0] - p0[0]) / 6).toFixed(1);
+      const c1y = (p1[1] + (p2[1] - p0[1]) / 6).toFixed(1);
+      const c2x = (p2[0] - (p3[0] - p1[0]) / 6).toFixed(1);
+      const c2y = (p2[1] - (p3[1] - p1[1]) / 6).toFixed(1);
+      d += ` C ${c1x} ${c1y},${c2x} ${c2y},${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+    }
+    return d;
   }
+
+  const segs = bezSegs(pts);
+
+  const fd = `M ${pL} ${baseY} L ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}${segs} L ${pts[23][0].toFixed(1)} ${baseY} Z`;
+  el.appendChild(mk('path', { d: fd }, 'fill:rgba(24,144,255,0.15);stroke:none'));
+
+  const ld = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}${segs}`;
+  el.appendChild(mk('path', { d: ld, fill: 'none', 'stroke-width': '1.5', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, 'stroke:#1890ff'));
+
+  const peakH = hourSums.indexOf(maxVal);
+  if (hourSums[peakH] > 0) {
+    el.appendChild(mk('circle', { cx: pts[peakH][0].toFixed(1), cy: pts[peakH][1].toFixed(1), r: '2.5' }, 'fill:#1890ff'));
+  }
+
+  const colW = cW / 23;
+  for (let h = 0; h < 24; h++) {
+    const x = pL + (h / 23) * cW;
+    const display = isToday ? String(hourSums[h]) : (hourSums[h] / days).toFixed(1);
+    const rect = mk('rect', { x: (x - colW / 2).toFixed(1), y: pT, width: colW.toFixed(1), height: cH }, 'fill:transparent;cursor:default');
+    const title = document.createElementNS(NS, 'title');
+    title.textContent = `${h}:00 — ${display}${T('statsBlockUnit')}`;
+    rect.appendChild(title);
+    el.appendChild(rect);
+  }
+
+  const periodEl = document.getElementById('stat-heatmap-period');
+  if (periodEl) periodEl.textContent = T('statsPeriod' + (period === 'today' ? 'Today' : period));
 }
 
 function renderStats(period) {
@@ -1122,8 +1229,7 @@ function renderStats(period) {
     btn.classList.toggle('active', btn.dataset.period === _statsPeriod);
   });
 
-  const keys = ['focusEvents', 'focusStreak', 'dailyBoxes', 'weeklyBoxes',
-                 'dailyScheduleEnabled', 'pomodoroSettings'];
+  const keys = ['focusEvents', 'focusStreak', 'pomodoroSettings'];
   chrome.storage.local.get(keys, data => {
     const allEvents = data.focusEvents || [];
     const streak    = data.focusStreak || { current: 0, longest: 0, lastDate: '' };
@@ -1139,36 +1245,58 @@ function renderStats(period) {
         : T('statsStreakNone');
     }
 
-    // 오늘 집중 시간 카드 (박스 합산)
-    const focusVal = document.getElementById('stat-focus-val');
+    // 집중 시간 카드 (기간별 합산)
+    const focusVal   = document.getElementById('stat-focus-val');
+    const focusTitle = document.getElementById('stat-focus-title');
+    const focusSub   = document.getElementById('stat-focus-sub');
     if (focusVal) {
-      const mins = _computeTodayFocusMins(data);
+      let mins = 0;
+      if (_statsPeriod === 'today') {
+        const todayLog = allEvents.find(e => e.date === todayStr);
+        mins = todayLog ? (todayLog.focusMins || 0) : 0;
+      } else {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - (_statsPeriod === '7d' ? 7 : 30));
+        const cutStr = cutoff.toISOString().slice(0, 10);
+        mins = allEvents.filter(e => e.date >= cutStr)
+                        .reduce((s, e) => s + (e.focusMins || 0), 0);
+      }
       focusVal.textContent = mins > 0 ? _statsFormatMins(mins) : '—';
+      const pSuffix = _statsPeriod === 'today' ? '' : _statsPeriod;
+      if (focusTitle) focusTitle.textContent = T('statsFocusTime' + pSuffix);
+      if (focusSub)   focusSub.textContent   = T('statsFocusSub'  + pSuffix);
     }
 
     // 차단 횟수 카드 (기간 필터)
-    const blockVal = document.getElementById('stat-block-val');
+    const blockVal   = document.getElementById('stat-block-val');
+    const blockTitle = document.getElementById('stat-block-title');
+    const blockSub   = document.getElementById('stat-block-sub');
     if (blockVal) {
-      const cutoff = new Date();
-      if (_statsPeriod === '7d')       cutoff.setDate(cutoff.getDate() - 7);
-      else if (_statsPeriod === '30d') cutoff.setDate(cutoff.getDate() - 30);
-      const cutStr   = cutoff.toISOString().slice(0, 10);
       const filtered = _statsPeriod === 'today'
         ? allEvents.filter(e => e.date === todayStr)
-        : allEvents.filter(e => e.date >= cutStr);
+        : (() => {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - (_statsPeriod === '7d' ? 7 : 30));
+            return allEvents.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
+          })();
       const total = filtered.reduce((s, e) => s + (e.blocks || []).length, 0);
       blockVal.textContent = total;
+      const pSuffix = _statsPeriod === 'today' ? '' : _statsPeriod;
+      if (blockTitle) blockTitle.textContent = T('statsBlockCount' + pSuffix);
+      if (blockSub)   blockSub.textContent   = T('statsBlockSub'   + pSuffix);
     }
 
     // 차트 제목
     const chartTitle = document.getElementById('stat-chart-title');
     if (chartTitle) {
-      const key = _statsPeriod === '30d' ? 'statsChartTitle30' : 'statsChartTitle7';
-      chartTitle.textContent = T(key);
+      chartTitle.textContent = T(_statsPeriod === '30d' ? 'statsChartTitle30' : 'statsChartTitle7');
     }
 
     // 서브 렌더러들
     _renderBlockBarChart(allEvents, _statsPeriod);
+    const topPeriod = document.getElementById('stat-top-domains-period');
+    if (topPeriod) topPeriod.textContent = T('statsPeriod' + (_statsPeriod === 'today' ? 'Today' : _statsPeriod));
+
     _renderTopDomains(
       _statsPeriod === 'today'
         ? allEvents.filter(e => e.date === todayStr)
@@ -1180,7 +1308,7 @@ function renderStats(period) {
           })
     );
     _renderPomoStats(allEvents, _statsPeriod);
-    _renderHeatmap(allEvents.find(e => e.date === todayStr));
+    _renderHeatmap(allEvents, _statsPeriod);
   });
 }
 
@@ -1203,6 +1331,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // 통계 기간 탭
   document.querySelectorAll('.stats-period-tab').forEach(btn => {
     btn.addEventListener('click', () => renderStats(btn.dataset.period));
+  });
+
+  // focusEvents 변경 시 통계 탭이 열려있으면 실시간 재렌더링
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes.focusEvents) return;
+    const statsPanel = document.getElementById('tab-stats');
+    if (statsPanel && statsPanel.classList.contains('active')) {
+      renderStats(_statsPeriod);
+    }
   });
 
   // 주 시작 토글 복원

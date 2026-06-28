@@ -366,7 +366,6 @@ button { cursor: pointer; font-family: inherit; }
   align-items: flex-end;
   gap: 8px;
   height: 120px;
-  padding-bottom: 22px;
 }
 .stats-bar-col {
   flex: 1;
@@ -376,7 +375,7 @@ button { cursor: pointer; font-family: inherit; }
   height: 100%;
   justify-content: flex-end;
 }
-.stats-bar-wrap { width: 100%; flex: 1; display: flex; align-items: flex-end; position: relative; }
+.stats-bar-wrap { width: 100%; flex: 1; display: flex; align-items: flex-end; justify-content: center; position: relative; }
 .stats-bar {
   width: 100%; border-radius: 5px 5px 0 0;
   background: #d0e8ff; min-height: 3px;
@@ -392,7 +391,7 @@ button { cursor: pointer; font-family: inherit; }
 }
 .stats-bar-day {
   font-size: 0.68rem; color: #bbb; margin-top: 5px; font-weight: 600;
-  white-space: nowrap;
+  white-space: nowrap; text-align: center;
 }
 .stats-bar-day.today { color: #1890ff; font-weight: 700; }
 
@@ -444,6 +443,60 @@ button { cursor: pointer; font-family: inherit; }
 .stats-heatmap-legend-label { font-size: 0.68rem; color: #bbb; }
 .stats-heatmap-legend-cells { display: flex; gap: 2px; }
 .stats-heatmap-legend-cells .stats-heatmap-cell { width: 12px; height: 12px; aspect-ratio: auto; }
+
+/* 바 차트 호버 */
+.stats-bar.hovered { filter: brightness(1.18); outline: 2px solid rgba(255,255,255,0.35); outline-offset: -1px; }
+
+/* 바 차트 팝오버 */
+.stats-bar-popover {
+  position: absolute;
+  background: #1f1f1f;
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  pointer-events: none;
+  z-index: 50;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.28);
+  display: none;
+  min-width: 150px;
+}
+.stats-bar-popover::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1f1f1f;
+}
+.stats-bar-popover-date {
+  font-weight: 700; color: #bbb;
+  font-size: 0.72rem; letter-spacing: 0.03em;
+  margin-bottom: 7px; padding-bottom: 5px;
+  border-bottom: 1px solid #333;
+}
+.stats-bar-popover-section {
+  font-size: 0.68rem; font-weight: 700; color: #888;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 6px 0 4px;
+}
+.stats-bar-popover-row {
+  display: flex; align-items: center; gap: 10px; padding: 3px 0;
+}
+.stats-bar-popover-domain { color: #fff; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.stats-bar-popover-count  { color: #999; font-size: 0.72rem; }
+.stats-bar-popover-empty  { color: #666; margin-top: 2px; }
+
+/* 섹션 기간 배지 */
+.stats-section-period {
+  display: inline-block;
+  font-size: 0.7rem; font-weight: 600;
+  color: #888; background: #f0f0f0;
+  border-radius: 4px; padding: 2px 7px;
+  margin-left: 8px; vertical-align: middle;
+  letter-spacing: 0.02em;
+}
 
 /* 빈 상태 */
 .stats-empty { font-size: 0.82rem; color: #ccc; padding: 20px 0; text-align: center; }
@@ -709,16 +762,16 @@ button { cursor: pointer; font-family: inherit; }
         <div class="stats-hero-sub" id="stat-streak-sub"></div>
       </div>
       <div class="stats-hero-card stats-focus">
-        <div class="stats-hero-label" data-i18n="statsFocusTime">⏱ 오늘 집중 시간</div>
+        <div class="stats-hero-label" id="stat-focus-title" data-i18n="statsFocusTime">⏱ 오늘 집중 시간</div>
         <div class="stats-hero-value" id="stat-focus-val">—</div>
-        <div class="stats-hero-sub" data-i18n="statsFocusSub">오늘 예정된 타임박스 합산</div>
+        <div class="stats-hero-sub" id="stat-focus-sub" data-i18n="statsFocusSub">타임박스 실 집중 누적</div>
       </div>
       <div class="stats-hero-card stats-block">
-        <div class="stats-hero-label" data-i18n="statsBlockCount">🚫 차단 횟수</div>
+        <div class="stats-hero-label" id="stat-block-title" data-i18n="statsBlockCount">🚫 차단 횟수</div>
         <div class="stats-hero-value">
           <span id="stat-block-val">0</span><span class="stats-hero-unit" data-i18n="statsBlockUnit">회</span>
         </div>
-        <div class="stats-hero-sub" data-i18n="statsBlockSub">방어한 분산 시도</div>
+        <div class="stats-hero-sub" id="stat-block-sub" data-i18n="statsBlockSub">방어한 분산 시도</div>
       </div>
     </div>
 
@@ -729,6 +782,7 @@ button { cursor: pointer; font-family: inherit; }
       </div>
       <div class="sector">
         <div class="sector-title" data-i18n="statsTopDomains">상위 차단 도메인</div>
+        <div class="sector-desc" id="stat-top-domains-period"></div>
         <ul class="stats-domain-rank" id="stat-top-domains"></ul>
       </div>
     </div>
@@ -739,21 +793,11 @@ button { cursor: pointer; font-family: inherit; }
         <div id="stat-pomo-content"></div>
       </div>
       <div class="sector">
-        <div class="sector-title" data-i18n="statsHeatmapTitle">오늘 차단 시간대 분포</div>
-        <div class="stats-heatmap" id="stat-heatmap"></div>
+        <div class="sector-title" data-i18n="statsHeatmapTitle">차단 시간대 분포</div>
+        <div class="sector-desc" id="stat-heatmap-period"></div>
+        <svg id="stat-heatmap" viewBox="0 0 220 70" width="100%" style="display:block;overflow:visible;margin-top:4px"></svg>
         <div class="stats-heatmap-labels">
           <span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>23시</span>
-        </div>
-        <div class="stats-heatmap-legend">
-          <span class="stats-heatmap-legend-label" data-i18n="statsHeatmapLow">적음</span>
-          <div class="stats-heatmap-legend-cells">
-            <div class="stats-heatmap-cell"></div>
-            <div class="stats-heatmap-cell h1"></div>
-            <div class="stats-heatmap-cell h2"></div>
-            <div class="stats-heatmap-cell h3"></div>
-            <div class="stats-heatmap-cell h4"></div>
-          </div>
-          <span class="stats-heatmap-legend-label" data-i18n="statsHeatmapHigh">많음</span>
         </div>
       </div>
     </div>

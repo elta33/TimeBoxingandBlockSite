@@ -147,6 +147,34 @@ async function _statsLogPomoSession(durationMins) {
   await chrome.storage.local.set({ focusEvents: events, focusStreak: streak });
 }
 
+// 1분 알람마다 활성 타임박스 안에 있으면 오늘 focusMins +1
+async function _statsLogBoxMinute() {
+  const data = await chrome.storage.local.get([
+    'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'focusEvents'
+  ]);
+  const dailyEnabled = data.dailyScheduleEnabled !== false;
+  const dailyBoxes   = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : [];
+  const weeklyBoxes  = data.weeklyBoxes || [];
+  const todayDow     = (new Date().getDay() + 6) % 7; // 0=월…6=일
+
+  const inBox = [...dailyBoxes, ...weeklyBoxes].some(box => {
+    const days = box.days || [];
+    if (days.length > 0 && !days.includes(todayDow)) return false;
+    return isTimeInBox(box.startTime, box.endTime);
+  });
+  if (!inBox) return;
+
+  const dateStr = _statsTodayStr();
+  let events = data.focusEvents || [];
+  let day = events.find(e => e.date === dateStr);
+  if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [], focusMins: 0 }; events.push(day); }
+  day.focusMins = (day.focusMins || 0) + 1;
+
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+  events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
+  await chrome.storage.local.set({ focusEvents: events });
+}
+
 // 포모도로 페이즈 자동 전환 (1분 알람 틱마다 체크)
 async function checkPomodoroPhase() {
   const data     = await chrome.storage.local.get(['pomodoroState', 'pomodoroSettings']);
@@ -181,6 +209,7 @@ chrome.storage.onChanged.addListener(updateBlockingRules);
 chrome.alarms.create("timeboxTicker", { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(async alarm => {
   if (alarm.name === "timeboxTicker") {
+    await _statsLogBoxMinute();
     await checkPomodoroPhase();
     updateBlockingRules();
   }
