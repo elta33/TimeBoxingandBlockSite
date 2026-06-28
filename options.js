@@ -880,6 +880,8 @@ function updateDailyToggleVisibility() {
 // ── 통계 탭 ──
 
 let _statsPeriod = 'today';
+let _streakCalPopover = null;
+let _streakCalHideTimer = null;
 
 function _statsTodayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -1222,6 +1224,187 @@ function _renderHeatmap(allEvents, period) {
   if (periodEl) periodEl.textContent = T('statsPeriod' + (period === 'today' ? 'Today' : period));
 }
 
+function _renderStreakCalendar(allEvents, streak) {
+  const card = document.querySelector('.stats-hero-card.stats-streak');
+  if (!card) return;
+
+  const WEEKS = 13;
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+
+  // 이번 주 월요일 기준으로 13주 전 월요일 계산 (UTC 기준)
+  const dow = today.getUTCDay();
+  const daysToMon = dow === 0 ? 6 : dow - 1;
+  const startTs = new Date(today);
+  startTs.setUTCDate(startTs.getUTCDate() - daysToMon - (WEEKS - 1) * 7);
+  startTs.setUTCHours(0, 0, 0, 0);
+
+  // 날짜 문자열 배열 생성 (91개, 월요일부터)
+  const dateStrs = [];
+  for (let i = 0; i < WEEKS * 7; i++) {
+    const d = new Date(startTs);
+    d.setUTCDate(d.getUTCDate() + i);
+    dateStrs.push(d.toISOString().slice(0, 10));
+  }
+
+  // 활동 맵: date → focusMins
+  const activityMap = {};
+  let maxMins = 1;
+  allEvents.forEach(e => {
+    const mins = e.focusMins || 0;
+    const hasAny = mins > 0 || (e.blocks || []).length > 0 || (e.pomoSessions || []).length > 0;
+    if (hasAny) {
+      activityMap[e.date] = mins;
+      if (mins > maxMins) maxMins = mins;
+    }
+  });
+
+  // 스트릭 날짜 집합
+  const streakDates = new Set();
+  if (streak.current > 0 && streak.lastDate) {
+    const parts = streak.lastDate.split('-').map(Number);
+    const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    for (let i = 0; i < streak.current; i++) {
+      streakDates.add(d.toISOString().slice(0, 10));
+      d.setUTCDate(d.getUTCDate() - 1);
+    }
+  }
+
+  // 팝오버 첫 생성
+  if (!_streakCalPopover) {
+    _streakCalPopover = document.createElement('div');
+    _streakCalPopover.className = 'streak-cal-popover';
+    document.body.appendChild(_streakCalPopover);
+
+    const showCal = () => {
+      clearTimeout(_streakCalHideTimer);
+      _streakCalPopover.style.display = 'block';
+      requestAnimationFrame(() => {
+        const rect = card.getBoundingClientRect();
+        const pw = _streakCalPopover.offsetWidth;
+        const ph = _streakCalPopover.offsetHeight;
+        let left = rect.left + rect.width / 2 - pw / 2;
+        let top = rect.top - ph - 10;
+        left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+        if (top < 8) top = rect.bottom + 10;
+        _streakCalPopover.style.left = left + 'px';
+        _streakCalPopover.style.top = top + 'px';
+      });
+    };
+    const hideCal = () => {
+      _streakCalHideTimer = setTimeout(() => { _streakCalPopover.style.display = 'none'; }, 120);
+    };
+
+    card.addEventListener('mouseenter', showCal);
+    card.addEventListener('mouseleave', hideCal);
+    _streakCalPopover.addEventListener('mouseenter', () => clearTimeout(_streakCalHideTimer));
+    _streakCalPopover.addEventListener('mouseleave', hideCal);
+  }
+
+  // 내용 재구성
+  _streakCalPopover.innerHTML = '';
+
+  // 타이틀 행
+  const titleRow = document.createElement('div');
+  titleRow.className = 'scal-title-row';
+  const titleEl = document.createElement('span');
+  titleEl.className = 'scal-title';
+  titleEl.textContent = '스트릭 달력';
+  const badge = document.createElement('span');
+  badge.className = 'scal-streak-badge';
+  badge.textContent = streak.current > 0 ? `🔥 ${streak.current}일 연속` : '기록을 시작하세요!';
+  titleRow.append(titleEl, badge);
+  _streakCalPopover.appendChild(titleRow);
+
+  // 월 레이블
+  const monthsEl = document.createElement('div');
+  monthsEl.className = 'scal-months';
+  monthsEl.style.width = (WEEKS * 20 - 2) + 'px';
+  let lastMonth = -1;
+  for (let w = 0; w < WEEKS; w++) {
+    const m = parseInt(dateStrs[w * 7].split('-')[1]) - 1;
+    if (m !== lastMonth) {
+      lastMonth = m;
+      const lbl = document.createElement('span');
+      lbl.textContent = (m + 1) + '월';
+      lbl.style.left = (w * 20) + 'px';
+      monthsEl.appendChild(lbl);
+    }
+  }
+
+  // 그리드 레이아웃
+  const wrap = document.createElement('div');
+  wrap.className = 'scal-wrap';
+
+  const daysEl = document.createElement('div');
+  daysEl.className = 'scal-days';
+  ['월', '', '수', '', '금', '', '일'].forEach(lbl => {
+    const s = document.createElement('span');
+    s.textContent = lbl;
+    daysEl.appendChild(s);
+  });
+
+  const rightEl = document.createElement('div');
+  rightEl.className = 'scal-right';
+
+  const grid = document.createElement('div');
+  grid.className = 'scal-grid';
+
+  dateStrs.forEach(ds => {
+    const isFuture = ds > todayStr;
+    const isToday = ds === todayStr;
+    const hasActivity = ds in activityMap;
+    const mins = activityMap[ds] || 0;
+    const isStreak = streakDates.has(ds);
+
+    const cell = document.createElement('div');
+    cell.className = 'scal-cell';
+
+    if (isFuture) {
+      cell.style.opacity = '0';
+    } else if (hasActivity) {
+      const intensity = mins > 0 ? Math.min(1, 0.3 + (mins / maxMins) * 0.7) : 0.4;
+      cell.style.background = isStreak
+        ? `rgba(250,173,20,${intensity})`
+        : `rgba(24,144,255,${intensity})`;
+    } else {
+      cell.style.background = '#efefef';
+    }
+
+    if (isToday) {
+      cell.style.outline = '2px solid #1890ff';
+      cell.style.outlineOffset = '-1px';
+      cell.style.borderRadius = '2px';
+    }
+
+    if (!isFuture) {
+      const [, mm, dd] = ds.split('-');
+      const minsText = mins > 0 ? ` · ${_statsFormatMins(mins)}` : '';
+      cell.title = `${parseInt(mm)}/${parseInt(dd)}${minsText}${isStreak ? ' 🔥' : ''}`;
+    }
+
+    grid.appendChild(cell);
+  });
+
+  rightEl.append(monthsEl, grid);
+  wrap.append(daysEl, rightEl);
+  _streakCalPopover.appendChild(wrap);
+
+  // 범례
+  const legend = document.createElement('div');
+  legend.className = 'scal-legend';
+  const mkCell = (bg) => { const s = document.createElement('span'); s.className = 'scal-leg-cell'; s.style.background = bg; return s; };
+  const mkLbl  = (t)  => { const s = document.createElement('span'); s.className = 'scal-leg-lbl';  s.textContent = t; return s; };
+  const gap = document.createElement('span'); gap.style.cssText = 'width:6px;display:inline-block';
+  legend.append(
+    mkLbl('없음'), mkCell('#efefef'),
+    mkCell('rgba(24,144,255,0.4)'), mkCell('rgba(24,144,255,0.85)'), mkLbl('집중'),
+    gap,
+    mkCell('rgba(250,173,20,0.75)'), mkLbl('🔥 스트릭')
+  );
+  _streakCalPopover.appendChild(legend);
+}
+
 function renderStats(period) {
   _statsPeriod = period || _statsPeriod;
 
@@ -1309,6 +1492,7 @@ function renderStats(period) {
     );
     _renderPomoStats(allEvents, _statsPeriod);
     _renderHeatmap(allEvents, _statsPeriod);
+    _renderStreakCalendar(allEvents, streak);
   });
 }
 
