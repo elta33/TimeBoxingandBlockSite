@@ -413,13 +413,46 @@ button { cursor: pointer; font-family: inherit; }
 .stats-rank-count { font-size: 0.75rem; font-weight: 700; color: #999; flex-shrink: 0; }
 
 /* 포모도로 통계 */
-.stats-pomo-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 9px 0; border-bottom: 1px solid #f5f5f5;
+.stats-pomo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 4px;
 }
-.stats-pomo-row:last-child { border-bottom: none; }
-.stats-pomo-label { font-size: 0.82rem; color: #666; }
-.stats-pomo-val   { font-size: 0.95rem; font-weight: 700; color: #111; }
+.stats-pomo-card {
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 12px 14px 10px;
+  border: 1px solid #f0f0f0;
+  border-left: 3px solid #ffbb96;
+  transition: box-shadow 0.15s, border-left-color 0.15s, background 0.15s;
+}
+.stats-pomo-card.active {
+  background: #fff;
+  border-left-color: #ff4d4f;
+  box-shadow: 0 0 0 1px rgba(255,77,79,0.22), 0 4px 24px rgba(255,77,79,0.18);
+}
+.stats-pomo-card-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.stats-pomo-card-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stats-pomo-title-sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #bbb;
+}
 
 /* 히트맵 */
 .stats-heatmap {
@@ -887,7 +920,10 @@ button { cursor: pointer; font-family: inherit; }
 
     <div class="stats-bottom-grid">
       <div class="sector">
-        <div class="sector-title" data-i18n="statsPomoTitle">🍅 포모도로 통계</div>
+        <div class="sector-title">
+          <span data-i18n="statsPomoTitle">🍅 포모도로 통계</span>
+          <span class="stats-pomo-title-sub">반복 횟수 | 집중 시간</span>
+        </div>
         <div id="stat-pomo-content"></div>
       </div>
       <div class="sector">

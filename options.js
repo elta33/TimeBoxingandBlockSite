@@ -1106,37 +1106,49 @@ function _renderPomoStats(allEvents, period) {
   if (!el) return;
   el.innerHTML = '';
 
-  const todayStr  = _statsTodayStr();
-  const todayLog  = allEvents.find(e => e.date === todayStr);
-  const todayCyc  = todayLog ? todayLog.pomoSessions.length : 0;
-  const todayMins = todayLog ? todayLog.pomoSessions.reduce((s, p) => s + p.durationMins, 0) : 0;
+  const todayStr = _statsTodayStr();
+  const todayLog = allEvents.find(e => e.date === todayStr);
+  const todayCyc  = todayLog ? (todayLog.pomoSessions || []).length : 0;
+  const todayMins = todayLog ? (todayLog.pomoSessions || []).reduce((s, p) => s + p.durationMins, 0) : 0;
 
-  const cutoff = new Date();
-  if (period === '7d')  cutoff.setDate(cutoff.getDate() - 7);
-  else if (period === '30d') cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffStr = period === 'today' ? todayStr : cutoff.toISOString().slice(0, 10);
-  const filtered  = period === 'today'
-    ? (todayLog ? [todayLog] : [])
-    : allEvents.filter(e => e.date >= cutoffStr);
-
-  const totalCyc  = filtered.reduce((s, e) => s + (e.pomoSessions || []).length, 0);
-  const totalMins = filtered.reduce((s, e) => s + (e.pomoSessions || []).reduce((s2, p) => s2 + p.durationMins, 0), 0);
-
-  function row(label, val) {
-    const div = document.createElement('div');
-    div.className = 'stats-pomo-row';
-    const l = document.createElement('span'); l.className = 'stats-pomo-label'; l.textContent = label;
-    const v = document.createElement('span'); v.className = 'stats-pomo-val';   v.textContent = val;
-    div.append(l, v);
-    el.appendChild(div);
+  function calcPeriod(days) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const filtered = allEvents.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
+    return {
+      cyc:  filtered.reduce((s, e) => s + (e.pomoSessions || []).length, 0),
+      mins: filtered.reduce((s, e) => s + (e.pomoSessions || []).reduce((s2, p) => s2 + p.durationMins, 0), 0),
+    };
   }
 
-  row(T('statsPomoTodayCycles'), todayCyc + T('statsPomoUnit'));
-  row(T('statsPomoTodayMins'),   _statsFormatMins(todayMins));
-  if (period !== 'today') {
-    const periodLabel = period === '7d' ? T('statsPomoWeek') : T('statsPomoMonth');
-    row(periodLabel, totalCyc + T('statsPomoUnit') + '  /  ' + _statsFormatMins(totalMins));
+  const p7  = calcPeriod(7);
+  const p30 = calcPeriod(30);
+
+  function makeCard(label, cycles, mins, isActive) {
+    const card = document.createElement('div');
+    card.className = 'stats-pomo-card' + (isActive ? ' active' : '');
+
+    const lbl = document.createElement('div');
+    lbl.className = 'stats-pomo-card-label';
+    lbl.textContent = label;
+
+    const val = document.createElement('div');
+    val.className = 'stats-pomo-card-value';
+    const timeStr = mins > 0 ? _statsFormatMins(mins) : '—';
+    val.textContent = `${cycles}${T('statsPomoUnit')} | ${timeStr}`;
+
+    card.append(lbl, val);
+    return card;
   }
+
+  const grid = document.createElement('div');
+  grid.className = 'stats-pomo-grid';
+
+  grid.appendChild(makeCard(T('statsToday'),     todayCyc, todayMins, period === 'today'));
+  grid.appendChild(makeCard(T('statsPomoWeek'),  p7.cyc,  p7.mins,   period === '7d'));
+  grid.appendChild(makeCard(T('statsPomoMonth'), p30.cyc, p30.mins,  period === '30d'));
+
+  el.appendChild(grid);
 }
 
 function _renderHeatmap(allEvents, period) {
