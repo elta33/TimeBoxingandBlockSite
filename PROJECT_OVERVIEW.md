@@ -8,6 +8,7 @@
 - 항상 차단할 사이트(상시 차단)와 스케줄에 따라 차단할 사이트(일반 차단)를 구분 관리
 - 포모도로 타이머와 연동하여 작업 시간 중 추가 차단 적용
 - 차단 화면을 사용자 지정 이미지·인용구로 꾸밀 수 있음
+- 집중 시간·차단 횟수·포모도로 완료 사이클 등 활동 통계를 기록·시각화
 - 한국어/영어 현지화 지원
 
 ---
@@ -21,7 +22,7 @@ TimeBoxingandBlockSite/
 ├── background.js          # Service Worker — DNR 규칙 관리, 알람, SPA 차단 판별
 │
 ├── popup.html / popup.js  # 툴바 아이콘 클릭 시 나타나는 팝업
-├── options.html / options.js  # 전체 설정 페이지 (4개 탭)
+├── options.html / options.js  # 전체 설정 페이지 (5개 탭)
 ├── storage.js             # options.js가 공유하는 스토리지 CRUD 헬퍼
 ├── render-day.js          # 하루 도넛(원형) 타임테이블 SVG 렌더러
 │
@@ -48,12 +49,12 @@ TimeBoxingandBlockSite/
 
 **차단 유형과 DNR 우선순위:**
 
-| 유형 | 조건 | 우선순위 | 차단 이유 파라미터 |
+| 유형 | 조건 | 우선순위 | 리다이렉트 파라미터 |
 |------|------|---------|--------------|
-| 상시 차단 (`permanentList`) | 항상 | 100 | `reason=permanent` |
-| 포모도로 차단 (`pomodoroList`) | 포모도로 work 페이즈 중 | 30 | `reason=pomodoro` |
+| 상시 차단 (`permanentList`) | 항상 | 100 | `?domain=…&reason=permanent` |
+| 포모도로 차단 (`pomodoroList`) | 포모도로 work 페이즈 중 | 30 | `?domain=…&reason=pomodoro` |
 | 커스텀 허용 (`customDomains`) | 활성 타임박스 내 예외 | 50 | — (allow) |
-| 일반 차단 (`generalList`) | 활성 타임박스 시간 내 | 10 | `reason=general` |
+| 일반 차단 (`generalList`) | 활성 타임박스 시간 내 | 10 | `?domain=…&reason=general` |
 
 > **DNR 제약 우회:** Chrome DNR에서 `allow` 액션은 `block` 액션만 무력화하고 `redirect`는 무력화하지 못한다. 따라서 "커스텀 허용 → 일반 차단 리다이렉트" 충돌은 우선순위 규칙이 아닌 **generalList 규칙 자체를 등록하지 않는** 방식으로 해결한다 (`finalAllowSet`).
 
@@ -72,6 +73,8 @@ page-world.js (MAIN World)
 ```
 
 악성 사이트의 postMessage 폭주를 막기 위해 200ms 쓰로틀이 적용된다.
+
+SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어 통계 로깅에 활용된다.
 
 ### 3-3. 타임박스 스케줄러
 
@@ -120,7 +123,47 @@ page-world.js (MAIN World)
 - 경쟁 조건 방지: UI가 먼저 전환했을 경우 `advancedAt`이 10초 이내이면 background가 중복 전환하지 않음
 - **PiP 창**: `chrome.windows.create({ type: 'popup' })`로 별도 창 생성, `pipWindowId`로 이미 열린 창 재사용
 
-### 3-5. 차단 화면 커스터마이징
+### 3-5. 통계 시스템
+
+집중 활동 이력을 `focusEvents` / `focusStreak` 두 키에 누적 저장하며, 최대 30일치를 보관한다.
+
+**데이터 수집 경로:**
+
+| 수집 주체 | 트리거 | 기록 내용 |
+|---------|--------|---------|
+| `background.js` (`_statsLogBoxMinute`) | 1분 알람, 활성 타임박스 내 | `day.focusMins += 1` |
+| `background.js` (`_statsLogPomoSession`) | 포모도로 work 페이즈 종료 | `day.pomoSessions.push({ ts, durationMins })` |
+| `block.js` (`logBlockEvent` IIFE) | block.html 로드 시 (`domain` 파라미터 존재) | `day.blocks.push({ domain, reason, ts })` |
+
+`focusEvents` 일별 레코드 구조:
+```js
+{
+  date: "2026-06-28",
+  focusMins: 42,
+  blocks: [{ domain: "youtube.com", reason: "general", ts: 1719500000 }],
+  pomoSessions: [{ ts: 1719501000, durationMins: 25 }]
+}
+```
+
+`focusStreak` 구조:
+```js
+{ current: 5, longest: 12, lastDate: "2026-06-28" }
+```
+
+**통계 탭 시각화 (`options.js`):**
+
+| 구성 요소 | 함수 | 내용 |
+|---------|------|------|
+| 히어로 카드 | `renderStats` | 스트릭 일수, 집중 시간, 차단 횟수 |
+| 집중 시간 바 차트 | `_renderBlockBarChart` | 일별 focusMins 막대 그래프 (오늘 강조) |
+| 상위 차단 도메인 | `_renderTopDomains` | 기간 내 차단 빈도 상위 도메인 랭킹 |
+| 포모도로 통계 | `_renderPomoStats` | 오늘/7일/30일 완료 사이클·집중 시간 |
+| 차단 시간대 분포 | `_renderHeatmap` | 0~23시 히트맵 |
+| 스트릭 달력 | `_renderStreakCalendar` | 날짜별 활동 유무 달력 |
+
+기간 필터는 오늘 / 7일 / 30일 세 가지이며 탭 클릭 시 `renderStats(period)`를 재호출한다.
+
+### 3-6. 차단 화면 커스터마이징
 
 `block.html`에서 제공하는 기능:
 
@@ -148,6 +191,8 @@ page-world.js (MAIN World)
 | `blockBgImages` | `object[]` | 차단 화면 배경 이미지 (Base64) |
 | `blockQuotes` | `string[]` | 차단 화면 인용구 |
 | `blockLinks` | `object[]` | 이미지-인용구 쌍 링크 |
+| `focusEvents` | `DayEvent[]` | 일별 집중 활동 이력 (최대 30일) |
+| `focusStreak` | `object` | `{ current, longest, lastDate }` |
 
 ---
 
@@ -158,6 +203,7 @@ page-world.js (MAIN World)
 | **차단 관리** | 상시 차단 / 일반 차단 도메인 추가·삭제 |
 | **타임박스 스케줄러** | 박스 추가 폼 + 하루(도넛) / 주간(세로 타임테이블) 뷰 |
 | **포모도로 타이머** | 타이머 설정, 시작/일시정지/중지, PiP, 포모도로 전용 차단 목록 |
+| **통계** | 집중 시간·차단 횟수·스트릭·포모도로·히트맵 시각화 (오늘/7일/30일 필터) |
 | **설정** | 전체 데이터 JSON 내보내기 / 불러오기 |
 
 ### 타임테이블 뷰
