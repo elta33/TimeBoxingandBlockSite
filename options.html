@@ -572,6 +572,38 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-import-item { display: block; width: 100%; padding: 9px 14px; border: none; background: none; text-align: left; font-size: 0.87rem; font-family: inherit; color: #333; cursor: pointer; transition: background 0.1s; }
 .pomo-import-item:hover { background: #f5f5f5; }
 
+/* ── PIN 설정 섹터 ── */
+.pin-section-label { font-size: 0.82rem; font-weight: 600; color: #555; margin: 12px 0 6px; }
+.pin-section-label:first-of-type { margin-top: 0; }
+.pin-input-group { display: flex; flex-direction: column; gap: 8px; }
+.pin-input-group input[type="password"] { padding: 9px 12px; border: 1px solid #ddd; border-radius: 7px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.15s; }
+.pin-input-group input[type="password"]:focus { border-color: #999; }
+.pin-status-badge { display: flex; align-items: center; gap: 7px; padding: 9px 12px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 16px; }
+.pin-status-badge.pin-active { background: #e6f7ff; color: #0050b3; font-weight: 600; }
+.pin-status-badge.pin-inactive { background: #f5f5f5; color: #aaa; }
+.pin-form-error { color: #ff4d4f; font-size: 0.78rem; margin-top: 5px; font-weight: 600; display: none; }
+.pin-btns-row { display: flex; gap: 8px; margin-top: 10px; }
+
+/* ── 잠긴 버튼 공통 ── */
+.tbox-del.tbox-del-locked { background: rgba(0,0,0,0.62) !important; letter-spacing: -0.02em; opacity: 0.85; }
+.tbox:hover .tbox-del.tbox-del-locked { opacity: 1; }
+.btn-danger.pin-locked { background: #8c1c1e !important; }
+
+/* ── PIN 모달 ── */
+.pin-modal-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }
+.pin-modal { background: #fff; border-radius: 16px; padding: 28px 24px 22px; width: 300px; box-shadow: 0 8px 40px rgba(0,0,0,0.25); animation: popupIn 0.18s ease; }
+.pin-modal-lock-icon { text-align: center; font-size: 2rem; margin-bottom: 10px; }
+.pin-modal-title { text-align: center; font-size: 1rem; font-weight: 700; color: #111; margin-bottom: 4px; }
+.pin-modal-sub { text-align: center; font-size: 0.82rem; color: #999; margin-bottom: 16px; }
+.pin-modal-input { width: 100%; box-sizing: border-box; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 1.1rem; font-family: inherit; text-align: center; letter-spacing: 0.12em; outline: none; transition: border-color 0.15s; }
+.pin-modal-input:focus { border-color: #333; }
+@keyframes pinShake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)} }
+.pin-modal-input.pin-shake { animation: pinShake 0.35s ease; }
+.pin-modal-error { min-height: 18px; text-align: center; font-size: 0.8rem; color: #ff4d4f; font-weight: 600; margin-top: 7px; }
+.pin-modal-footer { display: flex; gap: 8px; margin-top: 16px; }
+.pin-modal-footer .btn-ghost { flex: 1; padding: 10px; }
+.pin-modal-footer .btn { flex: 1; padding: 10px; }
+
 /* ── 스트릭 달력 팝오버 ── */
 .streak-cal-popover {
   display: none;
@@ -668,6 +700,212 @@ button { cursor: pointer; font-family: inherit; }
   display: inline-block;
   flex-shrink: 0;
 }
+
+/* ── Todo 플로팅 패널 ── */
+#todoTrigger {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px 10px 13px;
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 802;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+  transition: background 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+  user-select: none;
+}
+#todoTrigger:hover { background: #333; box-shadow: 0 6px 22px rgba(0,0,0,0.3); }
+.todo-trigger-icon { font-size: 1rem; line-height: 1; }
+.todo-trigger-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  background: #ff4d4f;
+  color: #fff;
+  border-radius: 9px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0 4px;
+  line-height: 1;
+}
+#todoPopup {
+  position: fixed;
+  right: 28px;
+  bottom: 76px;
+  width: 280px;
+  max-height: 440px;
+  background: #fff;
+  border: 1px solid #e4e4e4;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+  display: flex;
+  flex-direction: column;
+  z-index: 801;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  transform: scale(0.08);
+  transform-origin: bottom right;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34,1.4,0.64,1), visibility 0s linear 0.25s;
+}
+#todoPopup.todo-popup-open {
+  visibility: visible;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34,1.4,0.64,1), visibility 0s;
+}
+.todo-popup-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.todo-popup-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #111;
+  flex: 1;
+}
+#todoBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #52c41a;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 10px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.todo-close-btn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: #f5f5f5;
+  color: #999;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  padding: 0;
+  flex-shrink: 0;
+  font-family: inherit;
+  line-height: 1;
+}
+.todo-close-btn:hover { background: #ebebeb; color: #333; }
+.todo-input-row {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f5f5f5;
+  flex-shrink: 0;
+}
+.todo-input-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.todo-input-row input[type="text"]:focus { border-color: #999; }
+.todo-add-btn {
+  padding: 7px 11px;
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.todo-add-btn:hover { background: #333; }
+.todo-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #e0e0e0 transparent;
+}
+.todo-list::-webkit-scrollbar { width: 4px; }
+.todo-list::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
+.todo-empty {
+  text-align: center;
+  padding: 28px 0;
+  color: #ccc;
+  font-size: 0.82rem;
+}
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  transition: background 0.1s;
+}
+.todo-item:hover { background: #fafafa; }
+.todo-cb {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #111;
+  margin: 0;
+}
+.todo-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.todo-item.todo-done .todo-text { color: #bbb; text-decoration: line-through; }
+.todo-del {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s, background 0.12s;
+  opacity: 0;
+  font-family: inherit;
+  line-height: 1;
+}
+.todo-item:hover .todo-del { opacity: 1; }
+.todo-del:hover { color: #ff4d4f; background: rgba(255,77,79,0.08); }
   </style>
 </head>
 <body>
@@ -788,7 +1026,7 @@ button { cursor: pointer; font-family: inherit; }
           <label class="switch-label">
             <input type="checkbox" id="dailyScheduleDisableToggle">
             <span class="switch-track"><span class="switch-thumb"></span></span>
-            <span data-i18n="dailyScheduleDisable">하루 스케줄 비활성화</span>
+            <span id="schedLockIcon" style="display:none;">🔒 </span><span data-i18n="dailyScheduleDisable">하루 스케줄 비활성화</span>
           </label>
         </div>
         <div id="timetableWrap"></div>
@@ -938,15 +1176,49 @@ button { cursor: pointer; font-family: inherit; }
   </div>
 
   <div class="tab-panel" id="tab-settings">
-    <div class="sector" style="max-width:500px;">
-      <div class="sector-title" data-i18n="settingsBackupTitle">데이터 백업 / 복원</div>
-      <p class="sector-desc" data-i18n="settingsBackupDesc">도메인 목록, 타임박스 스케줄, 설정을 파일로 저장하거나 불러옵니다.</p>
-      <div style="display:flex; gap:10px; margin-bottom:12px;">
-        <button id="exportBtn" class="btn" data-i18n="exportBtn">내보내기 (Export)</button>
-        <button id="importBtn" class="btn" data-i18n="importBtn">불러오기 (Import)</button>
-        <input type="file" id="importFile" accept=".json" style="display:none;">
+    <div class="block-grid" style="align-items:start;">
+
+      <div class="sector">
+        <div class="sector-title" data-i18n="settingsBackupTitle">데이터 백업 / 복원</div>
+        <p class="sector-desc" data-i18n="settingsBackupDesc">도메인 목록, 타임박스 스케줄, 설정을 파일로 저장하거나 불러옵니다.</p>
+        <div style="display:flex; gap:10px; margin-bottom:12px;">
+          <button id="exportBtn" class="btn" data-i18n="exportBtn">내보내기 (Export)</button>
+          <button id="importBtn" class="btn" data-i18n="importBtn">불러오기 (Import)</button>
+          <input type="file" id="importFile" accept=".json" style="display:none;">
+        </div>
+        <p style="font-size:0.82rem; color:#bbb; margin:0;" data-i18n="importOverwriteNote">불러오기는 기존 데이터를 완전히 덮어씁니다.</p>
       </div>
-      <p style="font-size:0.82rem; color:#bbb; margin:0;" data-i18n="importOverwriteNote">불러오기는 기존 데이터를 완전히 덮어씁니다.</p>
+
+      <div class="sector">
+        <div class="sector-title">잠금 PIN</div>
+        <p class="sector-desc">PIN을 설정하면 박스 삭제·초기화·스케줄 비활성화에 인증이 필요합니다.</p>
+        <div id="pinStatusBadge" class="pin-status-badge pin-inactive">PIN 미설정 — 잠금 비활성화</div>
+
+        <div id="pinSetupSection">
+          <div class="pin-section-label">새 PIN 설정</div>
+          <div class="pin-input-group">
+            <input type="password" id="pinNewInput" placeholder="새 PIN (4자 이상)" maxlength="20" autocomplete="new-password">
+            <input type="password" id="pinNewConfirmInput" placeholder="PIN 확인" maxlength="20" autocomplete="new-password">
+          </div>
+          <div id="pinSetError" class="pin-form-error"></div>
+          <button class="btn" id="pinSetBtn" style="width:100%;margin-top:10px;">PIN 등록</button>
+        </div>
+
+        <div id="pinChangeSection" style="display:none;">
+          <div class="pin-section-label">PIN 변경</div>
+          <div class="pin-input-group">
+            <input type="password" id="pinCurrentInput" placeholder="현재 PIN" maxlength="20" autocomplete="current-password">
+            <input type="password" id="pinChangeNewInput" placeholder="새 PIN" maxlength="20" autocomplete="new-password">
+            <input type="password" id="pinChangeConfirmInput" placeholder="새 PIN 확인" maxlength="20" autocomplete="new-password">
+          </div>
+          <div id="pinChangeError" class="pin-form-error"></div>
+          <div class="pin-btns-row">
+            <button class="btn" id="pinChangeBtn" style="flex:1;">변경</button>
+            <button class="btn-danger" id="pinRemoveBtn" style="flex:1;padding:10px 16px;">PIN 해제</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -992,9 +1264,43 @@ button { cursor: pointer; font-family: inherit; }
     </div>
   </div>
 
+  <div id="pinModalOverlay" class="pin-modal-overlay" style="display:none;">
+    <div class="pin-modal">
+      <div class="pin-modal-lock-icon">🔒</div>
+      <div class="pin-modal-title">잠금 해제</div>
+      <div class="pin-modal-sub">PIN을 입력하세요</div>
+      <input type="password" id="pinModalInput" class="pin-modal-input" placeholder="PIN" maxlength="20" autocomplete="off">
+      <div id="pinModalError" class="pin-modal-error"></div>
+      <div class="pin-modal-footer">
+        <button id="pinModalCancelBtn" class="btn-ghost">취소</button>
+        <button id="pinModalConfirmBtn" class="btn">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Todo 플로팅 패널 -->
+  <div id="todoPopup">
+    <div class="todo-popup-header">
+      <span class="todo-popup-title">할 일</span>
+      <span id="todoBadge">완료 0/0</span>
+      <button id="todoCloseBtn" class="todo-close-btn">&times;</button>
+    </div>
+    <div class="todo-input-row">
+      <input type="text" id="todoInput" placeholder="새 할 일 추가…" maxlength="100">
+      <button id="todoAddBtn" class="todo-add-btn">추가</button>
+    </div>
+    <div id="todoList" class="todo-list"></div>
+  </div>
+  <button id="todoTrigger">
+    <span class="todo-trigger-icon">☑</span>
+    <span class="todo-trigger-label">할 일</span>
+    <span id="todoTriggerCount" class="todo-trigger-count" style="display:none;"></span>
+  </button>
+
   <script src="storage.js"></script>
   <script src="i18n.js"></script>
   <script src="render-day.js"></script>
   <script src="options.js"></script>
+  <script src="todo.js"></script>
 </body>
 </html>

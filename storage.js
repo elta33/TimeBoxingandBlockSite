@@ -70,8 +70,9 @@ function deleteCustomDomain(boxIndex, cdIndex, onDone) {
 }
 
 // ── 리스트 전체 초기화 ──
-function clearAll(storageKey, confirmMsg, inputIdsToClear) {
-  if (!confirm(confirmMsg)) return;
+function clearAll(storageKey, confirmMsg, inputIdsToClear, options) {
+  const skipConfirm = options?.skipConfirm || false;
+  if (!skipConfirm && !confirm(confirmMsg)) return;
   chrome.storage.local.set({ [storageKey]: [] }, () => {
     if (inputIdsToClear) inputIdsToClear.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     if (storageKey === 'dailyBoxes' || storageKey === 'weeklyBoxes') { stagingCustomDomains = []; renderStagingList(); }

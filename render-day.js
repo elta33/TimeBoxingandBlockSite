@@ -234,9 +234,15 @@ function renderDayView(boxes, wrap) {
     titleSpan.textContent = box.name;
     header.appendChild(titleSpan);
     const delBoxBtn = document.createElement('button');
-    delBoxBtn.className = 'btn-danger btn-sm';
-    delBoxBtn.textContent = T('donutDeleteBox');
-    delBoxBtn.onclick = () => deleteBox(boxIndex);
+    delBoxBtn.className = 'btn-danger btn-sm' + (_pinEnabled ? ' pin-locked' : '');
+    delBoxBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('donutDeleteBox');
+    delBoxBtn.onclick = () => {
+      if (_pinEnabled) {
+        _openPinModal(T('delete'), () => deleteBox(boxIndex));
+      } else {
+        deleteBox(boxIndex);
+      }
+    };
     header.appendChild(delBoxBtn);
     detailArea.appendChild(header);
 

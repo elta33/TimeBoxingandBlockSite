@@ -5,6 +5,112 @@ let stagingCustomDomains = [];
 let dailyScheduleEnabled = true;
 let weekViewClockInterval = null;
 
+// ── PIN 잠금 ──
+let _pinEnabled = false;
+let _pendingPinAction = null;
+
+async function _hashPin(pin, salt) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + pin));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function _loadPinStatus() {
+  chrome.storage.local.get(['lockPin'], result => {
+    const lp = result.lockPin;
+    _pinEnabled = !!(lp?.enabled && lp?.hash);
+    _updatePinUI();
+    loadSettings(); // PIN 상태 확정 후 박스 카드 재렌더
+  });
+}
+
+function _updatePinUI() {
+  const badge   = document.getElementById('pinStatusBadge');
+  const setup   = document.getElementById('pinSetupSection');
+  const change  = document.getElementById('pinChangeSection');
+  if (!badge) return;
+  if (_pinEnabled) {
+    badge.className = 'pin-status-badge pin-active';
+    badge.textContent = '🔒 PIN 활성화됨 — 삭제·초기화·비활성화 잠김';
+    if (setup)  setup.style.display  = 'none';
+    if (change) change.style.display = 'block';
+  } else {
+    badge.className = 'pin-status-badge pin-inactive';
+    badge.textContent = 'PIN 미설정 — 잠금 비활성화';
+    if (setup)  setup.style.display  = 'block';
+    if (change) change.style.display = 'none';
+  }
+  _applyScheduleToggleLockVisual();
+  _applyStaticButtonLockVisuals();
+}
+
+function _applyScheduleToggleLockVisual() {
+  const icon = document.getElementById('schedLockIcon');
+  if (icon) icon.style.display = _pinEnabled ? 'inline' : 'none';
+}
+
+function _applyStaticButtonLockVisuals() {
+  const clearBoxesBtn = document.getElementById('clearBoxesBtn');
+  if (clearBoxesBtn) {
+    if (_pinEnabled) {
+      clearBoxesBtn.classList.add('pin-locked');
+      clearBoxesBtn.textContent = '🔒 ' + T('clearAll');
+    } else {
+      clearBoxesBtn.classList.remove('pin-locked');
+      clearBoxesBtn.textContent = T('clearAll');
+    }
+  }
+}
+
+function _openPinModal(actionLabel, onSuccess) {
+  const overlay   = document.getElementById('pinModalOverlay');
+  const input     = document.getElementById('pinModalInput');
+  const confirmBtn = document.getElementById('pinModalConfirmBtn');
+  const errorEl   = document.getElementById('pinModalError');
+  if (!overlay) return;
+  _pendingPinAction = onSuccess;
+  if (confirmBtn) confirmBtn.textContent = actionLabel;
+  if (input)    { input.value = ''; input.classList.remove('pin-shake'); }
+  if (errorEl)  errorEl.textContent = '';
+  overlay.style.display = 'flex';
+  setTimeout(() => input?.focus(), 60);
+}
+
+function _closePinModal() {
+  const overlay = document.getElementById('pinModalOverlay');
+  if (overlay) overlay.style.display = 'none';
+  const input = document.getElementById('pinModalInput');
+  if (input) input.value = '';
+  const errorEl = document.getElementById('pinModalError');
+  if (errorEl) errorEl.textContent = '';
+  _pendingPinAction = null;
+}
+
+async function _attemptPinUnlock() {
+  const input   = document.getElementById('pinModalInput');
+  const errorEl = document.getElementById('pinModalError');
+  const pin = input?.value || '';
+  if (!pin) return;
+  chrome.storage.local.get(['lockPin'], async result => {
+    const lp = result.lockPin;
+    if (!lp?.hash || !lp?.salt) return;
+    const hash = await _hashPin(pin, lp.salt);
+    if (hash === lp.hash) {
+      const action = _pendingPinAction;
+      _closePinModal();
+      if (action) action();
+    } else {
+      if (errorEl) errorEl.textContent = 'PIN이 올바르지 않습니다.';
+      if (input) {
+        input.classList.remove('pin-shake');
+        void input.offsetWidth;
+        input.classList.add('pin-shake');
+        input.value = '';
+        setTimeout(() => { input.classList.remove('pin-shake'); input.focus(); }, 360);
+      }
+    }
+  });
+}
+
 // ── 도메인 정규화 ──
 function cleanDomain(d) {
   return d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
@@ -173,8 +279,17 @@ function buildBoxCard(box, boxIndex, isWeek) {
     }
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'tbox-del'; delBtn.textContent = T('delete'); delBtn.title = T('deleteBoxTitle');
-    delBtn.onclick = (e) => { e.stopPropagation(); deleteBox(boxIndex); };
+    delBtn.className = 'tbox-del' + (_pinEnabled ? ' tbox-del-locked' : '');
+    delBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('delete');
+    delBtn.title = T('deleteBoxTitle');
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (_pinEnabled) {
+        _openPinModal(T('delete'), () => deleteBox(boxIndex));
+      } else {
+        deleteBox(boxIndex);
+      }
+    };
     card.appendChild(delBtn);
 
     if (box.customDomains && box.customDomains.length > 0) {
@@ -819,6 +934,13 @@ document.getElementById('addPermanentBtn').onclick = () => addToList('permanentD
 document.getElementById('clearGeneralBtn').onclick   = () => clearAll('generalList',   T('clearGeneralConfirm'),   ['generalDomainInput']);
 document.getElementById('clearPermanentBtn').onclick = () => clearAll('permanentList', T('clearPermanentConfirm'), ['permanentDomainInput']);
 document.getElementById('clearBoxesBtn').onclick = () => {
+  if (_pinEnabled) {
+    _openPinModal(T('clearAll'), () => {
+      clearAll(getBoxKey(), T('clearBoxesConfirm'), ['boxName', 'customDomainInput'], { skipConfirm: true });
+      clearCustomTimeInputs(); clearDaySelection();
+    });
+    return;
+  }
   clearAll(getBoxKey(), T('clearBoxesConfirm'), ['boxName', 'customDomainInput']);
   clearCustomTimeInputs(); clearDaySelection();
 };
@@ -1563,6 +1685,17 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDailyScheduleVisual();
   });
   document.getElementById('dailyScheduleDisableToggle')?.addEventListener('change', e => {
+    if (_pinEnabled) {
+      const toggle = e.target;
+      toggle.checked = !toggle.checked; // 원래 상태 즉시 복원
+      _openPinModal('비활성화', () => {
+        toggle.checked = !toggle.checked;
+        dailyScheduleEnabled = !toggle.checked;
+        chrome.storage.local.set({ dailyScheduleEnabled });
+        applyDailyScheduleVisual();
+      });
+      return;
+    }
     dailyScheduleEnabled = !e.target.checked;
     chrome.storage.local.set({ dailyScheduleEnabled });
     applyDailyScheduleVisual();
@@ -1602,6 +1735,98 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('importFile')?.addEventListener('change', e => {
     const file = e.target.files[0];
     if (file) { importSettings(file); e.target.value = ''; }
+  });
+
+  // ── PIN 초기화 ──
+  _loadPinStatus();
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes.lockPin) return;
+    const lp = changes.lockPin.newValue;
+    _pinEnabled = !!(lp?.enabled && lp?.hash);
+    _updatePinUI();
+    loadSettings(); // 박스 카드 버튼 상태 재렌더링
+  });
+
+  // PIN 모달 이벤트
+  document.getElementById('pinModalCancelBtn')?.addEventListener('click', _closePinModal);
+  document.getElementById('pinModalConfirmBtn')?.addEventListener('click', _attemptPinUnlock);
+  document.getElementById('pinModalOverlay')?.addEventListener('click', e => {
+    if (e.target.id === 'pinModalOverlay') _closePinModal();
+  });
+  document.getElementById('pinModalInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  _attemptPinUnlock();
+    if (e.key === 'Escape') _closePinModal();
+  });
+
+  // PIN 등록
+  async function _doSetPin() {
+    const newPin     = document.getElementById('pinNewInput')?.value || '';
+    const confirmPin = document.getElementById('pinNewConfirmInput')?.value || '';
+    const errorEl    = document.getElementById('pinSetError');
+    const showErr = msg => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
+    if (!newPin)            { showErr('PIN을 입력하세요.'); return; }
+    if (newPin.length < 4)  { showErr('PIN은 4자 이상이어야 합니다.'); return; }
+    if (newPin !== confirmPin) { showErr('PIN이 일치하지 않습니다.'); return; }
+    const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+    const hash = await _hashPin(newPin, salt);
+    chrome.storage.local.set({ lockPin: { hash, salt, enabled: true } }, () => {
+      if (errorEl) errorEl.style.display = 'none';
+      document.getElementById('pinNewInput').value = '';
+      document.getElementById('pinNewConfirmInput').value = '';
+    });
+  }
+  document.getElementById('pinSetBtn')?.addEventListener('click', _doSetPin);
+  ['pinNewInput','pinNewConfirmInput'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') _doSetPin(); });
+    document.getElementById(id)?.addEventListener('input', () => {
+      const err = document.getElementById('pinSetError');
+      if (err) err.style.display = 'none';
+    });
+  });
+
+  // PIN 변경
+  async function _doChangePin() {
+    const currentPin = document.getElementById('pinCurrentInput')?.value    || '';
+    const newPin     = document.getElementById('pinChangeNewInput')?.value   || '';
+    const confirmPin = document.getElementById('pinChangeConfirmInput')?.value || '';
+    const errorEl    = document.getElementById('pinChangeError');
+    const showErr = msg => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
+    if (!currentPin || !newPin || !confirmPin) { showErr('모든 항목을 입력하세요.'); return; }
+    if (newPin.length < 4)  { showErr('새 PIN은 4자 이상이어야 합니다.'); return; }
+    if (newPin !== confirmPin) { showErr('새 PIN이 일치하지 않습니다.'); return; }
+    chrome.storage.local.get(['lockPin'], async result => {
+      const lp = result.lockPin;
+      if (!lp?.hash || !lp?.salt) return;
+      const hash = await _hashPin(currentPin, lp.salt);
+      if (hash !== lp.hash) {
+        showErr('현재 PIN이 올바르지 않습니다.');
+        document.getElementById('pinCurrentInput').value = '';
+        return;
+      }
+      const newSalt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+      const newHash = await _hashPin(newPin, newSalt);
+      chrome.storage.local.set({ lockPin: { hash: newHash, salt: newSalt, enabled: true } }, () => {
+        if (errorEl) errorEl.style.display = 'none';
+        ['pinCurrentInput','pinChangeNewInput','pinChangeConfirmInput'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.value = '';
+        });
+      });
+    });
+  }
+  document.getElementById('pinChangeBtn')?.addEventListener('click', _doChangePin);
+  ['pinCurrentInput','pinChangeNewInput','pinChangeConfirmInput'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') _doChangePin(); });
+    document.getElementById(id)?.addEventListener('input', () => {
+      const err = document.getElementById('pinChangeError');
+      if (err) err.style.display = 'none';
+    });
+  });
+
+  // PIN 해제
+  document.getElementById('pinRemoveBtn')?.addEventListener('click', () => {
+    _openPinModal('PIN 해제', () => {
+      chrome.storage.local.set({ lockPin: { hash: '', salt: '', enabled: false } });
+    });
   });
 });
 
