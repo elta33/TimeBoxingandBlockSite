@@ -705,7 +705,7 @@ button { cursor: pointer; font-family: inherit; }
 #todoTrigger {
   position: fixed;
   right: 28px;
-  bottom: 28px;
+  top: calc(50% - 60px);
   display: flex;
   align-items: center;
   gap: 7px;
@@ -716,12 +716,12 @@ button { cursor: pointer; font-family: inherit; }
   border-radius: 24px;
   font-size: 0.88rem;
   font-weight: 600;
-  cursor: pointer;
+  cursor: grab;
   z-index: 802;
   box-shadow: 0 4px 18px rgba(0,0,0,0.22);
-  transition: background 0.15s, box-shadow 0.15s;
   font-family: inherit;
   user-select: none;
+  touch-action: none;
 }
 #todoTrigger:hover { background: #333; box-shadow: 0 6px 22px rgba(0,0,0,0.3); }
 .todo-trigger-icon { font-size: 1rem; line-height: 1; }
@@ -741,8 +741,6 @@ button { cursor: pointer; font-family: inherit; }
 }
 #todoPopup {
   position: fixed;
-  right: 28px;
-  bottom: 76px;
   width: 280px;
   max-height: 440px;
   background: #fff;
@@ -756,10 +754,29 @@ button { cursor: pointer; font-family: inherit; }
   visibility: hidden;
   opacity: 0;
   transform: scale(0.08);
-  transform-origin: bottom right;
+  transform-origin: top right;
   transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34,1.4,0.64,1), visibility 0s linear 0.25s;
 }
-#todoPopup.todo-popup-open {
+#todoDonePopup {
+  position: fixed;
+  width: 280px;
+  max-height: 300px;
+  background: #fff;
+  border: 1px solid #e4e4e4;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+  display: flex;
+  flex-direction: column;
+  z-index: 800;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  transform: scale(0.08);
+  transform-origin: top right;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34,1.4,0.64,1), visibility 0s linear 0.25s;
+}
+#todoPopup.todo-popup-open,
+#todoDonePopup.todo-popup-open {
   visibility: visible;
   opacity: 1;
   transform: scale(1);
@@ -773,136 +790,79 @@ button { cursor: pointer; font-family: inherit; }
   gap: 8px;
   flex-shrink: 0;
 }
-.todo-popup-title {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: #111;
-  flex: 1;
-}
-#todoBadge {
+.todo-popup-title { font-size: 0.92rem; font-weight: 700; color: #111; flex: 1; }
+.todo-badge-btn {
   font-size: 0.7rem;
   font-weight: 600;
   color: #52c41a;
   background: #f6ffed;
   border: 1px solid #b7eb8f;
   border-radius: 10px;
-  padding: 1px 8px;
+  padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
-}
-.todo-close-btn {
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: #f5f5f5;
-  color: #999;
-  border-radius: 50%;
-  font-size: 1rem;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.12s, color 0.12s;
-  padding: 0;
-  flex-shrink: 0;
   font-family: inherit;
-  line-height: 1;
+  line-height: 1.4;
+  transition: background 0.12s, border-color 0.12s;
+}
+.todo-badge-btn:hover { background: #d9f7be; border-color: #95de64; }
+.todo-close-btn {
+  width: 22px; height: 22px; border: none; background: #f5f5f5; color: #999;
+  border-radius: 50%; font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  padding: 0; flex-shrink: 0; font-family: inherit; line-height: 1;
 }
 .todo-close-btn:hover { background: #ebebeb; color: #333; }
 .todo-input-row {
-  display: flex;
-  gap: 6px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #f5f5f5;
-  flex-shrink: 0;
+  display: flex; gap: 6px; padding: 10px 12px;
+  border-bottom: 1px solid #f5f5f5; flex-shrink: 0;
 }
 .todo-input-row input[type="text"] {
-  flex: 1;
-  min-width: 0;
-  padding: 7px 10px;
-  border: 1px solid #ddd;
-  border-radius: 7px;
-  font-size: 0.85rem;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.15s;
+  flex: 1; min-width: 0; padding: 7px 10px;
+  border: 1px solid #ddd; border-radius: 7px;
+  font-size: 0.85rem; font-family: inherit; outline: none; transition: border-color 0.15s;
 }
 .todo-input-row input[type="text"]:focus { border-color: #999; }
 .todo-add-btn {
-  padding: 7px 11px;
-  background: #111;
-  color: #fff;
-  border: none;
-  border-radius: 7px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.12s;
-  white-space: nowrap;
-  flex-shrink: 0;
+  padding: 7px 11px; background: #111; color: #fff; border: none;
+  border-radius: 7px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: background 0.12s; white-space: nowrap; flex-shrink: 0;
 }
 .todo-add-btn:hover { background: #333; }
+.todo-list-meta {
+  display: flex; justify-content: flex-end; align-items: center;
+  padding: 5px 14px 2px; flex-shrink: 0;
+}
+.todo-list-meta-btn {
+  font-size: 0.72rem; color: #ff4d4f; background: none; border: none;
+  cursor: pointer; padding: 2px 6px; border-radius: 4px;
+  font-family: inherit; font-weight: 600; transition: background 0.12s;
+}
+.todo-list-meta-btn:hover { background: rgba(255,77,79,0.08); }
 .todo-list {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 4px 0;
-  scrollbar-width: thin;
-  scrollbar-color: #e0e0e0 transparent;
+  flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0;
+  scrollbar-width: thin; scrollbar-color: #e0e0e0 transparent;
 }
 .todo-list::-webkit-scrollbar { width: 4px; }
 .todo-list::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
-.todo-empty {
-  text-align: center;
-  padding: 28px 0;
-  color: #ccc;
-  font-size: 0.82rem;
-}
+.todo-empty { text-align: center; padding: 28px 0; color: #ccc; font-size: 0.82rem; }
 .todo-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  transition: background 0.1s;
+  display: flex; align-items: center; gap: 8px; padding: 7px 14px; transition: background 0.1s;
 }
 .todo-item:hover { background: #fafafa; }
-.todo-cb {
-  flex-shrink: 0;
-  width: 15px;
-  height: 15px;
-  cursor: pointer;
-  accent-color: #111;
-  margin: 0;
-}
+.todo-cb { flex-shrink: 0; width: 15px; height: 15px; cursor: pointer; accent-color: #111; margin: 0; }
 .todo-text {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.85rem;
-  color: #333;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1; min-width: 0; font-size: 0.85rem; color: #333;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .todo-item.todo-done .todo-text { color: #bbb; text-decoration: line-through; }
 .todo-del {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  background: none;
-  border: none;
-  color: #ccc;
-  font-size: 1rem;
-  cursor: pointer;
-  border-radius: 3px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.12s, background 0.12s;
-  opacity: 0;
-  font-family: inherit;
-  line-height: 1;
+  flex-shrink: 0; width: 20px; height: 20px; background: none; border: none;
+  color: #ccc; font-size: 1rem; cursor: pointer; border-radius: 3px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.12s, background 0.12s; opacity: 0; font-family: inherit; line-height: 1;
 }
 .todo-item:hover .todo-del { opacity: 1; }
 .todo-del:hover { color: #ff4d4f; background: rgba(255,77,79,0.08); }
@@ -1279,15 +1239,26 @@ button { cursor: pointer; font-family: inherit; }
   </div>
 
   <!-- Todo 플로팅 패널 -->
+  <div id="todoDonePopup">
+    <div class="todo-popup-header">
+      <span class="todo-popup-title">완료된 항목</span>
+      <button id="todoDoneClearAllBtn" class="todo-list-meta-btn">모두 삭제</button>
+      <button id="todoDoneCloseBtn" class="todo-close-btn">&times;</button>
+    </div>
+    <div id="todoDoneList" class="todo-list"></div>
+  </div>
   <div id="todoPopup">
     <div class="todo-popup-header">
       <span class="todo-popup-title">할 일</span>
-      <span id="todoBadge">완료 0/0</span>
+      <button id="todoBadge" class="todo-badge-btn">완료 0/0</button>
       <button id="todoCloseBtn" class="todo-close-btn">&times;</button>
     </div>
     <div class="todo-input-row">
       <input type="text" id="todoInput" placeholder="새 할 일 추가…" maxlength="100">
       <button id="todoAddBtn" class="todo-add-btn">추가</button>
+    </div>
+    <div class="todo-list-meta">
+      <button id="todoClearAllBtn" class="todo-list-meta-btn">모두 삭제</button>
     </div>
     <div id="todoList" class="todo-list"></div>
   </div>
