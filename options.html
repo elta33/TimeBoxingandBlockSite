@@ -522,6 +522,30 @@ button { cursor: pointer; font-family: inherit; }
 .stats-bar-popover-count  { color: #999; font-size: 0.72rem; }
 .stats-bar-popover-empty  { color: #666; margin-top: 2px; }
 
+/* 시간대 분포 막대 팝오버 */
+.stats-heatmap-popover {
+  position: absolute;
+  background: #1f1f1f;
+  color: #fff;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 50;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.26);
+  display: none;
+}
+.stats-heatmap-popover::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1f1f1f;
+}
+
 /* 섹션 기간 배지 */
 .stats-section-period {
   display: inline-block;
@@ -1127,7 +1151,9 @@ button { cursor: pointer; font-family: inherit; }
       <div class="sector">
         <div class="sector-title" data-i18n="statsHeatmapTitle">차단 시간대 분포</div>
         <div class="sector-desc" id="stat-heatmap-period"></div>
-        <svg id="stat-heatmap" viewBox="0 0 220 70" width="100%" style="display:block;overflow:visible;margin-top:4px"></svg>
+        <div id="stat-heatmap-wrap" style="position:relative">
+          <svg id="stat-heatmap" viewBox="0 0 220 70" width="100%" style="display:block;overflow:visible;margin-top:4px"></svg>
+        </div>
         <div class="stats-heatmap-labels">
           <span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>23시</span>
         </div>

@@ -1274,8 +1274,9 @@ function _renderPomoStats(allEvents, period) {
 }
 
 function _renderHeatmap(allEvents, period) {
+  const wrapEl = document.getElementById('stat-heatmap-wrap');
   const el = document.getElementById('stat-heatmap');
-  if (!el) return;
+  if (!el || !wrapEl) return;
   el.innerHTML = '';
 
   const days = period === '30d' ? 30 : period === '7d' ? 7 : 1;
@@ -1299,11 +1300,6 @@ function _renderHeatmap(allEvents, period) {
   const cW = W - pL - pR, cH = H - pT - pB;
   const baseY = pT + cH;
 
-  const pts = hourSums.map((v, i) => [
-    pL + (i / 23) * cW,
-    pT + cH - (v / maxVal) * cH
-  ]);
-
   function mk(tag, attrs, st) {
     const e = document.createElementNS(NS, tag);
     Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
@@ -1312,46 +1308,63 @@ function _renderHeatmap(allEvents, period) {
   }
 
   [6, 12, 18].forEach(h => {
-    const x = pL + (h / 23) * cW;
+    const x = pL + ((h + 0.5) / 24) * cW;
     el.appendChild(mk('line', { x1: x, y1: pT, x2: x, y2: baseY, 'stroke-dasharray': '2,2' }, 'stroke:#efefef;stroke-width:0.5'));
   });
   el.appendChild(mk('line', { x1: pL, y1: baseY, x2: W - pR, y2: baseY }, 'stroke:#efefef;stroke-width:0.5'));
 
-  function bezSegs(p) {
-    let d = '';
-    for (let i = 0; i < p.length - 1; i++) {
-      const p0 = p[Math.max(0, i-1)], p1 = p[i], p2 = p[i+1], p3 = p[Math.min(p.length-1, i+2)];
-      const c1x = (p1[0] + (p2[0] - p0[0]) / 6).toFixed(1);
-      const c1y = (p1[1] + (p2[1] - p0[1]) / 6).toFixed(1);
-      const c2x = (p2[0] - (p3[0] - p1[0]) / 6).toFixed(1);
-      const c2y = (p2[1] - (p3[1] - p1[1]) / 6).toFixed(1);
-      d += ` C ${c1x} ${c1y},${c2x} ${c2y},${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
-    }
-    return d;
+  // 공유 팝오버 (재렌더 시 재사용)
+  let popover = wrapEl.querySelector('.stats-heatmap-popover');
+  if (!popover) {
+    popover = document.createElement('div');
+    popover.className = 'stats-heatmap-popover';
+    wrapEl.appendChild(popover);
   }
-
-  const segs = bezSegs(pts);
-
-  const fd = `M ${pL} ${baseY} L ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}${segs} L ${pts[23][0].toFixed(1)} ${baseY} Z`;
-  el.appendChild(mk('path', { d: fd }, 'fill:rgba(24,144,255,0.15);stroke:none'));
-
-  const ld = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}${segs}`;
-  el.appendChild(mk('path', { d: ld, fill: 'none', 'stroke-width': '1.5', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, 'stroke:#1890ff'));
+  popover.style.display = 'none';
 
   const peakH = hourSums.indexOf(maxVal);
-  if (hourSums[peakH] > 0) {
-    el.appendChild(mk('circle', { cx: pts[peakH][0].toFixed(1), cy: pts[peakH][1].toFixed(1), r: '2.5' }, 'fill:#1890ff'));
-  }
+  const slotW = cW / 24;
+  const barW = slotW * 0.6;
+  const minH = 3;
 
-  const colW = cW / 23;
   for (let h = 0; h < 24; h++) {
-    const x = pL + (h / 23) * cW;
-    const display = isToday ? String(hourSums[h]) : (hourSums[h] / days).toFixed(1);
-    const rect = mk('rect', { x: (x - colW / 2).toFixed(1), y: pT, width: colW.toFixed(1), height: cH }, 'fill:transparent;cursor:default');
-    const title = document.createElementNS(NS, 'title');
-    title.textContent = `${h}:00 — ${display}${T('statsBlockUnit')}`;
-    rect.appendChild(title);
+    const v = hourSums[h];
+    const cx = pL + (h + 0.5) * slotW;
+    const barH = v > 0 ? Math.max(minH, (v / maxVal) * cH) : minH * 0.4;
+    const y = baseY - barH;
+    const isPeak = v > 0 && h === peakH;
+    const barFill = isPeak ? '#0d2a4a' : '#8aa9bd';
+
+    const rect = mk('rect', {
+      x: (cx - barW / 2).toFixed(1),
+      y: y.toFixed(1),
+      width: barW.toFixed(1),
+      height: barH.toFixed(1),
+      rx: (barW / 2).toFixed(1)
+    }, `fill:${barFill}`);
     el.appendChild(rect);
+
+    const hit = mk('rect', { x: (cx - slotW / 2).toFixed(1), y: pT, width: slotW.toFixed(1), height: cH }, 'fill:transparent;cursor:pointer');
+    el.appendChild(hit);
+
+    const display = isToday ? String(v) : (v / days).toFixed(1);
+
+    hit.addEventListener('mouseenter', () => {
+      rect.style.filter = 'brightness(1.2)';
+      popover.textContent = `${h}:00 — ${display}${T('statsBlockUnit')}`;
+      popover.style.display = 'block';
+
+      const barRect  = rect.getBoundingClientRect();
+      const wrapRect = wrapEl.getBoundingClientRect();
+      popover.style.left      = (barRect.left + barRect.width / 2 - wrapRect.left) + 'px';
+      popover.style.top       = (barRect.top - wrapRect.top) + 'px';
+      popover.style.transform = 'translateX(-50%) translateY(calc(-100% - 8px))';
+    });
+
+    hit.addEventListener('mouseleave', () => {
+      rect.style.filter = '';
+      popover.style.display = 'none';
+    });
   }
 
   const periodEl = document.getElementById('stat-heatmap-period');
