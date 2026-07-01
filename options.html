@@ -380,7 +380,7 @@ button { cursor: pointer; font-family: inherit; }
 .stats-bar {
   width: 100%; border-radius: 5px 5px 0 0;
   background: #d0e8ff; min-height: 3px;
-  position: relative; transition: height 0.25s;
+  position: relative; transition: height 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .stats-bar.today { background: #1890ff; }
 .stats-bar-tooltip {
@@ -408,7 +408,7 @@ button { cursor: pointer; font-family: inherit; }
 .stats-rank-info { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .stats-rank-domain { font-size: 0.82rem; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stats-rank-bar-bg { height: 4px; background: #f5f5f5; border-radius: 2px; overflow: hidden; }
-.stats-rank-bar-fill { height: 100%; border-radius: 2px; background: #ffb3b3; }
+.stats-rank-bar-fill { height: 100%; border-radius: 2px; background: #ffb3b3; transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
 .stats-rank-bar-fill.top { background: #ff4d4f; }
 .stats-rank-count { font-size: 0.75rem; font-weight: 700; color: #999; flex-shrink: 0; }
 
@@ -425,7 +425,7 @@ button { cursor: pointer; font-family: inherit; }
   padding: 12px 14px 10px;
   border: 1px solid #f0f0f0;
   border-left: 3px solid #ffbb96;
-  transition: box-shadow 0.15s, border-left-color 0.15s, background 0.15s;
+  transition: box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-left-color 0.45s, background 0.45s;
 }
 .stats-pomo-card.active {
   background: #fff;
@@ -495,6 +495,8 @@ button { cursor: pointer; font-family: inherit; }
   box-shadow: 0 4px 20px rgba(0,0,0,0.28);
   display: none;
   min-width: 150px;
+  transform: translateX(-50%) translateY(calc(-100% - 8px));
+  transform-origin: center bottom;
 }
 .stats-bar-popover::after {
   content: '';
@@ -536,6 +538,8 @@ button { cursor: pointer; font-family: inherit; }
   white-space: nowrap;
   box-shadow: 0 4px 16px rgba(0,0,0,0.26);
   display: none;
+  transform: translateX(-50%) translateY(calc(-100% - 8px));
+  transform-origin: center bottom;
 }
 .stats-heatmap-popover::after {
   content: '';
@@ -544,6 +548,15 @@ button { cursor: pointer; font-family: inherit; }
   transform: translateX(-50%);
   border: 5px solid transparent;
   border-top-color: #1f1f1f;
+}
+
+@keyframes popoverFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(calc(-100% - 8px)) scale(0.82); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(calc(-100% - 8px)) scale(1); }
+}
+@keyframes streakCalFadeIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 /* 섹션 기간 배지 */
@@ -639,6 +652,7 @@ button { cursor: pointer; font-family: inherit; }
   box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   z-index: 500;
   user-select: none;
+  transform-origin: center bottom;
 }
 .scal-title-row {
   display: flex;

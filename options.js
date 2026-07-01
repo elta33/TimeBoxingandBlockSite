@@ -1084,8 +1084,10 @@ function _renderBlockBarChart(allEvents, period) {
     const bar = document.createElement('div');
     bar.className = 'stats-bar' + (isToday ? ' today' : '');
     const pct = Math.round((focusMins / maxFocusMins) * 100);
-    bar.style.height = (focusMins > 0 ? Math.max(pct, 4) : 0) + '%';
+    const targetH = focusMins > 0 ? Math.max(pct, 4) : 0;
+    bar.style.height = '0%';
     bar.style.width = days <= 7 ? '50px' : '100%';
+    bar.dataset.targetHeight = targetH;
 
     if (focusMins > 0) {
       const tip = document.createElement('span');
@@ -1151,9 +1153,11 @@ function _renderBlockBarChart(allEvents, period) {
       const barRect   = bar.getBoundingClientRect();
       const chartRect = chartEl.getBoundingClientRect();
       const colRect   = col.getBoundingClientRect();
-      popover.style.left      = (colRect.left + colRect.width / 2 - chartRect.left) + 'px';
-      popover.style.top       = (barRect.top - chartRect.top) + 'px';
-      popover.style.transform = 'translateX(-50%) translateY(calc(-100% - 8px))';
+      popover.style.left = (colRect.left + colRect.width / 2 - chartRect.left) + 'px';
+      popover.style.top  = (barRect.top - chartRect.top) + 'px';
+      popover.style.animation = 'none';
+      popover.offsetWidth;
+      popover.style.animation = 'popoverFadeIn 0.2s cubic-bezier(0.34,1.4,0.64,1) both';
     });
 
     col.addEventListener('mouseleave', () => {
@@ -1165,6 +1169,17 @@ function _renderBlockBarChart(allEvents, period) {
   });
 
   chartEl.appendChild(inner);
+
+  // 아래에서 위로 솟아오르는 진입 애니메이션
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const total = inner.querySelectorAll('.stats-bar').length;
+      inner.querySelectorAll('.stats-bar').forEach((bar, i) => {
+        bar.style.transitionDelay = Math.round(i * 200 / Math.max(1, total - 1)) + 'ms';
+        bar.style.height = bar.dataset.targetHeight + '%';
+      });
+    });
+  });
 }
 
 function _renderTopDomains(filteredEvents) {
@@ -1209,7 +1224,8 @@ function _renderTopDomains(filteredEvents) {
     barBg.className = 'stats-rank-bar-bg';
     const barFill = document.createElement('div');
     barFill.className = 'stats-rank-bar-fill' + (i < 2 ? ' top' : '');
-    barFill.style.width = Math.round((count / maxCount) * 100) + '%';
+    barFill.style.width = '0%';
+    barFill.dataset.targetWidth = Math.round((count / maxCount) * 100);
     barBg.appendChild(barFill);
 
     info.append(name, barBg);
@@ -1220,6 +1236,16 @@ function _renderTopDomains(filteredEvents) {
 
     li.append(rank, info, countEl);
     listEl.appendChild(li);
+  });
+
+  // 왼쪽에서 오른쪽으로 늘어나는 진입 애니메이션
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      listEl.querySelectorAll('.stats-rank-bar-fill').forEach((fill, i) => {
+        fill.style.transitionDelay = (i * 60) + 'ms';
+        fill.style.width = fill.dataset.targetWidth + '%';
+      });
+    });
   });
 }
 
@@ -1248,7 +1274,8 @@ function _renderPomoStats(allEvents, period) {
 
   function makeCard(label, cycles, mins, isActive) {
     const card = document.createElement('div');
-    card.className = 'stats-pomo-card' + (isActive ? ' active' : '');
+    card.className = 'stats-pomo-card';
+    if (isActive) card.dataset.active = '1';
 
     const lbl = document.createElement('div');
     lbl.className = 'stats-pomo-card-label';
@@ -1271,6 +1298,15 @@ function _renderPomoStats(allEvents, period) {
   grid.appendChild(makeCard(T('statsPomoMonth'), p30.cyc, p30.mins,  period === '30d'));
 
   el.appendChild(grid);
+
+  // 부드럽게 하이라이트가 밝아지는 진입 애니메이션
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      grid.querySelectorAll('.stats-pomo-card[data-active]').forEach(card => {
+        card.classList.add('active');
+      });
+    });
+  });
 }
 
 function _renderHeatmap(allEvents, period) {
@@ -1337,11 +1373,11 @@ function _renderHeatmap(allEvents, period) {
 
     const rect = mk('rect', {
       x: (cx - barW / 2).toFixed(1),
-      y: y.toFixed(1),
       width: barW.toFixed(1),
-      height: barH.toFixed(1),
       rx: (barW / 2).toFixed(1)
-    }, `fill:${barFill}`);
+    }, `fill:${barFill};height:0;y:${baseY.toFixed(1)};transition:height 0.6s cubic-bezier(0.22,1,0.36,1),y 0.6s cubic-bezier(0.22,1,0.36,1)`);
+    rect.dataset.targetH = barH.toFixed(1);
+    rect.dataset.targetY = y.toFixed(1);
     el.appendChild(rect);
 
     const hit = mk('rect', { x: (cx - slotW / 2).toFixed(1), y: pT, width: slotW.toFixed(1), height: cH }, 'fill:transparent;cursor:pointer');
@@ -1356,9 +1392,11 @@ function _renderHeatmap(allEvents, period) {
 
       const barRect  = rect.getBoundingClientRect();
       const wrapRect = wrapEl.getBoundingClientRect();
-      popover.style.left      = (barRect.left + barRect.width / 2 - wrapRect.left) + 'px';
-      popover.style.top       = (barRect.top - wrapRect.top) + 'px';
-      popover.style.transform = 'translateX(-50%) translateY(calc(-100% - 8px))';
+      popover.style.left = (barRect.left + barRect.width / 2 - wrapRect.left) + 'px';
+      popover.style.top  = (barRect.top - wrapRect.top) + 'px';
+      popover.style.animation = 'none';
+      popover.offsetWidth;
+      popover.style.animation = 'popoverFadeIn 0.2s cubic-bezier(0.34,1.4,0.64,1) both';
     });
 
     hit.addEventListener('mouseleave', () => {
@@ -1366,6 +1404,17 @@ function _renderHeatmap(allEvents, period) {
       popover.style.display = 'none';
     });
   }
+
+  // 아래에서 위로 솟아오르는 진입 애니메이션
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      el.querySelectorAll('rect[data-target-h]').forEach((r, i) => {
+        r.style.transitionDelay = (i * 12) + 'ms';
+        r.style.height = r.dataset.targetH;
+        r.style.y = r.dataset.targetY;
+      });
+    });
+  });
 
   const periodEl = document.getElementById('stat-heatmap-period');
   if (periodEl) periodEl.textContent = T('statsPeriod' + (period === 'today' ? 'Today' : period));
@@ -1426,9 +1475,10 @@ function _renderStreakCalendar(allEvents, streak) {
     const showCal = () => {
       clearTimeout(_streakCalHideTimer);
       _streakCalPopover.style.display = 'block';
+      _streakCalPopover.style.animation = 'none';
       requestAnimationFrame(() => {
         const rect = card.getBoundingClientRect();
-        const pw = _streakCalPopover.offsetWidth;
+        const pw = _streakCalPopover.offsetWidth;  // reflow → animation:none 확정
         const ph = _streakCalPopover.offsetHeight;
         let left = rect.left + rect.width / 2 - pw / 2;
         let top = rect.top - ph - 10;
@@ -1436,6 +1486,7 @@ function _renderStreakCalendar(allEvents, streak) {
         if (top < 8) top = rect.bottom + 10;
         _streakCalPopover.style.left = left + 'px';
         _streakCalPopover.style.top = top + 'px';
+        _streakCalPopover.style.animation = 'streakCalFadeIn 0.22s cubic-bezier(0.34,1.4,0.64,1) both';
       });
     };
     const hideCal = () => {
