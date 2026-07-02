@@ -2184,27 +2184,71 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── PiP 버튼 ──
+  // pomodoroAlwaysOnTop은 pomodoro-pip.js가 토글을 켤 때 스스로 저장하는 값이다.
+  // 켜져 있으면 html 팝업을 띄우지 않고 바로 실제 PiP로 진입한다.
   document.getElementById('pomoPipBtn')?.addEventListener('click', () => {
-    chrome.storage.local.get(['pipWindowId'], ({ pipWindowId }) => {
-      if (pipWindowId) {
-        chrome.windows.get(pipWindowId, win => {
-          if (chrome.runtime.lastError || !win) {
-            _createPipWindow();
-          } else {
-            chrome.windows.update(pipWindowId, { focused: true });
-          }
-        });
-      } else {
-        _createPipWindow();
+    const aotSupported = 'documentPictureInPicture' in window;
+    chrome.storage.local.get(['pomodoroAlwaysOnTop'], ({ pomodoroAlwaysOnTop }) => {
+      if (aotSupported && pomodoroAlwaysOnTop) {
+        _createDirectPipWindow();
+        return;
       }
+      chrome.storage.local.get(['pipWindowId'], ({ pipWindowId }) => {
+        if (pipWindowId) {
+          chrome.windows.get(pipWindowId, win => {
+            if (chrome.runtime.lastError || !win) {
+              _createPipWindow();
+            } else {
+              chrome.windows.update(pipWindowId, { focused: true });
+            }
+          });
+        } else {
+          _createPipWindow();
+        }
+      });
     });
   });
 
   function _createPipWindow() {
     const pipUrl = chrome.runtime.getURL('pomodoro-pip.html');
-    chrome.windows.create({ url: pipUrl, type: 'popup', width: 280, height: 340 }, win => {
-      chrome.storage.local.set({ pipWindowId: win.id });
+    chrome.storage.local.get(['pomodoroPipPos'], ({ pomodoroPipPos }) => {
+      const opts = { url: pipUrl, type: 'popup', width: 280, height: 340 };
+      if (pomodoroPipPos) { opts.left = pomodoroPipPos.left; opts.top = pomodoroPipPos.top; }
+      chrome.windows.create(opts, win => {
+        chrome.storage.local.set({ pipWindowId: win.id });
+      });
     });
+  }
+
+  // ── 옵션 페이지를 opener로 바로 실제 PiP(always-on-top) 창을 여는 경로 ──
+  // 옵션 페이지 클릭에는 진짜 user activation이 있으므로 requestWindow()는 여기서 바로 호출한다.
+  // 콘텐츠는 숨겨진 iframe으로 pomodoro-pip.html을 정상적으로 로드시킨 뒤,
+  // 그 안에서 이미 살아 움직이는 DOM/로직을 pipWindow로 옮겨 재사용한다
+  // (pip 문서에 <script>를 직접 주입하는 방식은 동작하지 않아 폐기했다).
+  async function _createDirectPipWindow() {
+    if (documentPictureInPicture.window) {
+      documentPictureInPicture.window.focus();
+      return;
+    }
+    let pipWindow;
+    try {
+      pipWindow = await documentPictureInPicture.requestWindow({ width: 280, height: 340 });
+    } catch (e) {
+      _createPipWindow();
+      return;
+    }
+
+    // Document PiP 창은 moveTo()로 스폰 위치를 지정할 수 없어(크롬이 자체 배치) 위치 지정은 포기했다.
+
+    // iframe은 pip 세션이 끝날 때(pomodoro-pip.js가 window.frameElement.remove()를 호출) 스스로 정리된다.
+    // 여기서 바로 제거하면 그 안에서 동작 중인 realm이 통째로 사라질 수 있다.
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = chrome.runtime.getURL('pomodoro-pip.html');
+    iframe.addEventListener('load', () => {
+      iframe.contentWindow._adoptRealPipWindow(pipWindow, null);
+    }, { once: true });
+    document.body.appendChild(iframe);
   }
 
   // ── 도메인 추가 ──

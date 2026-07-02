@@ -153,6 +153,8 @@
   "pomoResume":        { "message": "▶ Resume" },
   "pomoStop":          { "message": "⏹ Stop" },
   "pomoPip":           { "message": "⧉ PiP" },
+  "pomoAlwaysOnTop":     { "message": "Keep on Top" },
+  "pomoAlwaysOnTopWarn": { "message": "While pinned, fully closing the original window will close it too." },
   "pomoBlockList":        { "message": "Pomodoro Block List" },
   "pomoImport":           { "message": "Import ▼" },
   "pomoImportPermanent":  { "message": "Always Block List" },

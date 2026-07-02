@@ -126,41 +126,62 @@
     .num-val:disabled { opacity: 0.26; }
 
     .unit { font-size: 0.57rem; color: rgba(255,255,255,0.22); flex-shrink: 0; }
+
+    /* ── 상단 탭 고정 ── */
+    .aot-row { margin-top: 10px; }
+    .aot-switch { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 0.68rem; color: rgba(255,255,255,0.55); }
+    .aot-switch input { display: none; }
+    .aot-track { width: 30px; height: 17px; background: rgba(255,255,255,0.15); border-radius: 9px; position: relative; flex-shrink: 0; transition: background 0.2s; }
+    .aot-switch input:checked + .aot-track { background: #e05050; }
+    .aot-thumb { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+    .aot-switch input:checked + .aot-track .aot-thumb { left: 15px; }
+    .aot-switch input:disabled + .aot-track { opacity: 0.3; cursor: not-allowed; }
+    .aot-warn { color: tomato; font-size: 0.6rem; margin-top: 4px; line-height: 1.4; }
   </style>
 </head>
 <body>
-  <div class="phase-bar"></div>
-  <div class="timer-section">
-    <div id="phase-label" data-i18n="pomoIdle">대기</div>
-    <div id="time-display">--:--</div>
-    <div id="cycle-label"></div>
-  </div>
-  <div class="divider"></div>
-  <div class="controls">
-    <button class="ctrl-btn" id="startBtn" data-i18n="pomoStart">▶ 시작</button>
-    <button class="ctrl-btn" id="stopBtn" data-i18n="pomoStop">⏹ 중지</button>
-  </div>
-  <div class="settings">
-    <div class="setting-row">
-      <span class="setting-label" data-i18n="pipWorkLabel">작업</span>
-      <button class="num-btn" id="workDecr">−</button>
-      <input type="number" class="num-val" id="workVal" value="25" min="1" max="60">
-      <span class="unit" data-i18n="pomoMin">분</span>
-      <button class="num-btn" id="workIncr">+</button>
+  <div id="pomoPipRoot">
+    <div class="phase-bar"></div>
+    <div class="timer-section">
+      <div id="phase-label" data-i18n="pomoIdle">대기</div>
+      <div id="time-display">--:--</div>
+      <div id="cycle-label"></div>
     </div>
-    <div class="setting-row">
-      <span class="setting-label" data-i18n="pipRestLabel">휴식</span>
-      <button class="num-btn" id="restDecr">−</button>
-      <input type="number" class="num-val" id="restVal" value="5" min="1" max="60">
-      <span class="unit" data-i18n="pomoMin">분</span>
-      <button class="num-btn" id="restIncr">+</button>
+    <div class="divider"></div>
+    <div class="controls">
+      <button class="ctrl-btn" id="startBtn" data-i18n="pomoStart">▶ 시작</button>
+      <button class="ctrl-btn" id="stopBtn" data-i18n="pomoStop">⏹ 중지</button>
     </div>
-    <div class="setting-row">
-      <span class="setting-label" data-i18n="pipRepeatLabel">반복</span>
-      <button class="num-btn" id="cyclesDecr">−</button>
-      <input type="number" class="num-val" id="cyclesVal" value="2" min="1" max="10">
-      <span class="unit" data-i18n="pomoTimes">회</span>
-      <button class="num-btn" id="cyclesIncr">+</button>
+    <div class="settings">
+      <div class="setting-row">
+        <span class="setting-label" data-i18n="pipWorkLabel">작업</span>
+        <button class="num-btn" id="workDecr">−</button>
+        <input type="number" class="num-val" id="workVal" value="25" min="1" max="60">
+        <span class="unit" data-i18n="pomoMin">분</span>
+        <button class="num-btn" id="workIncr">+</button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label" data-i18n="pipRestLabel">휴식</span>
+        <button class="num-btn" id="restDecr">−</button>
+        <input type="number" class="num-val" id="restVal" value="5" min="1" max="60">
+        <span class="unit" data-i18n="pomoMin">분</span>
+        <button class="num-btn" id="restIncr">+</button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label" data-i18n="pipRepeatLabel">반복</span>
+        <button class="num-btn" id="cyclesDecr">−</button>
+        <input type="number" class="num-val" id="cyclesVal" value="2" min="1" max="10">
+        <span class="unit" data-i18n="pomoTimes">회</span>
+        <button class="num-btn" id="cyclesIncr">+</button>
+      </div>
+      <div class="aot-row">
+        <label class="aot-switch">
+          <input type="checkbox" id="aotToggle">
+          <span class="aot-track"><span class="aot-thumb"></span></span>
+          <span data-i18n="pomoAlwaysOnTop">상단 탭 고정</span>
+        </label>
+        <p class="aot-warn" data-i18n="pomoAlwaysOnTopWarn">상단 탭 고정시 원본 창을 완전히 닫으면 함께 닫힙니다.</p>
+      </div>
     </div>
   </div>
   <script src="i18n.js"></script>
