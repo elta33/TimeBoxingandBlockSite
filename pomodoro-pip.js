@@ -265,8 +265,6 @@ function _adoptRealPipWindow(pipWindow, hostWindowId) {
   var t = _activeDoc.getElementById('aotToggle');
   if (t) t.checked = true;
 
-  chrome.storage.local.set({ pomodoroAlwaysOnTop: true });
-
   pipWindow.addEventListener('pagehide', function() {
     var lastX = pipWindow.screenX, lastY = pipWindow.screenY;
     var wantsHtml = _closingIntent === 'toggleOff';
@@ -291,7 +289,8 @@ function _onRealPipClosed(lastX, lastY, wantsHtml, hostWindowId) {
     chrome.storage.local.set({ pomodoroPipPos: { left: lastX, top: lastY } });
   }
   if (wantsHtml) {
-    chrome.storage.local.set({ pomodoroAlwaysOnTop: false });
+    // pomodoroDefaultAlwaysOnTop(옵션 페이지 체크박스)은 건드리지 않는다 — 이건 이번 세션의
+    // pin만 해제하는 것이지 "기본값"을 바꾸는 게 아니다.
     if (hostWindowId != null) {
       // state 복귀와 위치 이동을 한 번에 묶으면 최소화 해제 시 위치가 무시되는 경우가 있어 분리한다.
       chrome.windows.update(hostWindowId, { state: 'normal', focused: true }, function() {

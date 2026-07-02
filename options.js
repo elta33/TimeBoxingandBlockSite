@@ -2183,13 +2183,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // ── 기본 상단 탭 고정 체크박스 ──
+  // pomodoroDefaultAlwaysOnTop은 이 체크박스만 쓰고 바꾸는 영구 설정이다. popup 안 토글은
+  // 그때그때의 세션(지금 열린 창을 pin할지)만 다루고, 이 기본값에는 관여하지 않는다 —
+  // 그래야 "기본 켜짐" 상태에서 popup 쪽 토글을 껐다 닫아도 다음 PiP 클릭은 여전히 곧장 PiP로 간다.
+  const defaultAotCheckbox = document.getElementById('pomoDefaultAlwaysOnTop');
+  const aotCheckboxSupported = 'documentPictureInPicture' in window;
+  if (defaultAotCheckbox) {
+    defaultAotCheckbox.disabled = !aotCheckboxSupported;
+    chrome.storage.local.get(['pomodoroDefaultAlwaysOnTop'], ({ pomodoroDefaultAlwaysOnTop }) => {
+      defaultAotCheckbox.checked = aotCheckboxSupported && !!pomodoroDefaultAlwaysOnTop;
+    });
+    defaultAotCheckbox.addEventListener('change', () => {
+      chrome.storage.local.set({ pomodoroDefaultAlwaysOnTop: defaultAotCheckbox.checked });
+    });
+  }
+
   // ── PiP 버튼 ──
-  // pomodoroAlwaysOnTop은 pomodoro-pip.js가 토글을 켤 때 스스로 저장하는 값이다.
-  // 켜져 있으면 html 팝업을 띄우지 않고 바로 실제 PiP로 진입한다.
+  // pomodoroDefaultAlwaysOnTop이 켜져 있으면 html 팝업을 띄우지 않고 바로 실제 PiP로 진입한다.
   document.getElementById('pomoPipBtn')?.addEventListener('click', () => {
     const aotSupported = 'documentPictureInPicture' in window;
-    chrome.storage.local.get(['pomodoroAlwaysOnTop'], ({ pomodoroAlwaysOnTop }) => {
-      if (aotSupported && pomodoroAlwaysOnTop) {
+    chrome.storage.local.get(['pomodoroDefaultAlwaysOnTop'], ({ pomodoroDefaultAlwaysOnTop }) => {
+      if (aotSupported && pomodoroDefaultAlwaysOnTop) {
         _createDirectPipWindow();
         return;
       }

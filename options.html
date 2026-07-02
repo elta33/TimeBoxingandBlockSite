@@ -598,7 +598,10 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-cycle-info { font-size: 0.82rem; color: #ccc; margin-top: 8px; }
 .pomo-display.phase-work .pomo-cycle-info,
 .pomo-display.phase-rest .pomo-cycle-info { color: #999; }
+.pomo-controls-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .pomo-controls { display: flex; gap: 8px; }
+.pomo-default-aot { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.pomo-aot-warn { color: tomato; font-size: 0.78rem; margin-top: 6px; text-align: right; white-space: nowrap; }
 .pomo-import-wrap { position: relative; display: inline-block; }
 .pomo-import-menu {
   display: none; position: absolute; top: calc(100% + 4px); right: 0;
@@ -1076,10 +1079,21 @@ button { cursor: pointer; font-family: inherit; }
           <div class="pomo-cycle-info" id="pomoCycleLabel">1 / 2</div>
         </div>
 
-        <div class="pomo-controls">
-          <button class="btn" id="pomoStartBtn" data-i18n="pomoStart">▶ 시작</button>
-          <button class="btn-ghost" id="pomoResetBtn" style="padding:10px 16px;" data-i18n="pomoStop">⏹ 중지</button>
-          <button class="btn-ghost" id="pomoPipBtn" style="padding:10px 16px;" data-i18n="pomoPip">⧉ PiP</button>
+        <div class="pomo-controls-row">
+          <div class="pomo-controls">
+            <button class="btn" id="pomoStartBtn" data-i18n="pomoStart">▶ 시작</button>
+            <button class="btn-ghost" id="pomoResetBtn" style="padding:10px 16px;" data-i18n="pomoStop">⏹ 중지</button>
+            <button class="btn-ghost" id="pomoPipBtn" style="padding:10px 16px;" data-i18n="pomoPip">⧉ PiP</button>
+          </div>
+
+          <div class="pomo-default-aot">
+            <label class="switch-label">
+              <input type="checkbox" id="pomoDefaultAlwaysOnTop">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span data-i18n="pomoDefaultAlwaysOnTop">기본 상단 탭 고정</span>
+            </label>
+            <p class="pomo-aot-warn" data-i18n="pomoAlwaysOnTopWarn">상단 탭 고정시 원본 창을 완전히 닫으면 함께 닫힙니다.</p>
+          </div>
         </div>
       </div>
 

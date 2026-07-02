@@ -155,6 +155,7 @@
   "pomoPip":           { "message": "⧉ PiP" },
   "pomoAlwaysOnTop":     { "message": "Keep on Top" },
   "pomoAlwaysOnTopWarn": { "message": "While pinned, fully closing the original window will close it too." },
+  "pomoDefaultAlwaysOnTop": { "message": "Pin by Default" },
   "pomoBlockList":        { "message": "Pomodoro Block List" },
   "pomoImport":           { "message": "Import ▼" },
   "pomoImportPermanent":  { "message": "Always Block List" },

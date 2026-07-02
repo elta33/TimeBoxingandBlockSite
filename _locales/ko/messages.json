@@ -155,6 +155,7 @@
   "pomoPip":           { "message": "⧉ PiP" },
   "pomoAlwaysOnTop":     { "message": "상단 탭 고정" },
   "pomoAlwaysOnTopWarn": { "message": "상단 탭 고정시 원본 창을 완전히 닫으면 함께 닫힙니다." },
+  "pomoDefaultAlwaysOnTop": { "message": "기본 상단 탭 고정" },
   "pomoBlockList":        { "message": "포모도로 차단 리스트" },
   "pomoImport":           { "message": "불러오기 ▼" },
   "pomoImportPermanent":  { "message": "상시 차단 목록" },
