@@ -959,7 +959,7 @@ function clearDaySelection() {
 }
 
 function exportSettings() {
-  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings'];
+  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets'];
   chrome.storage.local.get(KEYS, data => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -977,7 +977,7 @@ function importSettings(file) {
     let data;
     try { data = JSON.parse(e.target.result); }
     catch { alert(T('invalidJson')); return; }
-    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings']);
+    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets']);
     const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
     if (Object.keys(safe).length === 0) { alert(T('noDataToRestore')); return; }
     chrome.storage.local.set(safe, () => {
@@ -1930,6 +1930,68 @@ function renderPomoList(list) {
   });
 }
 
+const POMO_PRESET_PAGE_SIZE = 4;
+let _pomoPresetPage = 0;
+let _pomoPresetsCache = [];
+
+function renderPomoPresets(presets) {
+  _pomoPresetsCache = presets;
+  const ul        = document.getElementById('pomoPresetList');
+  const empty     = document.getElementById('pomoPresetEmpty');
+  const prevBtn   = document.getElementById('pomoPresetPrevBtn');
+  const nextBtn   = document.getElementById('pomoPresetNextBtn');
+  const indicator = document.getElementById('pomoPresetPageIndicator');
+  if (!ul) return;
+
+  const totalPages = Math.max(1, Math.ceil(presets.length / POMO_PRESET_PAGE_SIZE));
+  _pomoPresetPage = Math.min(Math.max(_pomoPresetPage, 0), totalPages - 1);
+
+  const hasItems = presets.length > 0;
+  empty.style.display = hasItems ? 'none' : '';
+  if (indicator) { indicator.style.display = hasItems ? '' : 'none'; indicator.textContent = `${_pomoPresetPage + 1} / ${totalPages}`; }
+  if (prevBtn) { prevBtn.style.visibility = hasItems ? 'visible' : 'hidden'; prevBtn.disabled = _pomoPresetPage <= 0; }
+  if (nextBtn) { nextBtn.style.visibility = hasItems ? 'visible' : 'hidden'; nextBtn.disabled = _pomoPresetPage >= totalPages - 1; }
+
+  ul.innerHTML = '';
+  const start = _pomoPresetPage * POMO_PRESET_PAGE_SIZE;
+  presets.slice(start, start + POMO_PRESET_PAGE_SIZE).forEach((preset, idx) => {
+    const i  = start + idx;
+    const li = document.createElement('li');
+    li.className = 'pomo-preset-item';
+
+    const name = document.createElement('span');
+    name.className = 'pomo-preset-name';
+    name.textContent = preset.name;
+    name.title = preset.name;
+    const meta = document.createElement('span');
+    meta.className = 'pomo-preset-meta';
+    meta.textContent = `${preset.workMins}/${preset.restMins} · ${preset.cycles}${T('pomoTimes')}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'pomo-preset-actions';
+    const applyBtn = document.createElement('button');
+    applyBtn.className = 'pomo-preset-apply';
+    applyBtn.textContent = T('pomoPresetApply');
+    applyBtn.onclick = () => {
+      _savePomoSettings({ workMins: preset.workMins, restMins: preset.restMins, cycles: preset.cycles }, null);
+    };
+    const delBtn = document.createElement('button');
+    delBtn.className = 'pomo-preset-del';
+    delBtn.textContent = T('delete');
+    delBtn.onclick = () => {
+      chrome.storage.local.get(['pomodoroPresets'], r => {
+        const arr = r.pomodoroPresets || [];
+        arr.splice(i, 1);
+        chrome.storage.local.set({ pomodoroPresets: arr }, loadPomoData);
+      });
+    };
+    actions.append(applyBtn, delBtn);
+
+    li.append(name, meta, actions);
+    ul.appendChild(li);
+  });
+}
+
 function updatePomoDisplay(state, settings) {
   if (_pomoPreviewActive) return;
   const display  = document.getElementById('pomoDisplay');
@@ -1975,8 +2037,9 @@ function updatePomoDisplay(state, settings) {
     else                                       startBtn.textContent = T('pomoStart');
   }
 
-  const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal'];
+  const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal','pomoSavePresetBtn'];
   settingsBtns.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isActive; });
+  document.querySelectorAll('.pomo-preset-apply').forEach(el => { el.disabled = isActive; });
 }
 
 function _previewPomoDisplay(previewPhase, secs, cycles) {
@@ -2028,10 +2091,11 @@ function _pomoTick() {
 }
 
 function loadPomoData() {
-  chrome.storage.local.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState'], data => {
+  chrome.storage.local.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState', 'pomodoroPresets'], data => {
     const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
     const list     = data.pomodoroList     || [];
     const state    = data.pomodoroState    || { active: false, phase: 'idle' };
+    const presets  = data.pomodoroPresets  || [];
 
     const wEl = document.getElementById('pomoWorkVal');
     const rEl = document.getElementById('pomoRestVal');
@@ -2041,6 +2105,7 @@ function loadPomoData() {
     if (cEl) cEl.value = settings.cycles;
 
     renderPomoList(list);
+    renderPomoPresets(presets);
     updatePomoDisplay(state, settings);
   });
 }
@@ -2266,6 +2331,50 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(iframe);
   }
 
+  // ── 프리셋 저장 팝오버 ──
+  const presetSaveBtn  = document.getElementById('pomoSavePresetBtn');
+  const presetPopover  = document.getElementById('pomoPresetPopover');
+  const presetNameInput = document.getElementById('pomoPresetNameInput');
+
+  presetSaveBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    presetPopover?.classList.toggle('open');
+    if (presetPopover?.classList.contains('open')) presetNameInput?.focus();
+  });
+
+  function _confirmSavePreset() {
+    const name = (presetNameInput?.value || '').trim();
+    if (!name) { presetNameInput?.focus(); return; }
+    const s = _getPomoSettingsFromUI();
+    chrome.storage.local.get(['pomodoroPresets'], d => {
+      const arr = d.pomodoroPresets || [];
+      arr.push({ name, workMins: s.workMins, restMins: s.restMins, cycles: s.cycles });
+      chrome.storage.local.set({ pomodoroPresets: arr }, () => {
+        if (presetNameInput) presetNameInput.value = '';
+        presetPopover?.classList.remove('open');
+        _pomoPresetPage = Math.ceil(arr.length / POMO_PRESET_PAGE_SIZE) - 1;
+        loadPomoData();
+      });
+    });
+  }
+  document.getElementById('pomoPresetConfirmBtn')?.addEventListener('click', _confirmSavePreset);
+  presetNameInput?.addEventListener('keydown', e => { if (e.key === 'Enter') _confirmSavePreset(); });
+  document.addEventListener('click', e => {
+    if (!presetPopover?.classList.contains('open')) return;
+    if (!presetPopover.contains(e.target) && e.target !== presetSaveBtn) {
+      presetPopover.classList.remove('open');
+    }
+  });
+
+  document.getElementById('pomoPresetPrevBtn')?.addEventListener('click', () => {
+    _pomoPresetPage--;
+    renderPomoPresets(_pomoPresetsCache);
+  });
+  document.getElementById('pomoPresetNextBtn')?.addEventListener('click', () => {
+    _pomoPresetPage++;
+    renderPomoPresets(_pomoPresetsCache);
+  });
+
   // ── 도메인 추가 ──
   function doAddPomoDomain() {
     const input  = document.getElementById('pomoDomainInput');
@@ -2314,7 +2423,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 스토리지 변경 시 UI 동기화 ──
   chrome.storage.onChanged.addListener(changes => {
-    if (changes.pomodoroState || changes.pomodoroSettings || changes.pomodoroList) {
+    if (changes.pomodoroState || changes.pomodoroSettings || changes.pomodoroList || changes.pomodoroPresets) {
       loadPomoData();
     }
   });

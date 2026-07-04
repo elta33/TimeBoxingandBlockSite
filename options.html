@@ -612,6 +612,53 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-import-item { display: block; width: 100%; padding: 9px 14px; border: none; background: none; text-align: left; font-size: 0.87rem; font-family: inherit; color: #333; cursor: pointer; transition: background 0.1s; }
 .pomo-import-item:hover { background: #f5f5f5; }
 
+/* ── 포모도로 프리셋 ── */
+.pomo-preset-strip-wrap { margin: 0 0 20px; }
+.pomo-preset-strip-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.pomo-preset-strip-label { font-size: 0.78rem; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.04em; }
+.pomo-preset-save-row { position: relative; }
+.pomo-preset-popover {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0;
+  background: #fff; border: 1px solid #e0e0e0; border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 60; padding: 12px; width: 220px;
+}
+.pomo-preset-popover.open { display: block; }
+.pomo-preset-popover input {
+  width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #ddd; border-radius: 7px;
+  font-size: 0.88rem; font-family: inherit; outline: none; margin-bottom: 8px;
+}
+.pomo-preset-popover input:focus { border-color: #999; }
+.pomo-preset-popover-btnrow { display: flex; justify-content: flex-end; }
+.pomo-preset-page-row { position: relative; display: flex; align-items: center; justify-content: center; }
+.pomo-preset-nav-btn {
+  position: absolute; top: 50%; z-index: 5; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; padding: 0;
+  border: 1px solid #ddd; background: #fff; color: #666; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  opacity: 0; pointer-events: none; transition: opacity 0.22s ease, background 0.12s;
+  transform: translateY(-50%);
+}
+.pomo-preset-strip-wrap:hover .pomo-preset-nav-btn:not(:disabled) { opacity: 1; pointer-events: auto; }
+.pomo-preset-nav-btn:hover:not(:disabled) { background: #f0f0f0; }
+.pomo-preset-nav-btn:disabled { opacity: 0 !important; pointer-events: none !important; }
+.pomo-preset-nav-prev { left: 0; }
+.pomo-preset-nav-next { right: 0; }
+.pomo-preset-list { list-style: none; margin: 0; padding: 0 36px; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; justify-content: center; gap: 12px; }
+.pomo-preset-item {
+  flex: 1 1 0; min-width: 0; max-width: 150px; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 12px; background: #f8f8f8; border-radius: 10px; border: 1px solid #eee; text-align: center;
+}
+.pomo-preset-name { font-size: 0.98rem; font-weight: 700; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-bottom: 1px; }
+.pomo-preset-meta { font-size: 0.85rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pomo-preset-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.pomo-preset-apply { border: none; background: #111; color: #fff; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.pomo-preset-apply:hover { background: #333; }
+.pomo-preset-apply:disabled { opacity: 0.4; cursor: not-allowed; }
+.pomo-preset-del { border: none; background: tomato; color: #fff; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.pomo-preset-del:hover { background: #ff4d4f; }
+.pomo-preset-page-indicator { text-align: center; font-size: 0.7rem; color: #bbb; margin-bottom: 6px; }
+.pomo-preset-empty { font-size: 0.82rem; color: #bbb; margin: 0; text-align: center; }
+
 /* ── PIN 설정 섹터 ── */
 .pin-section-label { font-size: 0.82rem; font-weight: 600; color: #555; margin: 12px 0 6px; }
 .pin-section-label:first-of-type { margin-top: 0; }
@@ -1042,6 +1089,32 @@ button { cursor: pointer; font-family: inherit; }
 
       <div class="sector">
         <div class="sector-title" data-i18n="pomoTimerSettings">타이머 설정</div>
+
+        <div class="pomo-preset-strip-wrap" id="pomoPresetStripWrap">
+          <div class="pomo-preset-strip-head">
+            <span class="pomo-preset-strip-label" data-i18n="pomoPresets">프리셋</span>
+            <div class="pomo-preset-save-row">
+              <button class="btn-ghost btn-sm" id="pomoSavePresetBtn" data-i18n="pomoPresetSaveBtn">☆ 프리셋 저장</button>
+              <div class="pomo-preset-popover" id="pomoPresetPopover">
+                <input type="text" id="pomoPresetNameInput" maxlength="30" data-i18n-placeholder="pomoPresetNamePlaceholder" placeholder="프리셋 이름">
+                <div class="pomo-preset-popover-btnrow">
+                  <button class="btn btn-sm" id="pomoPresetConfirmBtn" data-i18n="pomoPresetSaveConfirm">저장</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pomo-preset-page-indicator" id="pomoPresetPageIndicator"></div>
+          <div class="pomo-preset-page-row">
+            <button class="pomo-preset-nav-btn pomo-preset-nav-prev" id="pomoPresetPrevBtn" aria-label="prev">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+            </button>
+            <ul class="pomo-preset-list" id="pomoPresetList"></ul>
+            <button class="pomo-preset-nav-btn pomo-preset-nav-next" id="pomoPresetNextBtn" aria-label="next">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+            </button>
+          </div>
+          <p class="pomo-preset-empty" id="pomoPresetEmpty" data-i18n="pomoPresetEmpty">저장된 프리셋이 없습니다.</p>
+        </div>
 
         <div class="pomo-settings-row">
           <div class="pomo-setting">

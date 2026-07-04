@@ -165,6 +165,13 @@
   "clearPomoConfirm":     { "message": "Clear all Pomodoro block domains?" },
   "noNewItems":           { "message": "No new items to add." },
 
+  "pomoPresets":             { "message": "Presets" },
+  "pomoPresetSaveBtn":       { "message": "☆ Save Preset" },
+  "pomoPresetSaveConfirm":   { "message": "Save" },
+  "pomoPresetNamePlaceholder": { "message": "Preset name" },
+  "pomoPresetEmpty":         { "message": "No saved presets." },
+  "pomoPresetApply":         { "message": "Apply" },
+
   "popupSettingsTitle":    { "message": "Open Settings" },
   "popupCurrentPage":      { "message": "Current Page" },
   "popupAddPermanent":     { "message": "+ Always" },
