@@ -175,11 +175,21 @@ async function _statsLogBoxMinute() {
   await chrome.storage.local.set({ focusEvents: events });
 }
 
+// 회차별 예외 설정이 있으면 그 값을, 없으면 기본 설정값을 반환
+function _resolveCycleTimes(cycleNum, settings, overrides) {
+  const found = (overrides || []).find(o => o.cycle === cycleNum);
+  return {
+    workMins: found ? found.workMins : settings.workMins,
+    restMins: found ? found.restMins : settings.restMins,
+  };
+}
+
 // 포모도로 페이즈 자동 전환 (1분 알람 틱마다 체크)
 async function checkPomodoroPhase() {
-  const data     = await chrome.storage.local.get(['pomodoroState', 'pomodoroSettings']);
-  const state    = data.pomodoroState;
-  const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+  const data      = await chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides']);
+  const state     = data.pomodoroState;
+  const settings  = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+  const overrides = data.pomodoroCycleOverrides || [];
 
   if (!state?.active || !state.endTime) return;
   const now = Date.now();
@@ -193,12 +203,14 @@ async function checkPomodoroPhase() {
   let newState;
 
   if (state.phase === 'work') {
+    const cur = _resolveCycleTimes(cycle, settings, overrides);
     newState = cycle >= totalCycles
       ? { active: false, phase: 'done', endTime: null, cycle, totalCycles }
-      : { ...state,      phase: 'rest', endTime: now + settings.restMins * 60 * 1000 };
-    await _statsLogPomoSession(settings.workMins);
+      : { ...state,      phase: 'rest', endTime: now + cur.restMins * 60 * 1000 };
+    await _statsLogPomoSession(cur.workMins);
   } else if (state.phase === 'rest') {
-    newState = { ...state, phase: 'work', endTime: now + settings.workMins * 60 * 1000, cycle: cycle + 1 };
+    const next = _resolveCycleTimes(cycle + 1, settings, overrides);
+    newState = { ...state, phase: 'work', endTime: now + next.workMins * 60 * 1000, cycle: cycle + 1 };
   }
 
   if (newState) await chrome.storage.local.set({ pomodoroState: newState });

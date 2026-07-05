@@ -959,7 +959,7 @@ function clearDaySelection() {
 }
 
 function exportSettings() {
-  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets'];
+  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides'];
   chrome.storage.local.get(KEYS, data => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -977,7 +977,7 @@ function importSettings(file) {
     let data;
     try { data = JSON.parse(e.target.result); }
     catch { alert(T('invalidJson')); return; }
-    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets']);
+    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides']);
     const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
     if (Object.keys(safe).length === 0) { alert(T('noDataToRestore')); return; }
     chrome.storage.local.set(safe, () => {
@@ -1907,6 +1907,86 @@ function _fmtPomoTime(secs) {
   return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
 }
 
+// 누르고 있으면 연속 입력되는 스테퍼 버튼 헬퍼 (정적/동적 요소 공용)
+function _makeRepeatBtnEl(btn, action) {
+  if (!btn) return;
+  let timer = null;
+  const stop = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  const schedule = (delay) => {
+    timer = setTimeout(() => {
+      action();
+      schedule(Math.max(80, Math.floor(delay * 0.65)));
+    }, delay);
+  };
+  btn.addEventListener('mousedown', e => { e.preventDefault(); action(); schedule(400); });
+  btn.addEventListener('mouseup', stop);
+  btn.addEventListener('mouseleave', stop);
+}
+
+function _resolveCycleTimes(cycleNum, settings, overrides) {
+  const found = (overrides || []).find(o => o.cycle === cycleNum);
+  return {
+    workMins: found ? found.workMins : settings.workMins,
+    restMins: found ? found.restMins : settings.restMins,
+  };
+}
+
+function _findCycleOverride(cycleNum, overrides) {
+  return (overrides || []).find(o => o.cycle === cycleNum) || null;
+}
+
+// baseSettings와 실제로 다른(우연히 값이 같지 않은) 예외만 골라낸다
+function _cycleOverrideDiffs(baseSettings, overrides) {
+  return (overrides || []).filter(o => o.workMins !== baseSettings.workMins || o.restMins !== baseSettings.restMins);
+}
+
+function _createAdjustIcon(cls) {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '12');
+  svg.setAttribute('height', '12');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2.2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  if (cls) svg.setAttribute('class', cls);
+  [[4, 6, 20, 6], [4, 12, 20, 12], [4, 18, 20, 18]].forEach(([x1, y1, x2, y2]) => {
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    svg.appendChild(line);
+  });
+  [[8, 6], [16, 12], [10, 18]].forEach(([cx, cy]) => {
+    const c = document.createElementNS(svgNS, 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 2);
+    svg.appendChild(c);
+  });
+  return svg;
+}
+
+function _updateAdvancedFeedback(settings, overrides) {
+  const diffs   = _cycleOverrideDiffs(settings, overrides);
+  const btn     = document.getElementById('pomoAdvancedBtn');
+  const summary = document.getElementById('pomoAdvancedSummary');
+  if (btn) {
+    btn.textContent = diffs.length ? `${T('pomoAdvancedBtn')} · ${diffs.length}` : T('pomoAdvancedBtn');
+    btn.classList.toggle('pomo-advanced-btn-active', diffs.length > 0);
+  }
+  if (summary) {
+    if (diffs.length) {
+      const cycles = diffs.map(d => d.cycle).sort((a, b) => a - b);
+      summary.textContent = cycles.length <= 3
+        ? `${cycles.join(', ')}${T('pomoAdvancedDiffLineSuffix')}`
+        : `${cycles.length}${T('pomoAdvancedDiffCountSuffix')}`;
+      summary.style.display = '';
+    } else {
+      summary.style.display = 'none';
+    }
+  }
+}
+
 function renderPomoList(list) {
   const ul = document.getElementById('pomoList');
   if (!ul) return;
@@ -1963,9 +2043,16 @@ function renderPomoPresets(presets) {
     name.className = 'pomo-preset-name';
     name.textContent = preset.name;
     name.title = preset.name;
+
+    const diffs = _cycleOverrideDiffs({ workMins: preset.workMins, restMins: preset.restMins }, preset.cycleOverrides);
+
+    const metaRow = document.createElement('div');
+    metaRow.className = 'pomo-preset-meta-row';
     const meta = document.createElement('span');
     meta.className = 'pomo-preset-meta';
     meta.textContent = `${preset.workMins}/${preset.restMins} · ${preset.cycles}${T('pomoTimes')}`;
+    metaRow.appendChild(meta);
+    if (diffs.length) metaRow.appendChild(_createAdjustIcon('pomo-preset-override-icon'));
 
     const actions = document.createElement('div');
     actions.className = 'pomo-preset-actions';
@@ -1974,6 +2061,7 @@ function renderPomoPresets(presets) {
     applyBtn.textContent = T('pomoPresetApply');
     applyBtn.onclick = () => {
       _savePomoSettings({ workMins: preset.workMins, restMins: preset.restMins, cycles: preset.cycles }, null);
+      chrome.storage.local.set({ pomodoroCycleOverrides: (preset.cycleOverrides || []).map(o => ({ ...o })) });
     };
     const delBtn = document.createElement('button');
     delBtn.className = 'pomo-preset-del';
@@ -1987,29 +2075,234 @@ function renderPomoPresets(presets) {
     };
     actions.append(applyBtn, delBtn);
 
-    li.append(name, meta, actions);
+    li.append(name, metaRow, actions);
+    if (diffs.length) {
+      const summary = document.createElement('span');
+      summary.className = 'pomo-preset-override-summary';
+      summary.textContent = `${diffs.length}${T('pomoAdvancedDiffCountSuffix')}`;
+      li.appendChild(summary);
+    }
     ul.appendChild(li);
   });
 }
 
-function updatePomoDisplay(state, settings) {
+// ═══════════════════════════════════════════════
+// 고급 설정 (회차별 작업/휴식 시간 예외)
+// ═══════════════════════════════════════════════
+
+let _advDraftSettings  = { workMins: 25, restMins: 5, cycles: 2 };
+let _advDraftOverrides = []; // [{ cycle, name, workMins, restMins }]
+
+function _advCycleLabel(n) {
+  return `${n}${T('pomoAdvancedCycleSuffix')}`;
+}
+
+function _renderAdvancedBaseText() {
+  const el = document.getElementById('pomoAdvancedBaseText');
+  if (!el) return;
+  const s = _advDraftSettings;
+  el.textContent = `${T('pomoAdvancedBaseLabel')}: ${s.workMins}${T('pomoMin')} / ${s.restMins}${T('pomoMin')} · ${s.cycles}${T('pomoTimes')}`;
+}
+
+function _renderCyclePicker() {
+  const grid   = document.getElementById('pomoCyclePickerGrid');
+  const addBtn = document.getElementById('pomoAdvancedAddBtn');
+  if (!grid) return;
+  const used = new Set(_advDraftOverrides.map(o => o.cycle));
+  grid.innerHTML = '';
+  let available = 0;
+  for (let n = 1; n <= _advDraftSettings.cycles; n++) {
+    if (used.has(n)) continue;
+    available++;
+    const btn = document.createElement('button');
+    btn.className = 'pomo-cycle-picker-item';
+    btn.textContent = _advCycleLabel(n);
+    btn.onclick = () => {
+      _advDraftOverrides.push({ cycle: n, name: '', workMins: _advDraftSettings.workMins, restMins: _advDraftSettings.restMins });
+      document.getElementById('pomoCyclePicker')?.classList.remove('open');
+      _renderAdvancedList();
+      _renderCyclePicker();
+    };
+    grid.appendChild(btn);
+  }
+  if (available === 0) {
+    const p = document.createElement('p');
+    p.className = 'pomo-cycle-picker-empty';
+    p.textContent = T('pomoAdvancedPickerEmpty');
+    grid.appendChild(p);
+  }
+  if (addBtn) addBtn.disabled = available === 0;
+}
+
+function _advEffectiveName(item) {
+  return (item.name || '').trim() || _advCycleLabel(item.cycle);
+}
+
+function _buildAdvItemRow(labelText, item, key, min, max) {
+  const row = document.createElement('div');
+  row.className = 'pomo-advanced-item-fields';
+
+  const label = document.createElement('span');
+  label.className = 'pomo-advanced-item-label';
+  label.textContent = labelText;
+
+  const numWrap = document.createElement('div');
+  numWrap.className = 'pomo-num-input';
+  const decrBtn = document.createElement('button');
+  decrBtn.type = 'button'; decrBtn.className = 'pomo-num-btn'; decrBtn.textContent = '−';
+  const valInput = document.createElement('input');
+  valInput.type = 'number'; valInput.className = 'pomo-num-val'; valInput.value = item[key];
+  const incrBtn = document.createElement('button');
+  incrBtn.type = 'button'; incrBtn.className = 'pomo-num-btn'; incrBtn.textContent = '+';
+  numWrap.append(decrBtn, valInput, incrBtn);
+
+  const unit = document.createElement('span');
+  unit.className = 'pomo-advanced-item-unit';
+  unit.textContent = T('pomoMin');
+
+  const commit = v => {
+    v = Math.max(min, Math.min(max, v));
+    item[key] = v;
+    valInput.value = v;
+  };
+  _makeRepeatBtnEl(decrBtn, () => { if (item[key] > min) commit(item[key] - 1); });
+  _makeRepeatBtnEl(incrBtn, () => { if (item[key] < max) commit(item[key] + 1); });
+  valInput.addEventListener('input', () => {
+    const v = parseInt(valInput.value);
+    if (!isNaN(v) && v > max) valInput.value = max;
+  });
+  valInput.addEventListener('change', () => {
+    let v = parseInt(valInput.value);
+    if (isNaN(v)) v = item[key];
+    commit(v);
+  });
+
+  row.append(label, numWrap, unit);
+  return row;
+}
+
+function _renderAdvancedList() {
+  const ul    = document.getElementById('pomoAdvancedList');
+  const empty = document.getElementById('pomoAdvancedEmpty');
+  if (!ul) return;
+  ul.innerHTML = '';
+  _advDraftOverrides.sort((a, b) => a.cycle - b.cycle);
+  empty.style.display = _advDraftOverrides.length ? 'none' : '';
+
+  _advDraftOverrides.forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'pomo-advanced-item';
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'pomo-advanced-name-input';
+    nameInput.maxLength = 30;
+    nameInput.value = item.name || '';
+    nameInput.placeholder = `${T('pomoAdvancedNameLabel')}/${T('pomoAdvancedBaseLabel')}: ${_advCycleLabel(item.cycle)}`;
+
+    const cycleTag = document.createElement('span');
+    cycleTag.className = 'pomo-advanced-item-cycletag';
+    cycleTag.textContent = _advCycleLabel(item.cycle);
+    cycleTag.style.display = (item.name || '').trim() ? '' : 'none';
+
+    nameInput.addEventListener('input', () => {
+      item.name = nameInput.value;
+      cycleTag.style.display = (item.name || '').trim() ? '' : 'none';
+    });
+
+    const workFields = _buildAdvItemRow(T('pomoAdvancedWorkLabel'), item, 'workMins', 1, 60);
+    const restFields = _buildAdvItemRow(T('pomoAdvancedRestLabel'), item, 'restMins', 1, 60);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'pomo-advanced-item-del';
+    delBtn.textContent = '×';
+    delBtn.title = T('delete');
+    delBtn.onclick = () => {
+      _advDraftOverrides = _advDraftOverrides.filter(o => o !== item);
+      _renderAdvancedList();
+      _renderCyclePicker();
+    };
+
+    li.append(nameInput, cycleTag, workFields, restFields, delBtn);
+    ul.appendChild(li);
+  });
+}
+
+const ADV_BASE_INPUT_IDS = { workMins: 'advWorkVal', restMins: 'advRestVal', cycles: 'advCyclesVal' };
+
+function _advSetBase(key, newVal) {
+  const oldVal = _advDraftSettings[key];
+  _advDraftSettings[key] = newVal;
+  const el = document.getElementById(ADV_BASE_INPUT_IDS[key]);
+  if (el) el.value = newVal;
+  if (key === 'workMins' || key === 'restMins') {
+    _advDraftOverrides.forEach(o => { if (o[key] === oldVal) o[key] = newVal; });
+  }
+  if (key === 'cycles') {
+    _advDraftOverrides = _advDraftOverrides.filter(o => o.cycle <= newVal);
+  }
+  _renderAdvancedBaseText();
+  _renderAdvancedList();
+  _renderCyclePicker();
+}
+
+function _openAdvancedModal() {
+  chrome.storage.local.get(['pomodoroSettings', 'pomodoroCycleOverrides'], data => {
+    const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+    _advDraftSettings  = { workMins: settings.workMins, restMins: settings.restMins, cycles: settings.cycles };
+    _advDraftOverrides = (data.pomodoroCycleOverrides || []).map(o => ({
+      ...o,
+      name: o.name === _advCycleLabel(o.cycle) ? '' : o.name,
+    }));
+
+    const wEl = document.getElementById('advWorkVal');
+    const rEl = document.getElementById('advRestVal');
+    const cEl = document.getElementById('advCyclesVal');
+    if (wEl) wEl.value = _advDraftSettings.workMins;
+    if (rEl) rEl.value = _advDraftSettings.restMins;
+    if (cEl) cEl.value = _advDraftSettings.cycles;
+
+    _renderAdvancedBaseText();
+    _renderAdvancedList();
+    _renderCyclePicker();
+
+    const overlay = document.getElementById('pomoAdvancedOverlay');
+    if (overlay) overlay.style.display = 'flex';
+  });
+}
+
+function _closeAdvancedModal() {
+  const overlay = document.getElementById('pomoAdvancedOverlay');
+  if (overlay) overlay.style.display = 'none';
+  document.getElementById('pomoCyclePicker')?.classList.remove('open');
+  document.getElementById('pomoAdvSavePopover')?.classList.remove('open');
+}
+
+function updatePomoDisplay(state, settings, overrides) {
   if (_pomoPreviewActive) return;
-  const display  = document.getElementById('pomoDisplay');
-  const phaseEl  = document.getElementById('pomoPhaseLabel');
-  const timeEl   = document.getElementById('pomoTimeLabel');
-  const cycleEl  = document.getElementById('pomoCycleLabel');
-  const startBtn = document.getElementById('pomoStartBtn');
+  const display    = document.getElementById('pomoDisplay');
+  const phaseEl    = document.getElementById('pomoPhaseLabel');
+  const timeEl     = document.getElementById('pomoTimeLabel');
+  const cycleEl    = document.getElementById('pomoCycleLabel');
+  const startBtn   = document.getElementById('pomoStartBtn');
+  const customBadge = document.getElementById('pomoCustomBadge');
   if (!display) return;
 
   const phase       = state?.phase || 'idle';
   const totalCycles = state?.totalCycles || settings.cycles;
   const cycle       = state?.cycle       || 1;
   const isActive    = !!state?.active;
+  const effectiveCycle = phase === 'idle' ? 1 : cycle;
+  const ov = _findCycleOverride(effectiveCycle, overrides);
 
   display.className = 'pomo-display' + (phase !== 'idle' ? ' phase-' + phase : '');
 
   const phaseNames = { work: T('pomoWork'), rest: T('pomoRest'), done: T('pomoDone'), idle: T('pomoIdle') };
-  if (phaseEl) phaseEl.textContent = phaseNames[phase] || T('pomoIdle');
+  let phaseText = phaseNames[phase] || T('pomoIdle');
+  if ((phase === 'work' || phase === 'rest') && ov) {
+    phaseText = `${_advEffectiveName(ov)} · ${phaseText}`;
+  }
+  if (phaseEl) phaseEl.textContent = phaseText;
 
   if (timeEl) {
     if (isActive && state.endTime) {
@@ -2020,7 +2313,8 @@ function updatePomoDisplay(state, settings) {
     } else if (phase === 'done') {
       timeEl.textContent = '00:00';
     } else {
-      timeEl.textContent = _fmtPomoTime(settings.workMins * 60);
+      const cur = _resolveCycleTimes(1, settings, overrides);
+      timeEl.textContent = _fmtPomoTime(cur.workMins * 60);
     }
   }
 
@@ -2030,6 +2324,11 @@ function updatePomoDisplay(state, settings) {
       : `${cycle} / ${totalCycles}`;
   }
 
+  if (customBadge) {
+    const differs = ov && (ov.workMins !== settings.workMins || ov.restMins !== settings.restMins);
+    customBadge.style.display = (phase !== 'done' && differs) ? '' : 'none';
+  }
+
   if (startBtn) {
     startBtn.disabled = phase === 'done';
     if (isActive)                              startBtn.textContent = T('pomoPause');
@@ -2037,7 +2336,7 @@ function updatePomoDisplay(state, settings) {
     else                                       startBtn.textContent = T('pomoStart');
   }
 
-  const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal','pomoSavePresetBtn'];
+  const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal','pomoSavePresetBtn','pomoAdvancedBtn'];
   settingsBtns.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isActive; });
   document.querySelectorAll('.pomo-preset-apply').forEach(el => { el.disabled = isActive; });
 }
@@ -2053,32 +2352,35 @@ function _previewPomoDisplay(previewPhase, secs, cycles) {
   if (cycleEl) cycleEl.textContent = `1 / ${cycles}`;
 }
 
-function _advancePomoPhase(state, settings) {
+function _advancePomoPhase(state, settings, overrides) {
   const now         = Date.now();
   const cycle       = state.cycle       || 1;
   const totalCycles = state.totalCycles || settings.cycles;
   let newState;
 
   if (state.phase === 'work') {
+    const cur = _resolveCycleTimes(cycle, settings, overrides);
     newState = cycle >= totalCycles
       ? { active: false, phase: 'done', endTime: null, cycle, totalCycles, advancedAt: now }
-      : { ...state, phase: 'rest', endTime: now + settings.restMins * 60 * 1000, advancedAt: now };
-    _statsLogPomoSession(settings.workMins);
+      : { ...state, phase: 'rest', endTime: now + cur.restMins * 60 * 1000, advancedAt: now };
+    _statsLogPomoSession(cur.workMins);
   } else if (state.phase === 'rest') {
-    newState = { ...state, phase: 'work', endTime: now + settings.workMins * 60 * 1000, cycle: cycle + 1, advancedAt: now };
+    const next = _resolveCycleTimes(cycle + 1, settings, overrides);
+    newState = { ...state, phase: 'work', endTime: now + next.workMins * 60 * 1000, cycle: cycle + 1, advancedAt: now };
   }
 
   if (newState) chrome.storage.local.set({ pomodoroState: newState });
 }
 
 function _pomoTick() {
-  chrome.storage.local.get(['pomodoroState', 'pomodoroSettings'], data => {
-    const state    = data.pomodoroState    || { active: false, phase: 'idle' };
-    const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+  chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], data => {
+    const state     = data.pomodoroState    || { active: false, phase: 'idle' };
+    const settings  = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+    const overrides = data.pomodoroCycleOverrides || [];
     if (state.active && state.endTime && Date.now() >= state.endTime) {
-      _advancePomoPhase(state, settings);
+      _advancePomoPhase(state, settings, overrides);
     } else {
-      updatePomoDisplay(state, settings);
+      updatePomoDisplay(state, settings, overrides);
     }
     // endTime 기준 초 경계에 정렬해 다음 tick 예약 — setInterval 드리프트 방지
     let delay = 1000;
@@ -2091,11 +2393,12 @@ function _pomoTick() {
 }
 
 function loadPomoData() {
-  chrome.storage.local.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState', 'pomodoroPresets'], data => {
-    const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
-    const list     = data.pomodoroList     || [];
-    const state    = data.pomodoroState    || { active: false, phase: 'idle' };
-    const presets  = data.pomodoroPresets  || [];
+  chrome.storage.local.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState', 'pomodoroPresets', 'pomodoroCycleOverrides'], data => {
+    const settings  = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+    const list      = data.pomodoroList     || [];
+    const state     = data.pomodoroState    || { active: false, phase: 'idle' };
+    const presets   = data.pomodoroPresets  || [];
+    const overrides = data.pomodoroCycleOverrides || [];
 
     const wEl = document.getElementById('pomoWorkVal');
     const rEl = document.getElementById('pomoRestVal');
@@ -2106,7 +2409,8 @@ function loadPomoData() {
 
     renderPomoList(list);
     renderPomoPresets(presets);
-    updatePomoDisplay(state, settings);
+    updatePomoDisplay(state, settings, overrides);
+    _updateAdvancedFeedback(settings, overrides);
   });
 }
 
@@ -2133,16 +2437,16 @@ function _savePomoSettings(s, previewPhase) {
     clearTimeout(_pomoPreviewTimer);
     _pomoPreviewTimer = setTimeout(() => {
       _pomoPreviewActive = false;
-      chrome.storage.local.get(['pomodoroState', 'pomodoroSettings'], d => {
-        updatePomoDisplay(d.pomodoroState || { active: false, phase: 'idle' }, d.pomodoroSettings || s);
+      chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], d => {
+        updatePomoDisplay(d.pomodoroState || { active: false, phase: 'idle' }, d.pomodoroSettings || s, d.pomodoroCycleOverrides || []);
       });
     }, 1500);
     const secs = previewPhase === 'work' ? s.workMins * 60 : s.restMins * 60;
     _previewPomoDisplay(previewPhase, secs, s.cycles);
   } else {
-    chrome.storage.local.get(['pomodoroState'], d => {
+    chrome.storage.local.get(['pomodoroState', 'pomodoroCycleOverrides'], d => {
       const state = d.pomodoroState || { active: false, phase: 'idle' };
-      if (!state.active) updatePomoDisplay(state, s);
+      if (!state.active) updatePomoDisplay(state, s, d.pomodoroCycleOverrides || []);
     });
   }
 }
@@ -2163,19 +2467,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 반복 입력 헬퍼 (누르고 있으면 연속 입력) ──
   function _makeRepeatBtn(id, action) {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    let timer = null;
-    const stop = () => { if (timer) { clearTimeout(timer); timer = null; } };
-    const schedule = (delay) => {
-      timer = setTimeout(() => {
-        action();
-        schedule(Math.max(80, Math.floor(delay * 0.65)));
-      }, delay);
-    };
-    btn.addEventListener('mousedown', e => { e.preventDefault(); action(); schedule(400); });
-    btn.addEventListener('mouseup', stop);
-    btn.addEventListener('mouseleave', stop);
+    _makeRepeatBtnEl(document.getElementById(id), action);
   }
 
   // ── 설정 +/- 버튼 ──
@@ -2220,21 +2512,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 시작 / 일시정지 / 재개 ──
   document.getElementById('pomoStartBtn')?.addEventListener('click', () => {
-    chrome.storage.local.get(['pomodoroState', 'pomodoroSettings'], data => {
-      const state    = data.pomodoroState    || { active: false, phase: 'idle' };
-      const settings = data.pomodoroSettings || _getPomoSettingsFromUI();
+    chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], data => {
+      const state     = data.pomodoroState    || { active: false, phase: 'idle' };
+      const settings  = data.pomodoroSettings || _getPomoSettingsFromUI();
+      const overrides = data.pomodoroCycleOverrides || [];
 
       if (state.active) {
         const rem = Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000));
         chrome.storage.local.set({ pomodoroState: { ...state, active: false, endTime: null, pausedRemaining: rem } });
       } else if (state.phase === 'idle' || state.phase === 'done') {
         const s = _getPomoSettingsFromUI();
+        const cur = _resolveCycleTimes(1, s, overrides);
         chrome.storage.local.set({
           pomodoroSettings: s,
-          pomodoroState: { active: true, phase: 'work', endTime: Date.now() + s.workMins * 60 * 1000, cycle: 1, totalCycles: s.cycles },
+          pomodoroState: { active: true, phase: 'work', endTime: Date.now() + cur.workMins * 60 * 1000, cycle: 1, totalCycles: s.cycles },
         });
       } else {
-        const rem = state.pausedRemaining ?? (state.phase === 'work' ? settings.workMins * 60 : settings.restMins * 60);
+        const cur = _resolveCycleTimes(state.cycle || 1, settings, overrides);
+        const rem = state.pausedRemaining ?? (state.phase === 'work' ? cur.workMins * 60 : cur.restMins * 60);
         chrome.storage.local.set({ pomodoroState: { ...state, active: true, endTime: Date.now() + rem * 1000, pausedRemaining: null } });
       }
     });
@@ -2346,9 +2641,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const name = (presetNameInput?.value || '').trim();
     if (!name) { presetNameInput?.focus(); return; }
     const s = _getPomoSettingsFromUI();
-    chrome.storage.local.get(['pomodoroPresets'], d => {
+    chrome.storage.local.get(['pomodoroPresets', 'pomodoroCycleOverrides'], d => {
       const arr = d.pomodoroPresets || [];
-      arr.push({ name, workMins: s.workMins, restMins: s.restMins, cycles: s.cycles });
+      arr.push({ name, workMins: s.workMins, restMins: s.restMins, cycles: s.cycles, cycleOverrides: (d.pomodoroCycleOverrides || []).map(o => ({ ...o })) });
       chrome.storage.local.set({ pomodoroPresets: arr }, () => {
         if (presetNameInput) presetNameInput.value = '';
         presetPopover?.classList.remove('open');
@@ -2373,6 +2668,103 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pomoPresetNextBtn')?.addEventListener('click', () => {
     _pomoPresetPage++;
     renderPomoPresets(_pomoPresetsCache);
+  });
+
+  // ── 고급 설정(회차별 시간) 모달 ──
+  document.getElementById('pomoAdvancedBtn')?.addEventListener('click', _openAdvancedModal);
+  document.getElementById('pomoAdvancedCloseBtn')?.addEventListener('click', _closeAdvancedModal);
+  document.getElementById('pomoAdvancedOverlay')?.addEventListener('click', e => {
+    if (e.target.id === 'pomoAdvancedOverlay') _closeAdvancedModal();
+  });
+
+  [
+    { decr: 'advWorkDecrBtn',   incr: 'advWorkIncrBtn',   key: 'workMins', min: 1, max: 60 },
+    { decr: 'advRestDecrBtn',   incr: 'advRestIncrBtn',   key: 'restMins', min: 1, max: 60 },
+    { decr: 'advCyclesDecrBtn', incr: 'advCyclesIncrBtn', key: 'cycles',   min: 1, max: 10 },
+  ].forEach(({ decr, incr, key, min, max }) => {
+    _makeRepeatBtn(decr, () => { if (_advDraftSettings[key] > min) _advSetBase(key, _advDraftSettings[key] - 1); });
+    _makeRepeatBtn(incr, () => { if (_advDraftSettings[key] < max) _advSetBase(key, _advDraftSettings[key] + 1); });
+  });
+
+  [
+    { id: 'advWorkVal',   key: 'workMins', min: 1, max: 60, fallback: 25 },
+    { id: 'advRestVal',   key: 'restMins', min: 1, max: 60, fallback: 5  },
+    { id: 'advCyclesVal', key: 'cycles',   min: 1, max: 10, fallback: 2  },
+  ].forEach(({ id, key, min, max, fallback }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      const v = parseInt(el.value);
+      if (!isNaN(v) && v > max) el.value = max;
+    });
+    el.addEventListener('change', () => {
+      let v = parseInt(el.value);
+      if (isNaN(v)) v = fallback;
+      v = Math.max(min, Math.min(max, v));
+      el.value = v;
+      _advSetBase(key, v);
+    });
+  });
+
+  document.getElementById('pomoAdvancedAddBtn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('pomoCyclePicker')?.classList.toggle('open');
+  });
+  document.addEventListener('click', e => {
+    const picker = document.getElementById('pomoCyclePicker');
+    const addBtn = document.getElementById('pomoAdvancedAddBtn');
+    if (!picker?.classList.contains('open')) return;
+    if (!picker.contains(e.target) && e.target !== addBtn) picker.classList.remove('open');
+  });
+
+  document.getElementById('pomoAdvancedClearBtn')?.addEventListener('click', () => {
+    if (!_advDraftOverrides.length) return;
+    if (!confirm(T('pomoAdvancedClearConfirm'))) return;
+    _advDraftOverrides = [];
+    _renderAdvancedList();
+    _renderCyclePicker();
+  });
+
+  document.getElementById('pomoAdvancedApplyBtn')?.addEventListener('click', () => {
+    _savePomoSettings({ ..._advDraftSettings }, null);
+    chrome.storage.local.set({ pomodoroCycleOverrides: _advDraftOverrides.map(o => ({ ...o, name: _advEffectiveName(o) })) });
+    _closeAdvancedModal();
+  });
+
+  const advSaveBtn       = document.getElementById('pomoAdvancedSaveBtn');
+  const advSavePopover    = document.getElementById('pomoAdvSavePopover');
+  const advSaveNameInput  = document.getElementById('pomoAdvSaveNameInput');
+  advSaveBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    advSavePopover?.classList.toggle('open');
+    if (advSavePopover?.classList.contains('open')) advSaveNameInput?.focus();
+  });
+  function _confirmAdvancedSavePreset() {
+    const name = (advSaveNameInput?.value || '').trim();
+    if (!name) { advSaveNameInput?.focus(); return; }
+    chrome.storage.local.get(['pomodoroPresets'], d => {
+      const arr = d.pomodoroPresets || [];
+      arr.push({
+        name,
+        workMins: _advDraftSettings.workMins,
+        restMins: _advDraftSettings.restMins,
+        cycles: _advDraftSettings.cycles,
+        cycleOverrides: _advDraftOverrides.map(o => ({ ...o, name: _advEffectiveName(o) })),
+      });
+      chrome.storage.local.set({ pomodoroPresets: arr }, () => {
+        if (advSaveNameInput) advSaveNameInput.value = '';
+        advSavePopover?.classList.remove('open');
+        _pomoPresetPage = Math.ceil(arr.length / POMO_PRESET_PAGE_SIZE) - 1;
+        _closeAdvancedModal();
+        loadPomoData();
+      });
+    });
+  }
+  document.getElementById('pomoAdvSaveConfirmBtn')?.addEventListener('click', _confirmAdvancedSavePreset);
+  advSaveNameInput?.addEventListener('keydown', e => { if (e.key === 'Enter') _confirmAdvancedSavePreset(); });
+  document.addEventListener('click', e => {
+    if (!advSavePopover?.classList.contains('open')) return;
+    if (!advSavePopover.contains(e.target) && e.target !== advSaveBtn) advSavePopover.classList.remove('open');
   });
 
   // ── 도메인 추가 ──
@@ -2423,7 +2815,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 스토리지 변경 시 UI 동기화 ──
   chrome.storage.onChanged.addListener(changes => {
-    if (changes.pomodoroState || changes.pomodoroSettings || changes.pomodoroList || changes.pomodoroPresets) {
+    if (changes.pomodoroState || changes.pomodoroSettings || changes.pomodoroList || changes.pomodoroPresets || changes.pomodoroCycleOverrides) {
       loadPomoData();
     }
   });

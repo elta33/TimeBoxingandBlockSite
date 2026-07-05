@@ -573,14 +573,14 @@ button { cursor: pointer; font-family: inherit; }
 .stats-empty { font-size: 0.82rem; color: #ccc; padding: 20px 0; text-align: center; }
 
 /* ── 포모도로 타이머 ── */
-.pomo-settings-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
-.pomo-setting { display: flex; align-items: center; gap: 8px; color: #555; font-size: 0.9rem; }
-.pomo-setting label { font-size: 0.85rem; font-weight: 600; color: #444; white-space: nowrap; }
+.pomo-settings-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+.pomo-setting { display: flex; align-items: center; gap: 3px; color: #555; font-size: 0.9rem; }
+.pomo-setting label { font-size: 0.76rem; font-weight: 600; color: #444; white-space: nowrap; }
 .pomo-num-input { display: inline-flex; align-items: stretch; border: 1px solid #ddd; border-radius: 7px; overflow: hidden; }
-.pomo-num-btn { width: 30px; height: 34px; border: none; background: #f5f5f5; font-size: 1.1rem; cursor: pointer; color: #555; transition: background 0.12s; user-select: none; display: flex; align-items: center; justify-content: center; }
+.pomo-num-btn { width: 25px; height: 25px; border: none; background: #f5f5f5; font-size: 0.9rem; cursor: pointer; color: #555; transition: background 0.12s; user-select: none; display: flex; align-items: center; justify-content: center; }
 .pomo-num-btn:hover { background: #e8e8e8; }
 .pomo-num-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.pomo-num-val { width: 42px; min-width: 42px; text-align: center; font-size: 0.95rem; font-weight: 700; padding: 2px 4px; border: none; border-left: 1px solid #eee; border-right: 1px solid #eee; outline: none; background: transparent; font-family: inherit; color: inherit; -moz-appearance: textfield; appearance: textfield; }
+.pomo-num-val { width: 34px; min-width: 34px; text-align: center; font-size: 0.8rem; font-weight: 700; padding: 2px 1px; border: none; border-left: 1px solid #eee; border-right: 1px solid #eee; outline: none; background: transparent; font-family: inherit; color: inherit; -moz-appearance: textfield; appearance: textfield; }
 .pomo-num-val::-webkit-outer-spin-button, .pomo-num-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pomo-display {
   text-align: center; padding: 28px 16px 22px;
@@ -649,7 +649,10 @@ button { cursor: pointer; font-family: inherit; }
   padding: 8px 12px; background: #f8f8f8; border-radius: 10px; border: 1px solid #eee; text-align: center;
 }
 .pomo-preset-name { font-size: 0.98rem; font-weight: 700; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-bottom: 1px; }
-.pomo-preset-meta { font-size: 0.85rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pomo-preset-meta-row { display: flex; align-items: center; justify-content: center; gap: 4px; max-width: 100%; }
+.pomo-preset-meta { font-size: 0.85rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pomo-preset-override-icon { color: #0050b3; flex-shrink: 0; }
+.pomo-preset-override-summary { font-size: 0.62rem; color: #0050b3; font-weight: 600; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .pomo-preset-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .pomo-preset-apply { border: none; background: #111; color: #fff; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
 .pomo-preset-apply:hover { background: #333; }
@@ -658,6 +661,64 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-preset-del:hover { background: #ff4d4f; }
 .pomo-preset-page-indicator { text-align: center; font-size: 0.7rem; color: #bbb; margin-bottom: 6px; }
 .pomo-preset-empty { font-size: 0.82rem; color: #bbb; margin: 0; text-align: center; }
+.pomo-advanced-btn { margin-left: auto; white-space: nowrap; }
+.pomo-advanced-btn.pomo-advanced-btn-active { background: #e6f7ff; border-color: #91d5ff; color: #0050b3; }
+.pomo-advanced-btn.pomo-advanced-btn-active:hover { background: #d5efff; }
+.pomo-advanced-summary { font-size: 0.78rem; color: #0050b3; margin: -12px 0 16px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; text-align: right; }
+.pomo-custom-badge { display: inline-block; margin-top: 10px; padding: 3px 11px; border-radius: 20px; background: #e6f7ff; color: #0050b3; font-size: 0.72rem; font-weight: 700; }
+
+/* ── 포모도로 고급 설정(회차별) 모달 ── */
+.pomo-advanced-modal {
+  background: #fff; border-radius: 16px; padding: 22px 24px 20px; width: 640px; max-width: 92vw;
+  max-height: 82vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.25); animation: popupIn 0.18s ease;
+}
+.pomo-advanced-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.pomo-advanced-modal-title { font-size: 1.05rem; font-weight: 700; color: #111; }
+.pomo-advanced-close-btn { border: none; background: none; font-size: 1.3rem; line-height: 1; color: #999; cursor: pointer; padding: 2px 4px; }
+.pomo-advanced-close-btn:hover { color: #555; }
+.pomo-advanced-base-row { flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+.pomo-advanced-basetext { font-size: 0.78rem; color: #999; margin: 0 0 16px; }
+.pomo-advanced-list { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; }
+.pomo-advanced-item { display: flex; align-items: center; gap: 8px; background: #f8f8f8; border: 1px solid #eee; border-radius: 10px; padding: 10px 12px; }
+.pomo-advanced-name-input {
+  flex: 1; min-width: 60px; border: 1px solid #ddd; border-radius: 6px; padding: 5px 8px;
+  font-size: 0.85rem; font-weight: 600; font-family: inherit; outline: none; background: #fff;
+}
+.pomo-advanced-name-input:focus { border-color: #999; }
+.pomo-advanced-name-input::placeholder { color: #ccc; font-weight: 400; font-style: italic; }
+.pomo-advanced-item-cycletag { font-size: 0.7rem; color: #999; white-space: nowrap; flex-shrink: 0; }
+.pomo-advanced-item-fields { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.pomo-advanced-item-label { font-size: 0.8rem; font-weight: 600; color: #666; flex-shrink: 0; }
+.pomo-advanced-item-unit { font-size: 0.8rem; color: #999; flex-shrink: 0; }
+.pomo-advanced-item-del { border: none; background: none; color: #ccc; font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 2px 5px; flex-shrink: 0; }
+.pomo-advanced-item-del:hover { color: #ff4d4f; }
+.pomo-advanced-empty { font-size: 0.82rem; color: #bbb; text-align: center; margin: 10px 0 16px; }
+.pomo-advanced-add-wrap { position: relative; margin: 6px 0 18px; }
+.pomo-advanced-add-btn {
+  width: 100%; border: 1px dashed #ddd; background: none; color: #666; font-size: 0.85rem; font-weight: 600;
+  padding: 9px; border-radius: 8px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+}
+.pomo-advanced-add-btn:hover { background: #f5f5f5; border-color: #ccc; }
+.pomo-advanced-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pomo-cycle-picker {
+  display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+  background: #fff; border: 1px solid #e0e0e0; border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 60; padding: 10px;
+}
+.pomo-cycle-picker.open { display: block; }
+.pomo-cycle-picker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pomo-cycle-picker-item {
+  border: 1px solid #ddd; background: #fff; color: #333; font-size: 0.8rem; font-weight: 600;
+  padding: 7px 0; border-radius: 6px; cursor: pointer; transition: background 0.12s;
+}
+.pomo-cycle-picker-item:hover { background: #f0f0f0; }
+.pomo-cycle-picker-empty { font-size: 0.78rem; color: #bbb; text-align: center; padding: 6px 0; }
+.pomo-advanced-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; padding-top: 14px; border-top: 1px solid #eee; }
+.pomo-advanced-clear-btn { border: none; background: tomato; color: #fff; font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.pomo-advanced-clear-btn:hover { background: #ff4d4f; }
+.pomo-advanced-footer-actions { display: flex; gap: 8px; align-items: center; }
+.pomo-advanced-save-wrap { position: relative; }
+.pomo-advanced-save-wrap .pomo-preset-popover { top: auto; bottom: calc(100% + 6px); }
 
 /* ── PIN 설정 섹터 ── */
 .pin-section-label { font-size: 0.82rem; font-weight: 600; color: #555; margin: 12px 0 6px; }
@@ -1144,12 +1205,16 @@ button { cursor: pointer; font-family: inherit; }
             </div>
             <span data-i18n="pomoTimes">회</span>
           </div>
+          <button class="btn-ghost btn-sm pomo-advanced-btn" id="pomoAdvancedBtn" data-i18n="pomoAdvancedBtn">⚙ 고급 설정</button>
         </div>
+
+        <p class="pomo-advanced-summary" id="pomoAdvancedSummary" style="display:none;"></p>
 
         <div class="pomo-display" id="pomoDisplay">
           <div class="pomo-phase-label" id="pomoPhaseLabel" data-i18n="pomoIdle">대기</div>
           <div class="pomo-time" id="pomoTimeLabel">25:00</div>
           <div class="pomo-cycle-info" id="pomoCycleLabel">1 / 2</div>
+          <div class="pomo-custom-badge" id="pomoCustomBadge" style="display:none;" data-i18n="pomoCustomBadge">맞춤 설정됨</div>
         </div>
 
         <div class="pomo-controls-row">
@@ -1361,6 +1426,73 @@ button { cursor: pointer; font-family: inherit; }
       <div class="pin-modal-footer">
         <button id="pinModalCancelBtn" class="btn-ghost">취소</button>
         <button id="pinModalConfirmBtn" class="btn">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pomoAdvancedOverlay" class="pin-modal-overlay" style="display:none;">
+    <div class="pomo-advanced-modal">
+      <div class="pomo-advanced-modal-head">
+        <span class="pomo-advanced-modal-title" data-i18n="pomoAdvancedModalTitle">회차별 시간 설정</span>
+        <button id="pomoAdvancedCloseBtn" class="pomo-advanced-close-btn" aria-label="close">&times;</button>
+      </div>
+
+      <div class="pomo-settings-row pomo-advanced-base-row">
+        <div class="pomo-setting">
+          <label data-i18n="pomoWorkTime">작업 시간</label>
+          <div class="pomo-num-input">
+            <button class="pomo-num-btn" id="advWorkDecrBtn">−</button>
+            <input type="number" class="pomo-num-val" id="advWorkVal" value="25" min="1" max="60">
+            <button class="pomo-num-btn" id="advWorkIncrBtn">+</button>
+          </div>
+          <span data-i18n="pomoMin">분</span>
+        </div>
+        <div class="pomo-setting">
+          <label data-i18n="pomoRestTime">휴식 시간</label>
+          <div class="pomo-num-input">
+            <button class="pomo-num-btn" id="advRestDecrBtn">−</button>
+            <input type="number" class="pomo-num-val" id="advRestVal" value="5" min="1" max="60">
+            <button class="pomo-num-btn" id="advRestIncrBtn">+</button>
+          </div>
+          <span data-i18n="pomoMin">분</span>
+        </div>
+        <div class="pomo-setting">
+          <label data-i18n="pomoCycles">반복 횟수</label>
+          <div class="pomo-num-input">
+            <button class="pomo-num-btn" id="advCyclesDecrBtn">−</button>
+            <input type="number" class="pomo-num-val" id="advCyclesVal" value="2" min="1" max="10">
+            <button class="pomo-num-btn" id="advCyclesIncrBtn">+</button>
+          </div>
+          <span data-i18n="pomoTimes">회</span>
+        </div>
+      </div>
+
+      <p class="pomo-advanced-basetext" id="pomoAdvancedBaseText"></p>
+
+      <ul class="pomo-advanced-list" id="pomoAdvancedList"></ul>
+      <p class="pomo-advanced-empty" id="pomoAdvancedEmpty" data-i18n="pomoAdvancedEmpty">추가된 예외가 없습니다.</p>
+
+      <div class="pomo-advanced-add-wrap">
+        <button class="pomo-advanced-add-btn" id="pomoAdvancedAddBtn" data-i18n="pomoAdvancedAddBtn">+ 회차 예외 추가</button>
+        <div class="pomo-cycle-picker" id="pomoCyclePicker">
+          <div class="pomo-cycle-picker-grid" id="pomoCyclePickerGrid"></div>
+        </div>
+      </div>
+
+      <div class="pomo-advanced-footer">
+        <button class="pomo-advanced-clear-btn" id="pomoAdvancedClearBtn" data-i18n="pomoAdvancedClearBtn">예외 모두 제거</button>
+        <div class="pomo-advanced-footer-actions">
+          <button class="btn-ghost btn-sm" id="pomoAdvancedApplyBtn" data-i18n="pomoAdvancedApply">적용</button>
+          <div class="pomo-advanced-save-wrap">
+            <button class="btn btn-sm" id="pomoAdvancedSaveBtn" data-i18n="pomoPresetSaveConfirm">저장</button>
+            <div class="pomo-preset-popover" id="pomoAdvSavePopover">
+              <input type="text" id="pomoAdvSaveNameInput" maxlength="30" data-i18n-placeholder="pomoPresetNamePlaceholder" placeholder="프리셋 이름">
+              <div class="pomo-preset-popover-btnrow">
+                <button class="btn btn-sm" id="pomoAdvSaveConfirmBtn" data-i18n="pomoPresetSaveConfirm">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

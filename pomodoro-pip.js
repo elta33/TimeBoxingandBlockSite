@@ -3,9 +3,23 @@ function fmt(s) { return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
 
 var _state         = { active: false, phase: 'idle' };
 var _settings      = { workMins: 25, restMins: 5, cycles: 2 };
+var _overrides     = [];
 var _timer         = null;
 var _previewActive = false;
 var _previewTimer  = null;
+
+function _advCycleLabel(n) { return n + T('pomoAdvancedCycleSuffix'); }
+function _findCycleOverride(cycleNum, overrides) {
+  for (var i = 0; i < overrides.length; i++) { if (overrides[i].cycle === cycleNum) return overrides[i]; }
+  return null;
+}
+function _advEffectiveName(item) {
+  return (item.name || '').trim() || _advCycleLabel(item.cycle);
+}
+function _resolveCycleWork(cycleNum, settings, overrides) {
+  var found = _findCycleOverride(cycleNum, overrides);
+  return found ? found.workMins : settings.workMins;
+}
 
 // ── 상단 탭 고정(Document PiP) 상태 ──
 // 승격되면 실제 콘텐츠가 documentPictureInPicture 창의 document로 옮겨가므로,
@@ -49,16 +63,24 @@ function render() {
   if (_previewActive) return; // 디스플레이는 preview가 담당
 
   // 디스플레이 갱신
-  var phaseEl = _activeDoc.getElementById('phase-label');
-  var timeEl  = _activeDoc.getElementById('time-display');
-  var cycleEl = _activeDoc.getElementById('cycle-label');
+  var phaseEl  = _activeDoc.getElementById('phase-label');
+  var timeEl   = _activeDoc.getElementById('time-display');
+  var cycleEl  = _activeDoc.getElementById('cycle-label');
+  var badgeEl  = _activeDoc.getElementById('custom-badge');
   if (!phaseEl || !timeEl || !cycleEl) return;
 
   var s = _state, g = _settings;
   _activeDoc.body.className = (s.phase && s.phase !== 'idle') ? 'phase-' + s.phase : '';
 
+  var effectiveCycle = (s.phase && s.phase !== 'idle') ? (s.cycle || 1) : 1;
+  var ov = _findCycleOverride(effectiveCycle, _overrides);
+
   var phaseNames = { work: T('pomoWork'), rest: T('pomoRest'), done: T('pomoDone'), idle: T('pomoIdle') };
-  phaseEl.textContent = phaseNames[s.phase] || T('pomoIdle');
+  var phaseText = phaseNames[s.phase] || T('pomoIdle');
+  if ((s.phase === 'work' || s.phase === 'rest') && ov) {
+    phaseText = _advEffectiveName(ov) + ' · ' + phaseText;
+  }
+  phaseEl.textContent = phaseText;
 
   if (isActive && s.endTime) {
     var rem = Math.max(0, Math.ceil((s.endTime - Date.now()) / 1000));
@@ -68,13 +90,18 @@ function render() {
   } else if (s.phase === 'done') {
     timeEl.textContent = '00:00';
   } else {
-    timeEl.textContent = fmt(g.workMins * 60);
+    timeEl.textContent = fmt(_resolveCycleWork(1, g, _overrides) * 60);
   }
 
   var total = s.totalCycles || g.cycles;
   var cur   = s.cycle || 1;
   cycleEl.textContent = (s.phase && s.phase !== 'idle')
     ? (cur + ' / ' + total) : ('1 / ' + total);
+
+  if (badgeEl) {
+    var differs = ov && (ov.workMins !== g.workMins || ov.restMins !== g.restMins);
+    badgeEl.style.display = (s.phase !== 'done' && differs) ? '' : 'none';
+  }
 }
 
 // ── Preview 피드백 ──
@@ -110,15 +137,17 @@ function scheduleTick() {
 
 // ── 스토리지 동기화 ──
 chrome.storage.onChanged.addListener(function(changes) {
-  if (changes.pomodoroState)    _state    = changes.pomodoroState.newValue    || _state;
-  if (changes.pomodoroSettings) _settings = changes.pomodoroSettings.newValue || _settings;
+  if (changes.pomodoroState)         _state     = changes.pomodoroState.newValue         || _state;
+  if (changes.pomodoroSettings)      _settings  = changes.pomodoroSettings.newValue      || _settings;
+  if (changes.pomodoroCycleOverrides) _overrides = changes.pomodoroCycleOverrides.newValue || [];
   scheduleTick();
 });
 
-chrome.storage.local.get(['pomodoroState', 'pomodoroSettings'], function(data) {
+chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], function(data) {
   if (chrome.runtime.lastError) { scheduleTick(); return; }
-  if (data.pomodoroState)    _state    = data.pomodoroState;
-  if (data.pomodoroSettings) _settings = data.pomodoroSettings;
+  if (data.pomodoroState)    _state     = data.pomodoroState;
+  if (data.pomodoroSettings) _settings  = data.pomodoroSettings;
+  _overrides = data.pomodoroCycleOverrides || [];
   scheduleTick();
 });
 
@@ -158,9 +187,10 @@ function makeRepeatBtn(id, action) {
 
 // ── 시작 / 일시정지 ──
 _activeDoc.getElementById('startBtn').addEventListener('click', function() {
-  chrome.storage.local.get(['pomodoroState', 'pomodoroSettings'], function(data) {
-    var state    = data.pomodoroState    || { active: false, phase: 'idle' };
-    var settings = data.pomodoroSettings || _settings;
+  chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], function(data) {
+    var state     = data.pomodoroState    || { active: false, phase: 'idle' };
+    var settings  = data.pomodoroSettings || _settings;
+    var overrides = data.pomodoroCycleOverrides || [];
     if (state.active) {
       var rem = Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000));
       chrome.storage.local.set({ pomodoroState: Object.assign({}, state, { active: false, endTime: null, pausedRemaining: rem }) });
@@ -168,11 +198,14 @@ _activeDoc.getElementById('startBtn').addEventListener('click', function() {
       var s = getUISettings();
       chrome.storage.local.set({
         pomodoroSettings: s,
-        pomodoroState: { active: true, phase: 'work', endTime: Date.now() + s.workMins * 60 * 1000, cycle: 1, totalCycles: s.cycles },
+        pomodoroState: { active: true, phase: 'work', endTime: Date.now() + _resolveCycleWork(1, s, overrides) * 60 * 1000, cycle: 1, totalCycles: s.cycles },
       });
     } else {
+      var ovCur = _findCycleOverride(state.cycle || 1, overrides);
+      var curWork = ovCur ? ovCur.workMins : settings.workMins;
+      var curRest = ovCur ? ovCur.restMins : settings.restMins;
       var rem2 = (state.pausedRemaining != null) ? state.pausedRemaining
-        : (state.phase === 'work' ? settings.workMins * 60 : settings.restMins * 60);
+        : (state.phase === 'work' ? curWork * 60 : curRest * 60);
       chrome.storage.local.set({ pomodoroState: Object.assign({}, state, { active: true, endTime: Date.now() + rem2 * 1000, pausedRemaining: null }) });
     }
   });
