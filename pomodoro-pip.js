@@ -31,6 +31,22 @@ var _realPipWindow  = null;
 var _closingIntent  = null; // 'toggleOff' — 토글로 껐는지, 그냥 닫았는지 pagehide에서 구분
 var _everPromoted   = false; // 이 창이 실제 PiP로 승격된 적이 있는지 (위치 기록 충돌 방지용)
 
+// 실제 Document PiP 창은 타이틀바/테두리가 전혀 없어 width/height가 곧 콘텐츠 크기다.
+// 반면 이 문서가 chrome.windows.create로 만든 일반 popup 창일 때는 width/height가
+// 바깥 프레임 기준이라, 타이틀바만큼 콘텐츠 영역이 실제 PiP보다 작아진다.
+// 여기서 프레임 여백을 측정해 콘텐츠 영역이 실제 PiP와 동일한 280x340이 되도록 창 크기를 보정한다.
+// (iframe으로 로드된 경우 — 옵션 페이지의 "바로 실제 PiP로 승격" 경로 — 는 창이 아니므로 건너뛴다.)
+if (!window.frameElement) {
+  var _frameW = window.outerWidth  - window.innerWidth;
+  var _frameH = window.outerHeight - window.innerHeight;
+  if (_frameW > 0 || _frameH > 0) {
+    chrome.windows.getCurrent(function(win) {
+      if (chrome.runtime.lastError || !win) return;
+      chrome.windows.update(win.id, { width: 280 + _frameW, height: 340 + _frameH });
+    });
+  }
+}
+
 // pin 없이 이 창(popup) 자체가 그냥 닫히는 경우에도 마지막 위치를 기억해둔다.
 // (승격된 적이 있으면 _onRealPipClosed 쪽이 더 정확한 위치를 이미 기록하므로 건너뛴다.)
 window.addEventListener('pagehide', function() {
@@ -100,7 +116,7 @@ function render() {
 
   if (badgeEl) {
     var differs = ov && (ov.workMins !== g.workMins || ov.restMins !== g.restMins);
-    badgeEl.style.display = (s.phase !== 'done' && differs) ? '' : 'none';
+    badgeEl.style.display = (s.phase !== 'done' && differs) ? 'inline-block' : 'none';
   }
 }
 
