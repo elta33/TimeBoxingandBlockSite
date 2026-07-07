@@ -698,8 +698,13 @@ function renderWeekView(boxes, wrap, scrollToMins) {
   cornerCell.style.cssText = 'width:52px;border-right:1px solid #e8e8e8;background:#fafafa;';
   headerRow.appendChild(cornerCell);
   weekOrder.forEach(({ label, fullLabel, dow }) => {
+    const internalDow = dow === 0 ? 6 : dow - 1;
+    const hasSchedule = boxes.some(box => {
+      const d = box.days || [];
+      return d.length === 0 || d.includes(internalDow);
+    });
     const lbl = document.createElement('div');
-    lbl.className   = 'week-day-label' + (dow === todayDow ? ' today' : '');
+    lbl.className   = 'week-day-label' + (dow === todayDow ? ' today' : '') + (hasSchedule ? ' has-schedule' : '');
     lbl.textContent = label;
     lbl.title = T('dayScheduleTooltip', [fullLabel]);
     lbl.addEventListener('click', () => openDayPopup(dow, fullLabel, boxes));
