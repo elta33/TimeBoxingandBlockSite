@@ -27,7 +27,7 @@ function addToList(inputId, storageKey, ulId, warnId) {
     const existingIndex = list.indexOf(domain);
     if (existingIndex !== -1) {
       const ul = document.getElementById(ulId);
-      if (ul && ul.children[existingIndex]) triggerBounceAndWarn(ul.children[existingIndex], warnId, T('alreadySameAddress'));
+      if (ul && ul.children[existingIndex]) scrollAndBounce(ul, ul.children[existingIndex], warnId, T('alreadySameAddress'));
       return;
     }
     list.push(domain);

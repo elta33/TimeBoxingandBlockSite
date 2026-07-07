@@ -223,6 +223,32 @@ function smoothScrollTo(el, targetTop, duration = 650, onDone) {
   requestAnimationFrame(step);
 }
 
+// ── 도메인 리스트 중복 항목: 스크롤 포커싱 후 바운스 ──
+function scrollAndBounce(ul, el, warnId, msg) {
+  const warnEl = document.getElementById(warnId);
+  if (warnEl) { warnEl.textContent = msg; warnEl.style.display = 'inline-block'; }
+  if (!el) return;
+  const playBounce = () => {
+    if (el._bounceTimeout) clearTimeout(el._bounceTimeout);
+    el.classList.remove('bounce');
+    void el.offsetWidth;
+    el.classList.add('bounce');
+    el._bounceTimeout = setTimeout(() => {
+      el.classList.remove('bounce');
+      el._bounceTimeout = null;
+    }, 600);
+  };
+  if (ul) {
+    const elRect = el.getBoundingClientRect();
+    const ulRect = ul.getBoundingClientRect();
+    const elTopInScroll = ul.scrollTop + (elRect.top - ulRect.top);
+    const target = Math.max(0, elTopInScroll - (ul.clientHeight - el.offsetHeight) / 2);
+    smoothScrollTo(ul, target, 650, playBounce);
+  } else {
+    playBounce();
+  }
+}
+
 // ── 겹침 강조: 링 형태로 번지는 플래시 연출 ──
 function flashElements(els, className = 'focus-flash', duration = 1400) {
   els.forEach(el => {
@@ -580,7 +606,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
     const existIdx = popupStagingDomains.findIndex(cd => cd.domain === domain);
     if (existIdx !== -1) {
       const ul = document.getElementById('popup_stagingCustomList');
-      if (ul && ul.children[existIdx]) triggerBounceAndWarn(ul.children[existIdx], 'popup_customWarn', T('alreadySameAddress'));
+      if (ul && ul.children[existIdx]) scrollAndBounce(ul, ul.children[existIdx], 'popup_customWarn', T('alreadySameAddress'));
       return;
     }
     popupStagingDomains.push({ domain, mode: 'allow' });
@@ -855,7 +881,7 @@ document.getElementById('addCustomStagingBtn').onclick = () => {
     const existIdx = stagingCustomDomains.findIndex(cd => cd.domain === domain);
     if (existIdx !== -1) {
       const ul = document.getElementById('stagingCustomList');
-      if (ul && ul.children[existIdx]) triggerBounceAndWarn(ul.children[existIdx], 'customWarn', T('alreadySameAddress'));
+      if (ul && ul.children[existIdx]) scrollAndBounce(ul, ul.children[existIdx], 'customWarn', T('alreadySameAddress'));
       return;
     }
     stagingCustomDomains.push({ domain, mode });
@@ -2849,7 +2875,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const idx = arr.indexOf(domain);
       if (idx !== -1) {
         const ul = document.getElementById('pomoList');
-        if (ul?.children[idx]) triggerBounceAndWarn(ul.children[idx], 'pomoWarn', T('alreadySameAddress'));
+        if (ul?.children[idx]) scrollAndBounce(ul, ul.children[idx], 'pomoWarn', T('alreadySameAddress'));
         return;
       }
       arr.push(domain);
