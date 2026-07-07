@@ -152,6 +152,7 @@
   "pomoPause":         { "message": "⏸ 일시정지" },
   "pomoResume":        { "message": "▶ 재개" },
   "pomoStop":          { "message": "⏹ 중지" },
+  "pomoDoneBtn":       { "message": "✓ 완료" },
   "pomoPip":           { "message": "⧉ PiP" },
   "pomoAlwaysOnTop":     { "message": "상단 탭 고정" },
   "pomoAlwaysOnTopWarn": { "message": "상단 탭 고정시 원본 창을 완전히 닫으면 함께 닫힙니다." },
@@ -170,7 +171,7 @@
   "pomoPresetSaveConfirm":   { "message": "저장" },
   "pomoPresetNamePlaceholder": { "message": "프리셋 이름" },
   "pomoPresetEmpty":         { "message": "저장된 프리셋이 없습니다." },
-  "pomoPresetApply":         { "message": "적용" },
+  "pomoPresetEditBtn":       { "message": "✎ 편집" },
 
   "pomoAdvancedBtn":         { "message": "⚙ 고급 설정" },
   "pomoAdvancedModalTitle":  { "message": "회차별 시간 설정" },

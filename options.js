@@ -2013,6 +2013,12 @@ function renderPomoList(list) {
 const POMO_PRESET_PAGE_SIZE = 4;
 let _pomoPresetPage = 0;
 let _pomoPresetsCache = [];
+let _pomoPresetEditing = false;
+
+function _applyPomoPreset(preset) {
+  _savePomoSettings({ workMins: preset.workMins, restMins: preset.restMins, cycles: preset.cycles }, null);
+  chrome.storage.local.set({ pomodoroCycleOverrides: (preset.cycleOverrides || []).map(o => ({ ...o })) });
+}
 
 function renderPomoPresets(presets) {
   _pomoPresetsCache = presets;
@@ -2032,12 +2038,27 @@ function renderPomoPresets(presets) {
   if (prevBtn) { prevBtn.style.visibility = hasItems ? 'visible' : 'hidden'; prevBtn.disabled = _pomoPresetPage <= 0; }
   if (nextBtn) { nextBtn.style.visibility = hasItems ? 'visible' : 'hidden'; nextBtn.disabled = _pomoPresetPage >= totalPages - 1; }
 
+  ul.classList.toggle('editing', _pomoPresetEditing);
   ul.innerHTML = '';
   const start = _pomoPresetPage * POMO_PRESET_PAGE_SIZE;
   presets.slice(start, start + POMO_PRESET_PAGE_SIZE).forEach((preset, idx) => {
     const i  = start + idx;
     const li = document.createElement('li');
     li.className = 'pomo-preset-item';
+    li.onclick = () => _applyPomoPreset(preset);
+
+    const delX = document.createElement('button');
+    delX.className = 'pomo-preset-del-x';
+    delX.setAttribute('aria-label', T('delete'));
+    delX.textContent = '×';
+    delX.onclick = (e) => {
+      e.stopPropagation();
+      chrome.storage.local.get(['pomodoroPresets'], r => {
+        const arr = r.pomodoroPresets || [];
+        arr.splice(i, 1);
+        chrome.storage.local.set({ pomodoroPresets: arr }, loadPomoData);
+      });
+    };
 
     const name = document.createElement('span');
     name.className = 'pomo-preset-name';
@@ -2054,28 +2075,7 @@ function renderPomoPresets(presets) {
     metaRow.appendChild(meta);
     if (diffs.length) metaRow.appendChild(_createAdjustIcon('pomo-preset-override-icon'));
 
-    const actions = document.createElement('div');
-    actions.className = 'pomo-preset-actions';
-    const applyBtn = document.createElement('button');
-    applyBtn.className = 'pomo-preset-apply';
-    applyBtn.textContent = T('pomoPresetApply');
-    applyBtn.onclick = () => {
-      _savePomoSettings({ workMins: preset.workMins, restMins: preset.restMins, cycles: preset.cycles }, null);
-      chrome.storage.local.set({ pomodoroCycleOverrides: (preset.cycleOverrides || []).map(o => ({ ...o })) });
-    };
-    const delBtn = document.createElement('button');
-    delBtn.className = 'pomo-preset-del';
-    delBtn.textContent = T('delete');
-    delBtn.onclick = () => {
-      chrome.storage.local.get(['pomodoroPresets'], r => {
-        const arr = r.pomodoroPresets || [];
-        arr.splice(i, 1);
-        chrome.storage.local.set({ pomodoroPresets: arr }, loadPomoData);
-      });
-    };
-    actions.append(applyBtn, delBtn);
-
-    li.append(name, metaRow, actions);
+    li.append(delX, name, metaRow);
     if (diffs.length) {
       const summary = document.createElement('span');
       summary.className = 'pomo-preset-override-summary';
@@ -2336,9 +2336,16 @@ function updatePomoDisplay(state, settings, overrides) {
     else                                       startBtn.textContent = T('pomoStart');
   }
 
-  const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal','pomoSavePresetBtn','pomoAdvancedBtn'];
+  const isDone   = phase === 'done';
+  const resetBtn = document.getElementById('pomoResetBtn');
+  const doneBtn  = document.getElementById('pomoDoneBtn');
+  if (startBtn) startBtn.style.display = isDone ? 'none' : '';
+  if (resetBtn) resetBtn.style.display = isDone ? 'none' : '';
+  if (doneBtn)  doneBtn.style.display  = isDone ? '' : 'none';
+
+  const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal','pomoSavePresetBtn','pomoAdvancedBtn','pomoPresetEditBtn'];
   settingsBtns.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isActive; });
-  document.querySelectorAll('.pomo-preset-apply').forEach(el => { el.disabled = isActive; });
+  document.getElementById('pomoPresetList')?.classList.toggle('pomo-preset-list-disabled', isActive);
 }
 
 function _previewPomoDisplay(previewPhase, secs, cycles) {
@@ -2535,13 +2542,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ── 중지 ──
-  document.getElementById('pomoResetBtn')?.addEventListener('click', () => {
+  // ── 중지 / 완료 확인 ──
+  function _resetPomoState() {
     chrome.storage.local.get(['pomodoroSettings'], d => {
       const s = d.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
       chrome.storage.local.set({ pomodoroState: { active: false, phase: 'idle', endTime: null, cycle: 1, totalCycles: s.cycles } });
     });
-  });
+  }
+  document.getElementById('pomoResetBtn')?.addEventListener('click', _resetPomoState);
+  document.getElementById('pomoDoneBtn')?.addEventListener('click', _resetPomoState);
 
   // ── 기본 상단 탭 고정 체크박스 ──
   // pomodoroDefaultAlwaysOnTop은 이 체크박스만 쓰고 바꾸는 영구 설정이다. popup 안 토글은
@@ -2660,6 +2669,26 @@ document.addEventListener('DOMContentLoaded', () => {
       presetPopover.classList.remove('open');
     }
   });
+
+  // ── 프리셋 편집 모드 ──
+  const presetEditBtn = document.getElementById('pomoPresetEditBtn');
+  presetEditBtn?.addEventListener('click', () => {
+    _pomoPresetEditing = !_pomoPresetEditing;
+    presetEditBtn.classList.toggle('active', _pomoPresetEditing);
+    renderPomoPresets(_pomoPresetsCache);
+  });
+  // 편집 모드 중 다른 곳을 클릭하면 편집 모드만 종료하고, 그 클릭이 노린 원래 동작(버튼 클릭 등)은
+  // 수행되지 않아야 하므로 캡처 단계에서 전파를 막는다. X 삭제 버튼과 편집 버튼 자신은 예외.
+  document.addEventListener('click', e => {
+    if (!_pomoPresetEditing) return;
+    if (presetEditBtn && presetEditBtn.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.pomo-preset-del-x')) return;
+    _pomoPresetEditing = false;
+    presetEditBtn?.classList.remove('active');
+    renderPomoPresets(_pomoPresetsCache);
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
 
   document.getElementById('pomoPresetPrevBtn')?.addEventListener('click', () => {
     _pomoPresetPage--;

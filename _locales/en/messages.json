@@ -152,6 +152,7 @@
   "pomoPause":         { "message": "⏸ Pause" },
   "pomoResume":        { "message": "▶ Resume" },
   "pomoStop":          { "message": "⏹ Stop" },
+  "pomoDoneBtn":       { "message": "✓ Done" },
   "pomoPip":           { "message": "⧉ PiP" },
   "pomoAlwaysOnTop":     { "message": "Keep on Top" },
   "pomoAlwaysOnTopWarn": { "message": "While pinned, fully closing the original window will close it too." },
@@ -170,7 +171,7 @@
   "pomoPresetSaveConfirm":   { "message": "Save" },
   "pomoPresetNamePlaceholder": { "message": "Preset name" },
   "pomoPresetEmpty":         { "message": "No saved presets." },
-  "pomoPresetApply":         { "message": "Apply" },
+  "pomoPresetEditBtn":       { "message": "✎ Edit" },
 
   "pomoAdvancedBtn":         { "message": "⚙ Advanced" },
   "pomoAdvancedModalTitle":  { "message": "Per-cycle time settings" },

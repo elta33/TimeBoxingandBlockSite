@@ -583,10 +583,11 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-num-val { width: 34px; min-width: 34px; text-align: center; font-size: 0.8rem; font-weight: 700; padding: 2px 1px; border: none; border-left: 1px solid #eee; border-right: 1px solid #eee; outline: none; background: transparent; font-family: inherit; color: inherit; -moz-appearance: textfield; appearance: textfield; }
 .pomo-num-val::-webkit-outer-spin-button, .pomo-num-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pomo-display {
-  text-align: center; padding: 28px 16px 22px;
+  position: relative; text-align: center; padding: 28px 16px 22px;
   background: #f8f8f8; border-radius: 12px; border: 2px solid transparent;
   margin: 0 0 16px; transition: background 0.3s, border-color 0.3s;
 }
+#pomoPresetSaveRow.pomo-display-save-row { position: absolute; top: 10px; right: 12px; z-index: 3; }
 .pomo-display.phase-work { background: #fff5f5; border-color: #ffd8d8; }
 .pomo-display.phase-rest { background: #f0fff4; border-color: #c6f6d5; }
 .pomo-display.phase-done { background: #fffbf0; border-color: #fde68a; }
@@ -600,6 +601,8 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-display.phase-rest .pomo-cycle-info { color: #999; }
 .pomo-controls-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .pomo-controls { display: flex; gap: 8px; }
+.pomo-done-btn { padding: 10px 16px; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; background: #52c41a; color: #fff; transition: background 0.15s; }
+.pomo-done-btn:hover { background: #47b312; }
 .pomo-default-aot { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
 .pomo-aot-warn { color: tomato; font-size: 0.78rem; margin-top: 6px; text-align: right; white-space: nowrap; }
 .pomo-import-wrap { position: relative; display: inline-block; }
@@ -643,24 +646,30 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-preset-nav-prev { left: 0; }
 .pomo-preset-nav-next { right: 0; }
 .pomo-preset-list { list-style: none; margin: 0; padding: 0 36px; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; justify-content: center; gap: 12px; }
+.pomo-preset-list.pomo-preset-list-disabled { pointer-events: none; opacity: 0.5; }
 .pomo-preset-item {
-  flex: 1 1 0; min-width: 0; max-width: 150px; box-sizing: border-box;
-  display: flex; flex-direction: column; align-items: center;
-  padding: 8px 12px; background: #f8f8f8; border-radius: 10px; border: 1px solid #eee; text-align: center;
+  position: relative; flex: 0 0 calc((100% - 36px) / 4); max-width: 150px; min-width: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 16px 12px; background: #f8f8f8; border-radius: 10px; border: 1px solid #eee; text-align: center;
+  cursor: pointer; transition: background 0.12s, border-color 0.12s;
 }
-.pomo-preset-name { font-size: 0.98rem; font-weight: 700; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-bottom: 1px; }
+.pomo-preset-item:hover { background: #f0f0f0; border-color: #ddd; }
+.pomo-preset-name { font-size: 1.05rem; font-weight: 700; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin: 0; }
 .pomo-preset-meta-row { display: flex; align-items: center; justify-content: center; gap: 4px; max-width: 100%; }
-.pomo-preset-meta { font-size: 0.85rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pomo-preset-meta { font-size: 0.88rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pomo-preset-override-icon { color: #0050b3; flex-shrink: 0; }
-.pomo-preset-override-summary { font-size: 0.62rem; color: #0050b3; font-weight: 600; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.pomo-preset-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-.pomo-preset-apply { border: none; background: #111; color: #fff; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
-.pomo-preset-apply:hover { background: #333; }
-.pomo-preset-apply:disabled { opacity: 0.4; cursor: not-allowed; }
-.pomo-preset-del { border: none; background: tomato; color: #fff; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-.pomo-preset-del:hover { background: #ff4d4f; }
+.pomo-preset-override-summary { font-size: 0.68rem; color: #0050b3; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pomo-preset-del-x {
+  display: none; position: absolute; top: -7px; right: -7px; z-index: 2;
+  width: 20px; height: 20px; border-radius: 50%; border: none; background: tomato; color: #fff;
+  font-size: 0.85rem; line-height: 1; cursor: pointer; align-items: center; justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+.pomo-preset-del-x:hover { background: #ff4d4f; }
+.pomo-preset-list.editing .pomo-preset-del-x { display: flex; }
 .pomo-preset-page-indicator { text-align: center; font-size: 0.7rem; color: #bbb; margin-bottom: 6px; }
 .pomo-preset-empty { font-size: 0.82rem; color: #bbb; margin: 0; text-align: center; }
+#pomoPresetEditBtn.active { background: #e6f7ff; border-color: #91d5ff; color: #0050b3; }
 .pomo-advanced-btn { margin-left: auto; white-space: nowrap; }
 .pomo-advanced-btn.pomo-advanced-btn-active { background: #e6f7ff; border-color: #91d5ff; color: #0050b3; }
 .pomo-advanced-btn.pomo-advanced-btn-active:hover { background: #d5efff; }
@@ -1154,15 +1163,7 @@ button { cursor: pointer; font-family: inherit; }
         <div class="pomo-preset-strip-wrap" id="pomoPresetStripWrap">
           <div class="pomo-preset-strip-head">
             <span class="pomo-preset-strip-label" data-i18n="pomoPresets">프리셋</span>
-            <div class="pomo-preset-save-row">
-              <button class="btn-ghost btn-sm" id="pomoSavePresetBtn" data-i18n="pomoPresetSaveBtn">☆ 프리셋 저장</button>
-              <div class="pomo-preset-popover" id="pomoPresetPopover">
-                <input type="text" id="pomoPresetNameInput" maxlength="30" data-i18n-placeholder="pomoPresetNamePlaceholder" placeholder="프리셋 이름">
-                <div class="pomo-preset-popover-btnrow">
-                  <button class="btn btn-sm" id="pomoPresetConfirmBtn" data-i18n="pomoPresetSaveConfirm">저장</button>
-                </div>
-              </div>
-            </div>
+            <button class="btn-ghost btn-sm" id="pomoPresetEditBtn" data-i18n="pomoPresetEditBtn">✎ 편집</button>
           </div>
           <div class="pomo-preset-page-indicator" id="pomoPresetPageIndicator"></div>
           <div class="pomo-preset-page-row">
@@ -1211,6 +1212,15 @@ button { cursor: pointer; font-family: inherit; }
         <p class="pomo-advanced-summary" id="pomoAdvancedSummary" style="display:none;"></p>
 
         <div class="pomo-display" id="pomoDisplay">
+          <div class="pomo-preset-save-row pomo-display-save-row" id="pomoPresetSaveRow">
+            <button class="btn-ghost btn-sm" id="pomoSavePresetBtn" data-i18n="pomoPresetSaveBtn">☆ 프리셋 저장</button>
+            <div class="pomo-preset-popover" id="pomoPresetPopover">
+              <input type="text" id="pomoPresetNameInput" maxlength="30" data-i18n-placeholder="pomoPresetNamePlaceholder" placeholder="프리셋 이름">
+              <div class="pomo-preset-popover-btnrow">
+                <button class="btn btn-sm" id="pomoPresetConfirmBtn" data-i18n="pomoPresetSaveConfirm">저장</button>
+              </div>
+            </div>
+          </div>
           <div class="pomo-phase-label" id="pomoPhaseLabel" data-i18n="pomoIdle">대기</div>
           <div class="pomo-time" id="pomoTimeLabel">25:00</div>
           <div class="pomo-cycle-info" id="pomoCycleLabel">1 / 2</div>
@@ -1221,6 +1231,7 @@ button { cursor: pointer; font-family: inherit; }
           <div class="pomo-controls">
             <button class="btn" id="pomoStartBtn" data-i18n="pomoStart">▶ 시작</button>
             <button class="btn-ghost" id="pomoResetBtn" style="padding:10px 16px;" data-i18n="pomoStop">⏹ 중지</button>
+            <button class="pomo-done-btn" id="pomoDoneBtn" style="display:none;" data-i18n="pomoDoneBtn">✓ 완료</button>
             <button class="btn-ghost" id="pomoPipBtn" style="padding:10px 16px;" data-i18n="pomoPip">⧉ PiP</button>
           </div>
 
