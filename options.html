@@ -108,6 +108,18 @@ button { cursor: pointer; font-family: inherit; }
 /* ── 바운스 애니메이션 ── */
 @keyframes bounceAnim { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 .bounce { animation: bounceAnim 0.28s ease-in-out 2; }
+@keyframes focusPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,77,79,0.85); }
+  50%  { box-shadow: 0 0 0 13px rgba(255,77,79,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,77,79,0); }
+}
+.focus-flash { animation: focusPulse 0.7s ease-in-out 2; z-index: 6; }
+@keyframes focusPulseDark {
+  0%   { box-shadow: 0 0 0 0 rgba(17,17,17,0.75); }
+  50%  { box-shadow: 0 0 0 13px rgba(17,17,17,0); }
+  100% { box-shadow: 0 0 0 0 rgba(17,17,17,0); }
+}
+.focus-flash-dark { animation: focusPulseDark 0.7s ease-in-out 2; }
 
 /* ── 박스 추가 폼 내부 레이블 행 ── */
 .form-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
@@ -218,7 +230,7 @@ button { cursor: pointer; font-family: inherit; }
   width: 0; height: 0;
   border-style: solid;
   border-width: 0 8px 8px 0;
-  border-color: transparent #1890ff transparent transparent;
+  border-color: transparent tomato transparent transparent;
 }
 .week-day-col { position: relative; border-right: 1px solid #f0f0f0; }
 .week-day-col:last-child { border-right: none; }

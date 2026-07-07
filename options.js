@@ -207,6 +207,36 @@ const PX_PER_MIN = 100 / 60; // 1시간 = 80px
 const TOTAL_HEIGHT = TOTAL_MINS * PX_PER_MIN;
 function minsToPx(mins) { return mins * PX_PER_MIN; }
 
+// ── 이즈인-아웃 스무스 스크롤 ──
+function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+function smoothScrollTo(el, targetTop, duration = 650, onDone) {
+  const startTop  = el.scrollTop;
+  const distance  = targetTop - startTop;
+  if (Math.abs(distance) < 1) { if (onDone) onDone(); return; }
+  const startTime = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    el.scrollTop = startTop + distance * easeInOutCubic(t);
+    if (t < 1) requestAnimationFrame(step);
+    else if (onDone) onDone();
+  }
+  requestAnimationFrame(step);
+}
+
+// ── 겹침 강조: 링 형태로 번지는 플래시 연출 ──
+function flashElements(els, className = 'focus-flash', duration = 1400) {
+  els.forEach(el => {
+    if (el._flashTimeout) clearTimeout(el._flashTimeout);
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
+    el._flashTimeout = setTimeout(() => {
+      el.classList.remove(className);
+      el._flashTimeout = null;
+    }, duration);
+  });
+}
+
 // ── 주간 뷰: 시간축 레이블 + 구분선 생성 ──
 function buildTimeAxis(labelCol, bodyEl, slotCount) {
   labelCol.style.height = `${TOTAL_HEIGHT}px`;
@@ -884,33 +914,26 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
           (boxes[i].days || []).filter(d => days.includes(d)).forEach(d => allOverlapDays.add(d));
         });
 
+        const dayLabelEls = [];
         allOverlapDays.forEach(d => {
           const cb = document.querySelector(`.day-selector input[value="${d}"]`);
-          if (cb) {
-            const lbl = cb.nextElementSibling;
-            if (lbl) {
-              lbl.classList.remove('bounce');
-              void lbl.offsetWidth;
-              lbl.classList.add('bounce');
-              setTimeout(() => lbl.classList.remove('bounce'), 600);
-            }
-          }
+          const lbl = cb && cb.nextElementSibling;
+          if (lbl) dayLabelEls.push(lbl);
         });
+        const playFocusFlash = () => {
+          flashElements(dayLabelEls, 'focus-flash-dark');
+          overlapIndices.forEach(i => {
+            flashElements([...wrap.querySelectorAll(`.tbox[data-box-index="${i}"]`)]);
+          });
+        };
 
         const scrollBody = wrap._weekScrollBody;
         if (scrollBody) {
           const firstStartMins = timeToMins(boxes[overlapIndices[0]].startTime);
-          scrollBody.scrollTop = Math.max(0, minsToPx(firstStartMins) - 40);
+          smoothScrollTo(scrollBody, Math.max(0, minsToPx(firstStartMins) - 40), 650, playFocusFlash);
+        } else {
+          playFocusFlash();
         }
-
-        overlapIndices.forEach(i => {
-          wrap.querySelectorAll(`.tbox[data-box-index="${i}"]`).forEach(card => {
-            card.classList.remove('bounce');
-            void card.offsetWidth;
-            card.classList.add('bounce');
-            setTimeout(() => card.classList.remove('bounce'), 600);
-          });
-        });
 
         triggerBounceAndWarn(null, 'boxWarn', T('timeOverlapWarn2'));
 
