@@ -280,7 +280,11 @@ function buildBoxCard(box, boxIndex, isWeek) {
 
     const delBtn = document.createElement('button');
     delBtn.className = 'tbox-del' + (_pinEnabled ? ' tbox-del-locked' : '');
-    delBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('delete');
+    if (_pinEnabled) {
+      delBtn.textContent = '🔒';
+    } else {
+      delBtn.innerHTML = '<span class="tbox-del-cross"></span>';
+    }
     delBtn.title = T('deleteBoxTitle');
     delBtn.onclick = (e) => {
       e.stopPropagation();
@@ -295,6 +299,12 @@ function buildBoxCard(box, boxIndex, isWeek) {
     if (box.customDomains && box.customDomains.length > 0) {
       card.addEventListener('click', (e) => {
         if (e.target === delBtn) return;
+        const panel = document.getElementById('weekDetailPanel');
+        if (panel && panel.style.display === 'block' && panel.dataset.openIndex === String(boxIndex)) {
+          panel.style.display = 'none';
+          panel.dataset.openIndex = '';
+          return;
+        }
         renderWeekDetailPanel(box, boxIndex);
       });
     }
@@ -319,13 +329,6 @@ function renderWeekDetailPanel(box, boxIndex) {
   const panel = document.getElementById('weekDetailPanel');
   if (!panel) return;
 
-  // 같은 박스 재클릭 시 토글 닫기
-  if (panel.style.display === 'block' && panel.dataset.openIndex === String(boxIndex)) {
-    panel.style.display = 'none';
-    panel.dataset.openIndex = '';
-    return;
-  }
-
   panel.innerHTML = '';
   panel.dataset.openIndex = String(boxIndex);
 
@@ -343,10 +346,22 @@ function renderWeekDetailPanel(box, boxIndex) {
   titleSpan.className = 'donut-detail-title';
   titleSpan.textContent = box.name;
   header.appendChild(titleSpan);
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'btn-ghost btn-sm'; closeBtn.textContent = T('donutClose');
-  closeBtn.onclick = () => { panel.style.display = 'none'; panel.dataset.openIndex = ''; };
-  header.appendChild(closeBtn);
+  const delBoxBtn = document.createElement('button');
+  delBoxBtn.className = 'btn-danger btn-sm' + (_pinEnabled ? ' pin-locked' : '');
+  delBoxBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('donutDeleteBox');
+  delBoxBtn.onclick = () => {
+    const doDelete = () => {
+      deleteBox(boxIndex);
+      panel.style.display = 'none';
+      panel.dataset.openIndex = '';
+    };
+    if (_pinEnabled) {
+      _openPinModal(T('delete'), doDelete);
+    } else {
+      doDelete();
+    }
+  };
+  header.appendChild(delBoxBtn);
   panel.appendChild(header);
 
   // ── 주소 추가 팝업 (인라인 드롭다운) ──
