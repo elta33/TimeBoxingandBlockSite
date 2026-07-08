@@ -8,8 +8,8 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #181824;
-      color: #fff;
+      background: #fff;
+      color: #222;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -19,25 +19,25 @@
       padding: 0 16px 14px;
       transition: background 0.45s;
     }
-    body.phase-work   { background: #1e0e0e; }
-    body.phase-rest   { background: #0d1b12; }
-    body.phase-done   { background: #19170a; }
-    body.preview-work { background: #1e0e0e; }
-    body.preview-rest { background: #0d1b12; }
+    body.phase-work   { background: #fff1ee; }
+    body.phase-rest   { background: #f0fff4; }
+    body.phase-done   { background: #fffbf0; }
+    body.preview-work { background: #fff1ee; }
+    body.preview-rest { background: #f0fff4; }
 
     /* ── 상단 위상 바 ── */
     .phase-bar {
       width: 100%; height: 3px; flex-shrink: 0;
       border-radius: 0 0 3px 3px;
-      background: rgba(255,255,255,0.1);
+      background: #eee;
       transition: background 0.4s;
       margin-bottom: 14px;
     }
-    body.phase-work   .phase-bar { background: #e05050; }
-    body.phase-rest   .phase-bar { background: #45b865; }
-    body.phase-done   .phase-bar { background: #d4a017; }
-    body.preview-work .phase-bar { background: #e05050; }
-    body.preview-rest .phase-bar { background: #45b865; }
+    body.phase-work   .phase-bar { background: #ff6347; }
+    body.phase-rest   .phase-bar { background: #52c41a; }
+    body.phase-done   .phase-bar { background: #faad14; }
+    body.preview-work .phase-bar { background: #ff6347; }
+    body.preview-rest .phase-bar { background: #52c41a; }
 
     /* ── 타이머 디스플레이 ── */
     .timer-section {
@@ -53,40 +53,40 @@
     #phase-label {
       font-size: 0.64rem; font-weight: 700;
       letter-spacing: 0.14em; text-transform: uppercase;
-      color: rgba(255,255,255,0.3);
+      color: #bbb;
       transition: color 0.35s;
       margin-bottom: 1px;
     }
-    body.phase-work   #phase-label { color: #e05050; }
-    body.phase-rest   #phase-label { color: #45b865; }
-    body.phase-done   #phase-label { color: #d4a017; }
-    body.preview-work #phase-label { color: #e05050; }
-    body.preview-rest #phase-label { color: #45b865; }
+    body.phase-work   #phase-label { color: #ff6347; }
+    body.phase-rest   #phase-label { color: #52c41a; }
+    body.phase-done   #phase-label { color: #faad14; }
+    body.preview-work #phase-label { color: #ff6347; }
+    body.preview-rest #phase-label { color: #52c41a; }
 
     #time-display {
       font-size: 3.1rem; font-weight: 700;
       font-variant-numeric: tabular-nums;
-      letter-spacing: -0.03em; color: #fff; line-height: 1;
+      letter-spacing: -0.03em; color: #111; line-height: 1;
     }
 
     #cycle-label {
-      font-size: 0.63rem; color: rgba(255,255,255,0.22); margin-top: 3px;
+      font-size: 0.63rem; color: #bbb; margin-top: 3px;
     }
     body.phase-work #cycle-label, body.phase-rest #cycle-label,
     body.preview-work #cycle-label, body.preview-rest #cycle-label {
-      color: rgba(255,255,255,0.4);
+      color: #999;
     }
 
     #custom-badge {
       display: none; flex-shrink: 0; margin-top: 8px; padding: 2px 9px; border-radius: 20px;
-      background: rgba(126,194,255,0.15); border: 1px solid rgba(126,194,255,0.35);
-      color: #7ec2ff; font-size: 0.58rem; font-weight: 700;
+      background: #e6f7ff; border: 1px solid #91d5ff;
+      color: #0050b3; font-size: 0.58rem; font-weight: 700;
     }
 
     /* ── 구분선 ── */
     .divider {
       width: 100%; height: 1px;
-      background: rgba(255,255,255,0.07);
+      background: #f0f0f0;
       margin: 10px 0; flex-shrink: 0;
     }
 
@@ -101,49 +101,49 @@
     .ctrl-btn:active { opacity: 0.68; }
     .ctrl-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 
-    #startBtn { background: rgba(255,255,255,0.18); color: #fff; }
-    body.phase-work   #startBtn { background: #e05050; }
-    body.phase-rest   #startBtn { background: #45b865; }
-    body.phase-done   #startBtn { background: rgba(255,255,255,0.12); }
-    body.preview-work #startBtn { background: #e05050; }
-    body.preview-rest #startBtn { background: #45b865; }
+    #startBtn { background: #111; color: #fff; }
+    body.phase-work   #startBtn { background: #ff6347; }
+    body.phase-rest   #startBtn { background: #52c41a; }
+    body.phase-done   #startBtn { background: #f5f5f5; color: #bbb; }
+    body.preview-work #startBtn { background: #ff6347; }
+    body.preview-rest #startBtn { background: #52c41a; }
 
-    #stopBtn { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); }
+    #stopBtn { background: #f5f5f5; color: #999; }
 
     /* ── 설정 ── */
     .settings { width: 100%; display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; margin-top: 9px; }
     .setting-row { display: flex; align-items: center; gap: 4px; }
-    .setting-label { font-size: 0.63rem; color: rgba(255,255,255,0.32); width: 24px; flex-shrink: 0; }
+    .setting-label { font-size: 0.63rem; color: #666; width: 24px; flex-shrink: 0; }
 
     .num-btn {
       width: 22px; height: 22px; border: none; border-radius: 4px;
-      background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.75);
+      background: #f5f5f5; color: #555;
       cursor: pointer; font-size: 1rem; line-height: 1; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       font-family: inherit; transition: opacity 0.1s;
     }
     .num-btn:active { opacity: 0.6; }
-    .num-btn:disabled { opacity: 0.18; cursor: not-allowed; }
+    .num-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
     .num-val {
       flex: 1; text-align: center; font-size: 0.82rem; font-weight: 700;
-      color: #fff; background: transparent; border: none;
+      color: #111; background: transparent; border: none;
       -moz-appearance: textfield; appearance: textfield;
       outline: none; min-width: 0; font-family: inherit;
     }
     .num-val::-webkit-outer-spin-button,
     .num-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    .num-val:disabled { opacity: 0.26; }
+    .num-val:disabled { opacity: 0.4; }
 
-    .unit { font-size: 0.57rem; color: rgba(255,255,255,0.22); flex-shrink: 0; }
+    .unit { font-size: 0.57rem; color: #999; flex-shrink: 0; }
 
     /* ── 상단 탭 고정 ── */
     .aot-row { margin-top: 10px; }
-    .aot-switch { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 0.68rem; color: rgba(255,255,255,0.55); }
+    .aot-switch { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 0.68rem; color: #555; }
     .aot-switch input { display: none; }
-    .aot-track { width: 30px; height: 17px; background: rgba(255,255,255,0.15); border-radius: 9px; position: relative; flex-shrink: 0; transition: background 0.2s; }
-    .aot-switch input:checked + .aot-track { background: #e05050; }
-    .aot-thumb { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+    .aot-track { width: 30px; height: 17px; background: #ddd; border-radius: 9px; position: relative; flex-shrink: 0; transition: background 0.2s; }
+    .aot-switch input:checked + .aot-track { background: #ff6347; }
+    .aot-thumb { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 0.2s; }
     .aot-switch input:checked + .aot-track .aot-thumb { left: 15px; }
     .aot-switch input:disabled + .aot-track { opacity: 0.3; cursor: not-allowed; }
     .aot-warn { color: tomato; font-size: 0.6rem; margin-top: 4px; line-height: 1.4; }

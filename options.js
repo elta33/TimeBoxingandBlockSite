@@ -471,7 +471,7 @@ function renderWeekDetailPanel(box, boxIndex) {
   wPopupRow.appendChild(wPopupConfirmBtn);
 
   const wPopupWarn = document.createElement('div');
-  wPopupWarn.style.cssText = 'font-size:0.78rem;color:#ff4d4d;margin-top:5px;display:none;font-weight:600;';
+  wPopupWarn.style.cssText = 'font-size:0.78rem;color:#ff6347;margin-top:5px;display:none;font-weight:600;';
   wAddDomainPopup.appendChild(wPopupRow);
   wAddDomainPopup.appendChild(wPopupWarn);
   wAddPopupWrap.appendChild(wAddDomainPopup);

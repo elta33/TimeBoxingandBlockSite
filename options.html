@@ -60,8 +60,8 @@ button { cursor: pointer; font-family: inherit; }
 .btn { padding: 10px 16px; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; background: #111; color: #fff; transition: background 0.15s; }
 .btn:hover { background: #333; }
 .btn-sm { padding: 6px 12px; font-size: 0.9rem; border-radius: 5px; }
-.btn-danger { background: #ff4d4f; color: #fff; border: none; border-radius: 5px; padding: 4px 10px; font-size: 0.85rem; font-weight: 600; transition: background 0.15s; }
-.btn-danger:hover { background: #d9363e; }
+.btn-danger { background: #ff6347; color: #fff; border: none; border-radius: 5px; padding: 4px 10px; font-size: 0.85rem; font-weight: 600; transition: background 0.15s; }
+.btn-danger:hover { background: #e5533a; }
 .btn-ghost { background: none; border: 1px solid #ddd; color: #555; border-radius: 5px; padding: 4px 10px; font-size: 0.78rem; transition: background 0.15s; }
 .btn-ghost:hover { background: #f5f5f5; }
 
@@ -70,7 +70,7 @@ button { cursor: pointer; font-family: inherit; }
 .domain-text { font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; margin-right: 10px; }
 
 /* ── 경고 텍스트 ── */
-.warn-text { color: #ff4d4d; font-size: 0.8rem; margin-left: 6px; display: none; font-weight: 600; }
+.warn-text { color: #ff6347; font-size: 0.8rem; margin-left: 6px; display: none; font-weight: 600; }
 
 /* ── 토글 그룹 ── */
 .toggle-group { display: flex; margin: 8px 0; }
@@ -109,9 +109,9 @@ button { cursor: pointer; font-family: inherit; }
 @keyframes bounceAnim { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 .bounce { animation: bounceAnim 0.28s ease-in-out 2; }
 @keyframes focusPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255,77,79,0.85); }
-  50%  { box-shadow: 0 0 0 13px rgba(255,77,79,0); }
-  100% { box-shadow: 0 0 0 0 rgba(255,77,79,0); }
+  0%   { box-shadow: 0 0 0 0 rgba(255,99,71,0.85); }
+  50%  { box-shadow: 0 0 0 13px rgba(255,99,71,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,99,71,0); }
 }
 .focus-flash { animation: focusPulse 0.7s ease-in-out 2; z-index: 6; }
 @keyframes focusPulseDark {
@@ -183,7 +183,7 @@ button { cursor: pointer; font-family: inherit; }
 /* ── 타임박스 카드 ── */
 .tbox { position: absolute; left: 4px; right: 4px; border-radius: 6px; padding: 5px 9px; color: #fff; cursor: pointer; transition: filter 0.12s, box-shadow 0.12s; box-sizing: border-box; min-height: 20px; z-index: 1; }
 .tbox:hover { filter: brightness(1.07); box-shadow: 0 3px 10px rgba(0,0,0,0.18); z-index: 5; }
-.tbox.box-block { background: #ff4d4f; }
+.tbox.box-block { background: #ff6347; }
 .tbox.selected { outline: 2px solid #fff; outline-offset: -2px; box-shadow: 0 3px 12px rgba(0,0,0,0.3); z-index: 6; }
 .tbox.box-allow { background: #52c41a; }
 .tbox-name { font-size: 0.78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -193,7 +193,7 @@ button { cursor: pointer; font-family: inherit; }
   position: absolute; top: -16px; right: -16px;
   width: 22px; height: 22px;
   display: flex; align-items: center; justify-content: center;
-  background: #d9363e; color: #fff; border: none; border-radius: 5px;
+  background: #e5533a; color: #fff; border: none; border-radius: 5px;
   font-size: 0.95rem; font-weight: 700; line-height: 1; padding: 0;
   cursor: pointer; opacity: 0; transition: opacity 0.12s, background 0.12s;
   z-index: 2; box-shadow: 0 1px 4px rgba(0,0,0,0.35);
@@ -203,7 +203,7 @@ button { cursor: pointer; font-family: inherit; }
   position: absolute;
   inset: -8px;
 }
-.tbox-del:hover { background: #b8272e; }
+.tbox-del:hover { background: #c73e24; }
 .tbox-del-cross { position: relative; width: 10px; height: 10px; flex-shrink: 0; }
 .tbox-del-cross::before, .tbox-del-cross::after {
   content: '';
@@ -340,7 +340,7 @@ button { cursor: pointer; font-family: inherit; }
 .switch-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 0.88rem; color: #555; }
 .switch-label input[type="checkbox"] { display: none; }
 .switch-track { width: 40px; height: 22px; background: #ddd; border-radius: 11px; position: relative; transition: background 0.2s; flex-shrink: 0; }
-.switch-label input[type="checkbox"]:checked + .switch-track { background: #ff4d4f; }
+.switch-label input[type="checkbox"]:checked + .switch-track { background: #ff6347; }
 .switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 0.2s; }
 .switch-label input[type="checkbox"]:checked + .switch-track .switch-thumb { left: 20px; }
 #timetableWrap.daily-disabled .donut-container { filter: saturate(0.15) brightness(0.85); transition: filter 0.3s; }
@@ -384,7 +384,7 @@ button { cursor: pointer; font-family: inherit; }
 }
 .stats-hero-card.stats-streak { border-left-color: #faad14; }
 .stats-hero-card.stats-focus  { border-left-color: #1890ff; }
-.stats-hero-card.stats-block  { border-left-color: #ff4d4f; }
+.stats-hero-card.stats-block  { border-left-color: #ff6347; }
 .stats-hero-label {
   font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.07em; color: #bbb; margin-bottom: 10px;
@@ -452,12 +452,12 @@ button { cursor: pointer; font-family: inherit; }
 }
 .stats-domain-rank-item:last-child { border-bottom: none; }
 .stats-rank-num { width: 18px; font-size: 0.75rem; font-weight: 700; color: #ccc; flex-shrink: 0; }
-.stats-rank-num.top { color: #ff4d4f; }
+.stats-rank-num.top { color: #ff6347; }
 .stats-rank-info { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .stats-rank-domain { font-size: 0.82rem; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stats-rank-bar-bg { height: 4px; background: #f5f5f5; border-radius: 2px; overflow: hidden; }
-.stats-rank-bar-fill { height: 100%; border-radius: 2px; background: #ffb3b3; transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
-.stats-rank-bar-fill.top { background: #ff4d4f; }
+.stats-rank-bar-fill { height: 100%; border-radius: 2px; background: #ffab91; transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.stats-rank-bar-fill.top { background: #ff6347; }
 .stats-rank-count { font-size: 0.75rem; font-weight: 700; color: #999; flex-shrink: 0; }
 
 /* 포모도로 통계 */
@@ -477,8 +477,8 @@ button { cursor: pointer; font-family: inherit; }
 }
 .stats-pomo-card.active {
   background: #fff;
-  border-left-color: #ff4d4f;
-  box-shadow: 0 0 0 1px rgba(255,77,79,0.22), 0 4px 24px rgba(255,77,79,0.18);
+  border-left-color: #ff6347;
+  box-shadow: 0 0 0 1px rgba(255,99,71,0.22), 0 4px 24px rgba(255,99,71,0.18);
 }
 .stats-pomo-card-label {
   font-size: 0.62rem;
@@ -511,10 +511,10 @@ button { cursor: pointer; font-family: inherit; }
   aspect-ratio: 1; border-radius: 3px; background: #f0f0f0;
   cursor: default;
 }
-.stats-heatmap-cell.h1 { background: #ffd5d5; }
-.stats-heatmap-cell.h2 { background: #ff9999; }
-.stats-heatmap-cell.h3 { background: #ff6666; }
-.stats-heatmap-cell.h4 { background: #ff4d4f; }
+.stats-heatmap-cell.h1 { background: #ffd6c9; }
+.stats-heatmap-cell.h2 { background: #ffab91; }
+.stats-heatmap-cell.h3 { background: #ff8563; }
+.stats-heatmap-cell.h4 { background: #ff6347; }
 .stats-heatmap-labels {
   display: flex; justify-content: space-between; margin-top: 4px;
 }
@@ -636,11 +636,11 @@ button { cursor: pointer; font-family: inherit; }
   margin: 0 0 16px; transition: background 0.3s, border-color 0.3s;
 }
 #pomoPresetSaveRow.pomo-display-save-row { position: absolute; top: 10px; right: 12px; z-index: 3; }
-.pomo-display.phase-work { background: #fff5f5; border-color: #ffd8d8; }
+.pomo-display.phase-work { background: #fff1ee; border-color: #ffd6c9; }
 .pomo-display.phase-rest { background: #f0fff4; border-color: #c6f6d5; }
 .pomo-display.phase-done { background: #fffbf0; border-color: #fde68a; }
 .pomo-phase-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ccc; margin-bottom: 8px; }
-.pomo-display.phase-work .pomo-phase-label { color: #ff4d4f; }
+.pomo-display.phase-work .pomo-phase-label { color: #ff6347; }
 .pomo-display.phase-rest .pomo-phase-label { color: #52c41a; }
 .pomo-display.phase-done .pomo-phase-label { color: #faad14; }
 .pomo-time { font-size: 3.5rem; font-weight: 700; color: #111; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; line-height: 1.1; }
@@ -713,7 +713,7 @@ button { cursor: pointer; font-family: inherit; }
   font-size: 0.85rem; line-height: 1; cursor: pointer; align-items: center; justify-content: center;
   box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
-.pomo-preset-del-x:hover { background: #ff4d4f; }
+.pomo-preset-del-x:hover { background: #e5533a; }
 .pomo-preset-list.editing .pomo-preset-del-x { display: flex; }
 .pomo-preset-page-indicator { text-align: center; font-size: 0.7rem; color: #bbb; margin-bottom: 6px; }
 .pomo-preset-empty { font-size: 0.82rem; color: #bbb; margin: 0; text-align: center; }
@@ -748,7 +748,7 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-advanced-item-label { font-size: 0.8rem; font-weight: 600; color: #666; flex-shrink: 0; }
 .pomo-advanced-item-unit { font-size: 0.8rem; color: #999; flex-shrink: 0; }
 .pomo-advanced-item-del { border: none; background: none; color: #ccc; font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 2px 5px; flex-shrink: 0; }
-.pomo-advanced-item-del:hover { color: #ff4d4f; }
+.pomo-advanced-item-del:hover { color: #ff6347; }
 .pomo-advanced-empty { font-size: 0.82rem; color: #bbb; text-align: center; margin: 10px 0 16px; }
 .pomo-advanced-add-wrap { position: relative; margin: 6px 0 18px; }
 .pomo-advanced-add-btn {
@@ -772,7 +772,7 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-cycle-picker-empty { font-size: 0.78rem; color: #bbb; text-align: center; padding: 6px 0; }
 .pomo-advanced-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; padding-top: 14px; border-top: 1px solid #eee; }
 .pomo-advanced-clear-btn { border: none; background: tomato; color: #fff; font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
-.pomo-advanced-clear-btn:hover { background: #ff4d4f; }
+.pomo-advanced-clear-btn:hover { background: #e5533a; }
 .pomo-advanced-footer-actions { display: flex; gap: 8px; align-items: center; }
 .pomo-advanced-save-wrap { position: relative; }
 .pomo-advanced-save-wrap .pomo-preset-popover { top: auto; bottom: calc(100% + 6px); }
@@ -786,13 +786,13 @@ button { cursor: pointer; font-family: inherit; }
 .pin-status-badge { display: flex; align-items: center; gap: 7px; padding: 9px 12px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 16px; }
 .pin-status-badge.pin-active { background: #e6f7ff; color: #0050b3; font-weight: 600; }
 .pin-status-badge.pin-inactive { background: #f5f5f5; color: #aaa; }
-.pin-form-error { color: #ff4d4f; font-size: 0.78rem; margin-top: 5px; font-weight: 600; display: none; }
+.pin-form-error { color: #ff6347; font-size: 0.78rem; margin-top: 5px; font-weight: 600; display: none; }
 .pin-btns-row { display: flex; gap: 8px; margin-top: 10px; }
 
 /* ── 잠긴 버튼 공통 ── */
 .tbox-del.tbox-del-locked { background: rgba(0,0,0,0.62) !important; letter-spacing: -0.02em; opacity: 0.85; }
 .tbox:hover .tbox-del.tbox-del-locked { opacity: 1; }
-.btn-danger.pin-locked { background: #8c1c1e !important; }
+.btn-danger.pin-locked { background: #8a3524 !important; }
 
 /* ── PIN 모달 ── */
 .pin-modal-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }
@@ -804,7 +804,7 @@ button { cursor: pointer; font-family: inherit; }
 .pin-modal-input:focus { border-color: #333; }
 @keyframes pinShake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)} }
 .pin-modal-input.pin-shake { animation: pinShake 0.35s ease; }
-.pin-modal-error { min-height: 18px; text-align: center; font-size: 0.8rem; color: #ff4d4f; font-weight: 600; margin-top: 7px; }
+.pin-modal-error { min-height: 18px; text-align: center; font-size: 0.8rem; color: #ff6347; font-weight: 600; margin-top: 7px; }
 .pin-modal-footer { display: flex; gap: 8px; margin-top: 16px; }
 .pin-modal-footer .btn-ghost { flex: 1; padding: 10px; }
 .pin-modal-footer .btn { flex: 1; padding: 10px; }
@@ -937,7 +937,7 @@ button { cursor: pointer; font-family: inherit; }
   justify-content: center;
   min-width: 18px;
   height: 18px;
-  background: #ff4d4f;
+  background: #ff6347;
   color: #fff;
   border-radius: 9px;
   font-size: 0.68rem;
@@ -1042,11 +1042,11 @@ button { cursor: pointer; font-family: inherit; }
   padding: 5px 14px 2px; flex-shrink: 0;
 }
 .todo-list-meta-btn {
-  font-size: 0.72rem; color: #ff4d4f; background: none; border: none;
+  font-size: 0.72rem; color: #ff6347; background: none; border: none;
   cursor: pointer; padding: 2px 6px; border-radius: 4px;
   font-family: inherit; font-weight: 600; transition: background 0.12s;
 }
-.todo-list-meta-btn:hover { background: rgba(255,77,79,0.08); }
+.todo-list-meta-btn:hover { background: rgba(255,99,71,0.08); }
 .todo-list {
   flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0;
   scrollbar-width: thin; scrollbar-color: #e0e0e0 transparent;
@@ -1071,7 +1071,7 @@ button { cursor: pointer; font-family: inherit; }
   transition: color 0.12s, background 0.12s; opacity: 0; font-family: inherit; line-height: 1;
 }
 .todo-item:hover .todo-del { opacity: 1; }
-.todo-del:hover { color: #ff4d4f; background: rgba(255,77,79,0.08); }
+.todo-del:hover { color: #ff6347; background: rgba(255,99,71,0.08); }
   </style>
 </head>
 <body>

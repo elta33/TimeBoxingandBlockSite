@@ -9,6 +9,9 @@
 - 포모도로 타이머와 연동하여 작업 시간 중 추가 차단 적용
 - 차단 화면을 사용자 지정 이미지·인용구로 꾸밀 수 있음
 - 집중 시간·차단 횟수·포모도로 완료 사이클 등 활동 통계를 기록·시각화
+- 포모도로 프리셋으로 자주 쓰는 설정을 저장·복원하고, 사이클별 시간을 개별 오버라이드 가능
+- 설정 페이지 내 플로팅 할일(Todo) 패널로 집중 중 할 일 관리
+- PIN 잠금으로 삭제·초기화 등 파괴적 조작을 보호
 - 한국어/영어 현지화 지원
 
 ---
@@ -33,6 +36,7 @@ TimeBoxingandBlockSite/
 │
 ├── pomodoro-pip.html / pomodoro-pip.js  # Picture-in-Picture 포모도로 창
 │
+├── todo.js                # 플로팅 할일 패널 (드래그 가능, options.html & block.html 공유)
 ├── i18n.js                # __MSG_key__ 처리 및 T() 헬퍼 함수
 └── _locales/
     ├── ko/messages.json   # 한국어 문자열
@@ -101,6 +105,8 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 
 자정을 넘기는 박스(예: 22:00~02:00)도 지원하며, 뷰에서 두 조각으로 분할 렌더링한다.
 
+박스 **추가**뿐 아니라 **수정**도 지원한다 (`_editingBoxIndex`로 수정 대상을 추적하며, 완료·취소 시 추가 모드로 복귀).
+
 ### 3-4. 포모도로 타이머
 
 `pomodoroState` 스토리지로 상태를 공유하며, background.js / options.js / pomodoro-pip.js 세 곳이 동시에 구독한다.
@@ -122,6 +128,27 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 - `options.js` / `pomodoro-pip.js`: setInterval 기반 1초 tick으로 카운트다운 표시 및 페이즈 전환
 - 경쟁 조건 방지: UI가 먼저 전환했을 경우 `advancedAt`이 10초 이내이면 background가 중복 전환하지 않음
 - **PiP 창**: `chrome.windows.create({ type: 'popup' })`로 별도 창 생성, `pipWindowId`로 이미 열린 창 재사용
+- **Always on Top**: 설정 토글 활성화 시 PiP 창을 Document PiP API 방식으로 승격(`pomodoro-pip.js` L272~)
+
+**포모도로 프리셋 (`pomodoroPresets`):**
+
+현재 설정(workMins, restMins, cycles, cycleOverrides)을 이름을 붙여 저장하고 한 번 클릭으로 복원할 수 있다.
+
+**포모도로 고급 설정 (`pomodoroCycleOverrides`):**
+
+사이클 번호마다 workMins/restMins를 기본값과 다르게 오버라이드할 수 있다. 프리셋에 포함되어 함께 저장·복원된다.
+
+```js
+// pomodoroCycleOverrides 구조
+[{ cycle: 2, workMins: 50, restMins: 10 }]   // 2번째 사이클만 50/10분
+
+// pomodoroPresets 구조
+[{
+  name: "딥워크",
+  workMins: 90, restMins: 20, cycles: 3,
+  cycleOverrides: [{ cycle: 2, workMins: 50, restMins: 10 }]
+}]
+```
 
 ### 3-5. 통계 시스템
 
@@ -163,7 +190,32 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 
 기간 필터는 오늘 / 7일 / 30일 세 가지이며 탭 클릭 시 `renderStats(period)`를 재호출한다.
 
-### 3-6. 차단 화면 커스터마이징
+### 3-6. 할일 리스트 (Todo 패널)
+
+`todo.js`가 제공하는 플로팅 패널로, `options.html`과 `block.html`에 동시에 삽입된다.
+
+```
+todoTrigger (드래그 가능한 플로팅 아이콘)
+  └─ 클릭 → todoPopup (미완료 목록)
+               ├─ 입력창 + 추가 버튼 (Enter 지원)
+               ├─ 미완료 항목 (체크박스·삭제 버튼)
+               └─ 완료 배지 클릭 → todoDonePopup (완료 목록)
+```
+
+- 아이콘 위치는 드래그로 이동 가능하며 `todoTriggerPos`에 저장 (마그넷 스프링 애니메이션 포함)
+- `chrome.storage.onChanged`로 실시간 동기화 → options 탭과 block 페이지가 같은 목록을 공유
+- 미완료 개수 배지가 아이콘에 표시됨
+
+### 3-7. PIN 잠금
+
+삭제·초기화·일정 비활성화 등 파괴적 조작을 PIN(4~8자리 숫자)으로 보호한다.
+
+- PIN은 무작위 salt + SHA-256 해시로 저장 (`lockPin: { hash, salt, enabled }`)
+- 보호 대상 액션: 박스 전체 삭제, 데이터 초기화, 하루 스케줄 토글
+- PIN 미설정 시 모든 조작 허용 (기본값)
+- PIN 설정·변경·비활성화 UI는 **설정** 탭에 위치
+
+### 3-8. 차단 화면 커스터마이징
 
 `block.html`에서 제공하는 기능:
 
@@ -193,6 +245,11 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 | `blockLinks` | `object[]` | 이미지-인용구 쌍 링크 |
 | `focusEvents` | `DayEvent[]` | 일별 집중 활동 이력 (최대 30일) |
 | `focusStreak` | `object` | `{ current, longest, lastDate }` |
+| `pomodoroPresets` | `object[]` | 저장된 포모도로 프리셋 목록 |
+| `pomodoroCycleOverrides` | `object[]` | 사이클별 시간 오버라이드 `[{ cycle, workMins, restMins }]` |
+| `lockPin` | `object` | PIN 잠금 정보 `{ hash, salt, enabled }` |
+| `todoItems` | `object[]` | 할일 항목 `[{ id, text, done }]` |
+| `todoTriggerPos` | `object` | Todo 아이콘 위치 `{ left, top }` |
 
 ---
 
@@ -202,7 +259,7 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 |----|------|
 | **차단 관리** | 상시 차단 / 일반 차단 도메인 추가·삭제 |
 | **타임박스 스케줄러** | 박스 추가 폼 + 하루(도넛) / 주간(세로 타임테이블) 뷰 |
-| **포모도로 타이머** | 타이머 설정, 시작/일시정지/중지, PiP, 포모도로 전용 차단 목록 |
+| **포모도로 타이머** | 타이머 설정, 시작/일시정지/중지, PiP(Always on Top 옵션), 프리셋 저장·적용, 사이클별 고급 설정, 포모도로 전용 차단 목록 |
 | **통계** | 집중 시간·차단 횟수·스트릭·포모도로·히트맵 시각화 (오늘/7일/30일 필터) |
 | **설정** | 전체 데이터 JSON 내보내기 / 불러오기 |
 

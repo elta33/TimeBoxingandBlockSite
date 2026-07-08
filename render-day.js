@@ -133,7 +133,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       nameEl.setAttribute('x', CX); nameEl.setAttribute('y', CY - 18);
       nameEl.setAttribute('text-anchor', 'middle'); nameEl.setAttribute('dominant-baseline', 'middle');
       nameEl.setAttribute('font-size', '15'); nameEl.setAttribute('font-weight', 'bold');
-      nameEl.setAttribute('fill', '#ff4d4f');
+      nameEl.setAttribute('fill', '#ff6347');
       nameEl.setAttribute('font-family', 'inherit');
       nameEl.textContent = box.name.length > 10 ? box.name.slice(0, 10) + '…' : box.name;
       centerGroup.appendChild(nameEl);
@@ -150,7 +150,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       modeEl.setAttribute('x', CX); modeEl.setAttribute('y', CY + 30);
       modeEl.setAttribute('text-anchor', 'middle'); modeEl.setAttribute('dominant-baseline', 'middle');
       modeEl.setAttribute('font-size', '11');
-      modeEl.setAttribute('fill', '#ff4d4f');
+      modeEl.setAttribute('fill', '#ff6347');
       modeEl.setAttribute('font-family', 'inherit');
       modeEl.textContent = T('donutBlockBox');
       centerGroup.appendChild(modeEl);
@@ -294,7 +294,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     popupRow.appendChild(popupConfirmBtn);
 
     const popupWarn = document.createElement('div');
-    popupWarn.style.cssText = 'font-size:0.78rem;color:#ff4d4d;margin-top:5px;display:none;font-weight:600;';
+    popupWarn.style.cssText = 'font-size:0.78rem;color:#ff6347;margin-top:5px;display:none;font-weight:600;';
     addDomainPopup.appendChild(popupRow);
     addDomainPopup.appendChild(popupWarn);
     addPopupWrap.appendChild(addDomainPopup);
@@ -475,7 +475,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     const startM = timeToMins(box.startTime);
     let endM = timeToMins(box.endTime);
     if (endM <= startM) endM += TOTAL_MINS;
-    const color = '#ff4d4f';
+    const color = '#ff6347';
 
     let seg;
     if (endM - startM >= TOTAL_MINS) {
