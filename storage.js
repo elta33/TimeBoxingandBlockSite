@@ -54,7 +54,18 @@ function deleteBox(index) {
   chrome.storage.local.get([boxKey], function(result) {
     const boxes = result[boxKey] || [];
     boxes.splice(index, 1);
-    chrome.storage.local.set({ [boxKey]: boxes }, loadSettings);
+    chrome.storage.local.set({ [boxKey]: boxes }, () => {
+      // 수정 중인 박스가 삭제됐거나, 그보다 앞 인덱스가 삭제돼 인덱스가 밀렸으면 수정 모드 종료
+      if (_editingBoxIndex !== null && index <= _editingBoxIndex) exitBoxEditMode();
+      // 요일 도넛 팝업이 열려있는 상태에서 그 안의 삭제 버튼으로 지웠다면, 팝업도 즉시 재렌더링
+      currentBoxes = boxes;
+      const popupOverlay = document.getElementById('dayPopupOverlay');
+      const popupWrap    = document.getElementById('dayPopupWrap');
+      if (popupOverlay && !popupOverlay.classList.contains('hidden') && popupWrap && popupWrap._refreshDonut) {
+        popupWrap._refreshDonut();
+      }
+      loadSettings();
+    });
   });
 }
 
@@ -75,7 +86,9 @@ function clearAll(storageKey, confirmMsg, inputIdsToClear, options) {
   if (!skipConfirm && !confirm(confirmMsg)) return;
   chrome.storage.local.set({ [storageKey]: [] }, () => {
     if (inputIdsToClear) inputIdsToClear.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    if (storageKey === 'dailyBoxes' || storageKey === 'weeklyBoxes') { stagingCustomDomains = []; renderStagingList(); }
+    if (storageKey === 'dailyBoxes' || storageKey === 'weeklyBoxes') {
+      if (_editingBoxIndex !== null) exitBoxEditMode(); else { stagingCustomDomains = []; renderStagingList(); }
+    }
     loadSettings();
   });
 }

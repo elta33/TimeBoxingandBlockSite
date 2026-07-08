@@ -8,7 +8,7 @@ function polarToXY(cx, cy, r, angleDeg) {
 
 let dayViewClockInterval = null;
 
-function renderDayView(boxes, wrap) {
+function renderDayView(boxes, wrap, onEditBox) {
   if (dayViewClockInterval) { clearInterval(dayViewClockInterval); dayViewClockInterval = null; }
 
   const CX = 260, CY = 260, R_OUTER = 175, R_INNER = 108, R_LABEL = 196;
@@ -233,6 +233,24 @@ function renderDayView(boxes, wrap) {
     titleSpan.className = 'donut-detail-title';
     titleSpan.textContent = box.name;
     header.appendChild(titleSpan);
+
+    const btnGroup = document.createElement('div');
+    btnGroup.style.cssText = 'display:flex;gap:8px;';
+
+    // 팝업(요일 도넛 미리보기)은 onEditBox로 자체 폼(popup_*)에 이월, 메인 뷰는 기본적으로 메인 폼(enterBoxEditMode)에 이월
+    const editBoxBtn = document.createElement('button');
+    editBoxBtn.className = 'btn btn-sm' + (_pinEnabled ? ' pin-locked' : '');
+    editBoxBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('donutEditBox');
+    editBoxBtn.onclick = () => {
+      const doEdit = () => (onEditBox || enterBoxEditMode)(box, boxIndex);
+      if (_pinEnabled) {
+        _openPinModal(T('donutEditBox'), doEdit);
+      } else {
+        doEdit();
+      }
+    };
+    btnGroup.appendChild(editBoxBtn);
+
     const delBoxBtn = document.createElement('button');
     delBoxBtn.className = 'btn-danger btn-sm' + (_pinEnabled ? ' pin-locked' : '');
     delBoxBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('donutDeleteBox');
@@ -243,7 +261,8 @@ function renderDayView(boxes, wrap) {
         deleteBox(boxIndex);
       }
     };
-    header.appendChild(delBoxBtn);
+    btnGroup.appendChild(delBoxBtn);
+    header.appendChild(btnGroup);
     detailArea.appendChild(header);
 
     // ── 주소 추가 팝업 (인라인 드롭다운) ──
@@ -379,8 +398,11 @@ function renderDayView(boxes, wrap) {
         seg.setAttribute('transform', isSelected ? `translate(${offset * Math.cos(rad)}, ${offset * Math.sin(rad)})` : '');
       }
     });
-    renderCenter(selectedIndex !== null ? boxes[selectedIndex] : null);
-    renderDetailArea(selectedIndex !== null ? boxes[selectedIndex] : null, selectedIndex);
+    const selBox = selectedIndex !== null ? boxes[selectedIndex] : null;
+    renderCenter(selBox);
+    // 필터링된(요일 팝업) 배열은 로컬 인덱스와 실제 storage 인덱스가 다를 수 있어 _idx로 보정
+    const realIndex = selBox ? (selBox._idx !== undefined ? selBox._idx : selectedIndex) : null;
+    renderDetailArea(selBox, realIndex);
   }
 
   // ── 겹침 경고 펄스 애니메이션 ──

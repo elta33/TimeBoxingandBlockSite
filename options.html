@@ -184,6 +184,7 @@ button { cursor: pointer; font-family: inherit; }
 .tbox { position: absolute; left: 4px; right: 4px; border-radius: 6px; padding: 5px 9px; color: #fff; cursor: pointer; transition: filter 0.12s, box-shadow 0.12s; box-sizing: border-box; min-height: 20px; z-index: 1; }
 .tbox:hover { filter: brightness(1.07); box-shadow: 0 3px 10px rgba(0,0,0,0.18); z-index: 5; }
 .tbox.box-block { background: #ff4d4f; }
+.tbox.selected { outline: 2px solid #fff; outline-offset: -2px; box-shadow: 0 3px 12px rgba(0,0,0,0.3); z-index: 6; }
 .tbox.box-allow { background: #52c41a; }
 .tbox-name { font-size: 0.78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tbox-time { font-size: 0.68rem; opacity: 0.85; margin-top: 1px; }
@@ -1120,7 +1121,7 @@ button { cursor: pointer; font-family: inherit; }
     <div class="scheduler-grid">
 
       <div class="sector">
-        <div class="sector-title" data-i18n="newBox">새 박스 추가</div>
+        <div class="sector-title" id="boxFormTitle" data-i18n="newBox">새 박스 추가</div>
 
         <div class="form-section-title" data-i18n="boxNameLabel">박스 이름</div>
         <div class="input-row" style="margin:0;">
@@ -1163,9 +1164,10 @@ button { cursor: pointer; font-family: inherit; }
         <ul id="stagingCustomList" class="domain-list" style="margin-top:8px;"></ul>
 
         <button id="addBoxBtn" class="btn" style="width:100%;margin-top:18px;" data-i18n="boxCreate">박스 생성 완료</button>
+        <button id="cancelEditBoxBtn" class="btn-ghost btn-sm" style="width:100%;margin-top:8px;display:none;" data-i18n="cancelEdit">취소</button>
       </div>
 
-      <div class="sector">
+      <div class="sector" id="schedulerSector">
         <div class="scheduler-title-row">
           <div class="sector-title" style="margin:0;padding:0;border:none;">
             <span data-i18n="schedulerTitle">타임박스 스케줄러</span>
@@ -1391,6 +1393,7 @@ button { cursor: pointer; font-family: inherit; }
       <div class="sector">
         <div class="sector-title" data-i18n="settingsBackupTitle">데이터 백업 / 복원</div>
         <p class="sector-desc" data-i18n="settingsBackupDesc">도메인 목록, 타임박스 스케줄, 설정을 파일로 저장하거나 불러옵니다.</p>
+        <p style="font-size:0.82rem; color:#bbb; margin:-4px 0 12px;" data-i18n="settingsBackupScope">포함: 차단 도메인 목록(일반/상시), 타임박스 스케줄(하루·주간 박스, 하루 스케줄 사용 여부, 주 시작 요일), 포모도로(프리셋, 타이머 설정, 회차별 예외, 도메인 리스트). 제외: 잠금 PIN, 통계·연속 기록, 포모도로 실행 중 상태, 팝업 창 위치.</p>
         <div style="display:flex; gap:10px; margin-bottom:12px;">
           <button id="exportBtn" class="btn" data-i18n="exportBtn">내보내기 (Export)</button>
           <button id="importBtn" class="btn" data-i18n="importBtn">불러오기 (Import)</button>
@@ -1438,7 +1441,7 @@ button { cursor: pointer; font-family: inherit; }
       <div id="dayPopupTitle" class="day-popup-title"></div>
       <div class="day-popup-body">
         <div class="day-popup-form" id="dayPopupForm">
-          <div class="sector-title" style="font-size:1rem;margin-bottom:14px;" data-i18n="newBox">새 박스 추가</div>
+          <div class="sector-title" id="popupBoxFormTitle" style="font-size:1rem;margin-bottom:14px;" data-i18n="newBox">새 박스 추가</div>
 
           <div class="form-section-title" data-i18n="boxNameLabel">박스 이름</div>
           <div class="input-row" style="margin:0;">
@@ -1468,6 +1471,7 @@ button { cursor: pointer; font-family: inherit; }
           <ul id="popup_stagingCustomList" class="domain-list" style="margin-top:8px;"></ul>
 
           <button id="popup_addBoxBtn" class="btn" style="width:100%;margin-top:18px;" data-i18n="boxCreate">박스 생성 완료</button>
+          <button id="popup_cancelEditBoxBtn" class="btn-ghost btn-sm" style="width:100%;margin-top:8px;display:none;" data-i18n="cancelEdit">취소</button>
         </div>
         <div id="dayPopupWrap" class="day-popup-donut"></div>
       </div>

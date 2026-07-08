@@ -4,6 +4,7 @@
 let stagingCustomDomains = [];
 let dailyScheduleEnabled = true;
 let weekViewClockInterval = null;
+let _editingBoxIndex = null; // 수정 중인 박스 인덱스 (null이면 새 박스 추가 모드)
 
 // ── PIN 잠금 ──
 let _pinEnabled = false;
@@ -195,7 +196,10 @@ function initViewTabs(onViewChange) {
       if (dayRow) dayRow.style.display = currentView === 'week' ? 'block' : 'none';
       // 뷰 전환 시 주간 상세 패널 닫기
       const panel = document.getElementById('weekDetailPanel');
-      if (panel) panel.style.display = 'none';
+      if (panel) { panel.style.display = 'none'; panel.dataset.openIndex = ''; }
+      document.querySelectorAll('.tbox.selected').forEach(el => el.classList.remove('selected'));
+      // 뷰 전환 시 수정 모드 종료 (day/week 폼 필드 구성이 달라짐)
+      if (_editingBoxIndex !== null) exitBoxEditMode();
       if (onViewChange) onViewChange();
       loadSettings();
     });
@@ -352,18 +356,19 @@ function buildBoxCard(box, boxIndex, isWeek) {
     };
     card.appendChild(delBtn);
 
-    if (box.customDomains && box.customDomains.length > 0) {
-      card.addEventListener('click', (e) => {
-        if (e.target === delBtn) return;
-        const panel = document.getElementById('weekDetailPanel');
-        if (panel && panel.style.display === 'block' && panel.dataset.openIndex === String(boxIndex)) {
-          panel.style.display = 'none';
-          panel.dataset.openIndex = '';
-          return;
-        }
-        renderWeekDetailPanel(box, boxIndex);
-      });
-    }
+    card.addEventListener('click', (e) => {
+      if (e.target === delBtn) return;
+      const panel = document.getElementById('weekDetailPanel');
+      const wasOpenForThis = panel && panel.style.display === 'block' && panel.dataset.openIndex === String(boxIndex);
+      document.querySelectorAll('.tbox.selected').forEach(el => el.classList.remove('selected'));
+      if (wasOpenForThis) {
+        panel.style.display = 'none';
+        panel.dataset.openIndex = '';
+        return;
+      }
+      document.querySelectorAll(`.tbox[data-box-index="${boxIndex}"]`).forEach(el => el.classList.add('selected'));
+      renderWeekDetailPanel(box, boxIndex);
+    });
     return card;
   }
 
@@ -402,6 +407,22 @@ function renderWeekDetailPanel(box, boxIndex) {
   titleSpan.className = 'donut-detail-title';
   titleSpan.textContent = box.name;
   header.appendChild(titleSpan);
+
+  const btnGroup = document.createElement('div');
+  btnGroup.style.cssText = 'display:flex;gap:8px;';
+
+  const editBoxBtn = document.createElement('button');
+  editBoxBtn.className = 'btn btn-sm' + (_pinEnabled ? ' pin-locked' : '');
+  editBoxBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('donutEditBox');
+  editBoxBtn.onclick = () => {
+    if (_pinEnabled) {
+      _openPinModal(T('donutEditBox'), () => enterBoxEditMode(box, boxIndex));
+    } else {
+      enterBoxEditMode(box, boxIndex);
+    }
+  };
+  btnGroup.appendChild(editBoxBtn);
+
   const delBoxBtn = document.createElement('button');
   delBoxBtn.className = 'btn-danger btn-sm' + (_pinEnabled ? ' pin-locked' : '');
   delBoxBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('donutDeleteBox');
@@ -417,7 +438,8 @@ function renderWeekDetailPanel(box, boxIndex) {
       doDelete();
     }
   };
-  header.appendChild(delBoxBtn);
+  btnGroup.appendChild(delBoxBtn);
+  header.appendChild(btnGroup);
   panel.appendChild(header);
 
   // ── 주소 추가 팝업 (인라인 드롭다운) ──
@@ -502,23 +524,34 @@ function renderWeekDetailPanel(box, boxIndex) {
   wPopupConfirmBtn.onclick = doWAddDomain;
   wPopupInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doWAddDomain(); });
 
-  // 모두 차단 / 모두 허용
-  const masterRow = document.createElement('div');
-  masterRow.className = 'donut-master-row';
-  masterRow.appendChild(wAddPopupWrap);
-  panel.appendChild(masterRow);
+  if (box.customDomains && box.customDomains.length > 0) {
+    const masterRow = document.createElement('div');
+    masterRow.className = 'donut-master-row';
+    masterRow.appendChild(wAddPopupWrap);
+    panel.appendChild(masterRow);
 
-  // 도메인 리스트
-  const list = document.createElement('ul');
-  list.className = 'donut-domain-list';
-  box.customDomains.forEach((cd, cdIndex) => {
-    const li = createCustomDomainItemUI(
-      cd.domain, cd.mode, `wd_b${boxIndex}_c${cdIndex}`, 'li',
-      () => deleteCustomDomain(boxIndex, cdIndex, refreshPanel)
-    );
-    list.appendChild(li);
-  });
-  panel.appendChild(list);
+    const list = document.createElement('ul');
+    list.className = 'donut-domain-list';
+    box.customDomains.forEach((cd, cdIndex) => {
+      const li = createCustomDomainItemUI(
+        cd.domain, cd.mode, `wd_b${boxIndex}_c${cdIndex}`, 'li',
+        () => deleteCustomDomain(boxIndex, cdIndex, refreshPanel)
+      );
+      list.appendChild(li);
+    });
+    panel.appendChild(list);
+  } else {
+    const emptyMasterRow = document.createElement('div');
+    emptyMasterRow.className = 'donut-master-row';
+    emptyMasterRow.style.justifyContent = 'flex-start';
+    emptyMasterRow.appendChild(wAddPopupWrap);
+    panel.appendChild(emptyMasterRow);
+
+    const empty = document.createElement('p');
+    empty.className = 'detail-empty';
+    empty.textContent = T('donutNoCustom');
+    panel.appendChild(empty);
+  }
 
   panel.style.display = 'block';
 }
@@ -539,17 +572,62 @@ function openDayPopup(dow, dayLabel, allBoxes) {
   if (_dayPopupClockInterval) { clearInterval(_dayPopupClockInterval); _dayPopupClockInterval = null; }
 
   // ── 도넛 렌더링 ──
+  // 필터링 후에도 실제 storage(weeklyBoxes) 상의 인덱스를 잃지 않도록 _idx로 원본 위치를 함께 보관
   function getFilteredBoxes() {
-    return currentBoxes.filter(box => {
-      const d = box.days || [];
-      return d.length === 0 || d.includes(internalDow);
-    });
+    return currentBoxes
+      .map((box, idx) => ({ ...box, _idx: idx }))
+      .filter(box => {
+        const d = box.days || [];
+        return d.length === 0 || d.includes(internalDow);
+      });
+  }
+
+  // ── 팝업 전용 박스 수정 모드 (하루 뷰 도넛과 동일한 기능을 팝업 자체 폼으로 이월) ──
+  let _popupEditingBoxIndex = null;
+
+  function enterPopupBoxEditMode(box, realIndex) {
+    _popupEditingBoxIndex = realIndex;
+
+    if (popupBoxName)   popupBoxName.value = box.name;
+    if (popupStartTime) popupStartTime.value = box.startTime;
+    if (popupEndTime)   popupEndTime.value = box.endTime;
+
+    popupStagingDomains = (box.customDomains || []).map(cd => ({ ...cd }));
+    renderPopupStagingList();
+
+    const titleEl = document.getElementById('popupBoxFormTitle');
+    if (titleEl) titleEl.textContent = T('donutEditBox');
+    if (newPopupAddBoxBtn) newPopupAddBoxBtn.textContent = T('boxUpdate');
+    const cancelBtn = document.getElementById('popup_cancelEditBoxBtn');
+    if (cancelBtn) cancelBtn.style.display = 'block';
+
+    const warnEl = document.getElementById('popup_boxWarn');
+    if (warnEl) warnEl.style.display = 'none';
+  }
+
+  function exitPopupBoxEditMode() {
+    _popupEditingBoxIndex = null;
+
+    const titleEl = document.getElementById('popupBoxFormTitle');
+    if (titleEl) titleEl.textContent = T('newBox');
+    if (newPopupAddBoxBtn) newPopupAddBoxBtn.textContent = T('boxCreate');
+    const cancelBtn = document.getElementById('popup_cancelEditBoxBtn');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+
+    if (popupBoxName)   popupBoxName.value = '';
+    if (popupStartTime) popupStartTime.value = '';
+    if (popupEndTime)   popupEndTime.value = '';
+    popupStagingDomains = [];
+    renderPopupStagingList();
+    const warnEl = document.getElementById('popup_boxWarn');
+    if (warnEl) warnEl.style.display = 'none';
   }
 
   function refreshDonut() {
     wrap.innerHTML = '';
-    renderDayView(getFilteredBoxes(), wrap);
+    renderDayView(getFilteredBoxes(), wrap, enterPopupBoxEditMode);
   }
+  wrap._refreshDonut = refreshDonut; // storage.js의 deleteBox 등에서 팝업이 열려있을 때 재렌더링하기 위한 훅
   refreshDonut();
 
   // ── 팝업 전용 스테이징 ──
@@ -581,6 +659,11 @@ function openDayPopup(dow, dayLabel, allBoxes) {
   if (popupEndTime)    popupEndTime.value = '';
   popupStagingDomains = [];
   renderPopupStagingList();
+  // 이전에 팝업을 수정 모드로 둔 채 닫았을 수 있으므로 매번 새 박스 추가 모드로 초기화
+  const _popupTitleEl = document.getElementById('popupBoxFormTitle');
+  if (_popupTitleEl) _popupTitleEl.textContent = T('newBox');
+  const _popupCancelBtn = document.getElementById('popup_cancelEditBoxBtn');
+  if (_popupCancelBtn) _popupCancelBtn.style.display = 'none';
 
   // 입력 시 경고 숨김 (메인 폼과 동일 로직)
   [popupBoxName, popupStartTime, popupEndTime].forEach(el => {
@@ -619,7 +702,16 @@ function openDayPopup(dow, dayLabel, allBoxes) {
   // 박스 생성
   const popupAddBoxBtn = document.getElementById('popup_addBoxBtn');
   const newPopupAddBoxBtn = popupAddBoxBtn.cloneNode(true);
+  newPopupAddBoxBtn.textContent = T('boxCreate'); // 이전 세션에서 수정 모드로 남아있던 텍스트 방지
   popupAddBoxBtn.parentNode.replaceChild(newPopupAddBoxBtn, popupAddBoxBtn);
+
+  const popupCancelEditBtn = document.getElementById('popup_cancelEditBoxBtn');
+  if (popupCancelEditBtn) {
+    const newPopupCancelEditBtn = popupCancelEditBtn.cloneNode(true);
+    popupCancelEditBtn.parentNode.replaceChild(newPopupCancelEditBtn, popupCancelEditBtn);
+    newPopupCancelEditBtn.addEventListener('click', exitPopupBoxEditMode);
+  }
+
   newPopupAddBoxBtn.addEventListener('click', () => {
     const name      = (document.getElementById('popup_boxName')?.value || '').trim();
     const startTime = document.getElementById('popup_startTime')?.value || null;
@@ -636,9 +728,10 @@ function openDayPopup(dow, dayLabel, allBoxes) {
     chrome.storage.local.get([boxKey], function(result) {
       const boxes = result[boxKey] || [];
 
-      // 겨침 검사 (해당 요일만)
+      // 겨침 검사 (해당 요일만, 수정 중인 자기 자신은 제외)
       const overlapIndices = [];
       for (let i = 0; i < boxes.length; i++) {
+        if (i === _popupEditingBoxIndex) continue;
         const b = boxes[i];
         const bDays = b.days || [];
         if (bDays.length > 0 && !bDays.includes(internalDow)) continue;
@@ -657,22 +750,21 @@ function openDayPopup(dow, dayLabel, allBoxes) {
         if (warnEl) { warnEl.textContent = T('timeOverlapWarn2'); warnEl.style.display = 'inline-block'; }
         const filtered = getFilteredBoxes();
         overlapIndices.forEach(i => {
-          const ob = boxes[i];
-          const filteredIdx = filtered.findIndex(b => b.startTime === ob.startTime && b.endTime === ob.endTime && b.name === ob.name);
+          const filteredIdx = filtered.findIndex(b => b._idx === i);
           if (filteredIdx !== -1 && wrap._pulseBox) wrap._pulseBox(filteredIdx);
         });
         return;
       }
 
-      boxes.push({ name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains] });
+      if (_popupEditingBoxIndex !== null) {
+        boxes[_popupEditingBoxIndex] = { name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains] };
+      } else {
+        boxes.push({ name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains] });
+      }
       chrome.storage.local.set({ [boxKey]: boxes }, () => {
         currentBoxes = boxes;
-        if (popupBoxName)   popupBoxName.value = '';
-        if (popupStartTime) popupStartTime.value = '';
-        if (popupEndTime)   popupEndTime.value = '';
-        if (warnEl)         warnEl.style.display = 'none';
-        popupStagingDomains = [];
-        renderPopupStagingList();
+        if (warnEl) warnEl.style.display = 'none';
+        exitPopupBoxEditMode();
         refreshDonut();
         // 메인 주간 뷰도 갱신
         renderBoxes(boxes);
@@ -689,6 +781,8 @@ function closeDayPopup() {
   if (overlay) overlay.classList.add('hidden');
   // 팝업 도넛의 clock interval 정리
   if (dayViewClockInterval) { clearInterval(dayViewClockInterval); dayViewClockInterval = null; }
+  // 팝업 안에서 주소 추가/삭제 등으로 바뀐 내용을 뒤의 주간 그리드에도 반영
+  renderBoxes(currentBoxes);
 }
 
 // ── 요일 선택기 순서 동기화 ──
@@ -893,6 +987,57 @@ document.getElementById('addCustomStagingBtn').onclick = () => {
 
 function removeStagingDomain(index) { stagingCustomDomains.splice(index, 1); hideWarn('customWarn'); renderStagingList(); }
 
+// ── 박스 수정 모드 진입/종료 ──
+function enterBoxEditMode(box, boxIndex) {
+  _editingBoxIndex = boxIndex;
+
+  document.getElementById('boxName').value  = box.name;
+  document.getElementById('startTime').value = box.startTime;
+  document.getElementById('endTime').value   = box.endTime;
+
+  if (currentView === 'week') {
+    clearDaySelection();
+    (box.days || []).forEach(d => {
+      const cb = document.querySelector(`input[name="days"][value="${d}"]`);
+      if (cb) cb.checked = true;
+    });
+  }
+
+  stagingCustomDomains = (box.customDomains || []).map(cd => ({ ...cd }));
+  renderStagingList();
+
+  const titleEl = document.getElementById('boxFormTitle');
+  if (titleEl) titleEl.textContent = T('donutEditBox');
+  const addBtn = document.getElementById('addBoxBtn');
+  if (addBtn) addBtn.textContent = T('boxUpdate');
+  const cancelBtn = document.getElementById('cancelEditBoxBtn');
+  if (cancelBtn) cancelBtn.style.display = 'block';
+
+  hideWarn('boxWarn');
+  document.getElementById('boxName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function exitBoxEditMode() {
+  _editingBoxIndex = null;
+
+  const titleEl = document.getElementById('boxFormTitle');
+  if (titleEl) titleEl.textContent = T('newBox');
+  const addBtn = document.getElementById('addBoxBtn');
+  if (addBtn) addBtn.textContent = T('boxCreate');
+  const cancelBtn = document.getElementById('cancelEditBoxBtn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+
+  document.getElementById('boxName').value = '';
+  document.getElementById('customDomainInput').value = '';
+  clearCustomTimeInputs();
+  clearDaySelection();
+  stagingCustomDomains = [];
+  renderStagingList();
+  hideWarn('boxWarn');
+}
+
+document.getElementById('cancelEditBoxBtn').addEventListener('click', exitBoxEditMode);
+
 // ── 박스 추가 폼 ──
 document.getElementById('addBoxBtn').addEventListener('click', () => {
   const name      = document.getElementById('boxName').value.trim();
@@ -913,6 +1058,7 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
 
     const overlapIndices = [];
     for (let i = 0; i < boxes.length; i++) {
+      if (i === _editingBoxIndex) continue; // 수정 중인 박스 자기 자신은 겹침 연산에서 제외
       const b = boxes[i];
       const bDays = b.days || [];
       const daysOverlap = days.length === 0 || bDays.length === 0 || days.some(d => bDays.includes(d));
@@ -974,18 +1120,16 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
       return;
     }
 
-    const daysToSave = currentView === 'week' ? days : [null];
-    daysToSave.forEach(day => {
-      boxes.push({ name, startTime, endTime, mode: 'block', days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains] });
-    });
+    if (_editingBoxIndex !== null) {
+      boxes[_editingBoxIndex] = { name, startTime, endTime, mode: 'block', days: currentView === 'week' ? days : [], customDomains: [...stagingCustomDomains] };
+    } else {
+      const daysToSave = currentView === 'week' ? days : [null];
+      daysToSave.forEach(day => {
+        boxes.push({ name, startTime, endTime, mode: 'block', days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains] });
+      });
+    }
     chrome.storage.local.set({ [boxKey]: boxes }, () => {
-      document.getElementById('boxName').value = '';
-      document.getElementById('customDomainInput').value = '';
-      hideWarn('boxWarn');
-      clearCustomTimeInputs();
-      clearDaySelection();
-      stagingCustomDomains = [];
-      renderStagingList();
+      exitBoxEditMode();
       const topMins = timeToMins(startTime);
       const key = getBoxKey();
       chrome.storage.local.get(['generalList', 'permanentList', key], result => {
@@ -1775,6 +1919,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+      // 다른 탭으로 이동 시 박스 수정 모드 종료
+      if (_editingBoxIndex !== null) exitBoxEditMode();
       if (tab.dataset.tab === 'stats') renderStats(_statsPeriod);
     });
   });
@@ -1846,6 +1992,20 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDailyScheduleVisual();
   });
   loadSettings();
+
+  // 스케줄러 섹터(타임테이블) 안에서 박스 이외의 곳을 클릭하면 상세 패널 닫기 + 선택 해제
+  // 범위를 문서 전체가 아닌 이 섹터로 좁힌 이유: 박스 수정 시 폼(다른 섹터)에 입력하는 클릭까지 선택 해제로 이어지면 안 됨
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('weekDetailPanel');
+    if (!panel || panel.style.display !== 'block') return;
+    const sector = document.getElementById('schedulerSector');
+    if (!sector || !sector.contains(e.target)) return; // 스케줄러 섹터 밖 클릭은 무시
+    if (e.target.closest('.tbox')) return; // 박스 자체 클릭은 박스의 클릭 핸들러가 처리
+    if (panel.contains(e.target)) return;  // 패널 내부(주소 추가 등) 클릭은 무시
+    panel.style.display = 'none';
+    panel.dataset.openIndex = '';
+    document.querySelectorAll('.tbox.selected').forEach(el => el.classList.remove('selected'));
+  });
 
   // 입력 시 경고 숨김
   ['generalDomainInput', 'permanentDomainInput', 'customDomainInput', 'boxName']
