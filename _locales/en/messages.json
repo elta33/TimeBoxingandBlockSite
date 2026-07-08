@@ -134,7 +134,6 @@
 
   "settingsBackupTitle": { "message": "Data Backup / Restore" },
   "settingsBackupDesc":  { "message": "Save or load your domain lists, timebox schedules, and settings." },
-  "settingsBackupScope": { "message": "Included: block domain lists (general/permanent), timebox schedules (daily/weekly boxes, daily schedule toggle, week start day), Pomodoro (presets, timer settings, per-cycle overrides, domain list). Excluded: lock PIN, stats/streak history, current Pomodoro run state, popup window position." },
   "exportBtn":           { "message": "Export" },
   "importBtn":           { "message": "Import" },
   "importOverwriteNote": { "message": "Importing will completely overwrite existing data." },
