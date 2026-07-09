@@ -141,6 +141,9 @@
   "noDataToRestore":     { "message": "No settings data to restore." },
   "importSuccess":       { "message": "Settings loaded successfully." },
 
+  "settingsOtherTitle": { "message": "Other Settings" },
+  "darkModeLabel":      { "message": "Dark Mode" },
+
   "pomoTimerSettings": { "message": "Timer Settings" },
   "pomoWorkTime":      { "message": "Work Time" },
   "pomoRestTime":      { "message": "Rest Time" },

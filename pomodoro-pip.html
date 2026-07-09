@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title data-i18n="pipTitle">포모도로 타이머</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles/tokens.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -19,11 +21,11 @@
       padding: 0 16px 14px;
       transition: background 0.45s;
     }
-    body.phase-work   { background: #fff1ee; }
-    body.phase-rest   { background: #f0fff4; }
-    body.phase-done   { background: #fffbf0; }
-    body.preview-work { background: #fff1ee; }
-    body.preview-rest { background: #f0fff4; }
+    body.phase-work   { background: var(--tomato-pale); }
+    body.phase-rest   { background: var(--green-pale); }
+    body.phase-done   { background: var(--amber-pale); }
+    body.preview-work { background: var(--tomato-pale); }
+    body.preview-rest { background: var(--green-pale); }
 
     /* ── 상단 위상 바 ── */
     .phase-bar {
@@ -33,11 +35,11 @@
       transition: background 0.4s;
       margin-bottom: 14px;
     }
-    body.phase-work   .phase-bar { background: #ff6347; }
-    body.phase-rest   .phase-bar { background: #52c41a; }
-    body.phase-done   .phase-bar { background: #faad14; }
-    body.preview-work .phase-bar { background: #ff6347; }
-    body.preview-rest .phase-bar { background: #52c41a; }
+    body.phase-work   .phase-bar { background: var(--tomato); }
+    body.phase-rest   .phase-bar { background: var(--green); }
+    body.phase-done   .phase-bar { background: var(--amber); }
+    body.preview-work .phase-bar { background: var(--tomato); }
+    body.preview-rest .phase-bar { background: var(--green); }
 
     /* ── 타이머 디스플레이 ── */
     .timer-section {
@@ -57,11 +59,11 @@
       transition: color 0.35s;
       margin-bottom: 1px;
     }
-    body.phase-work   #phase-label { color: #ff6347; }
-    body.phase-rest   #phase-label { color: #52c41a; }
-    body.phase-done   #phase-label { color: #faad14; }
-    body.preview-work #phase-label { color: #ff6347; }
-    body.preview-rest #phase-label { color: #52c41a; }
+    body.phase-work   #phase-label { color: var(--tomato); }
+    body.phase-rest   #phase-label { color: var(--green); }
+    body.phase-done   #phase-label { color: var(--amber); }
+    body.preview-work #phase-label { color: var(--tomato); }
+    body.preview-rest #phase-label { color: var(--green); }
 
     #time-display {
       font-size: 3.1rem; font-weight: 700;
@@ -79,8 +81,8 @@
 
     #custom-badge {
       display: none; flex-shrink: 0; margin-top: 8px; padding: 2px 9px; border-radius: 20px;
-      background: #e6f7ff; border: 1px solid #91d5ff;
-      color: #0050b3; font-size: 0.58rem; font-weight: 700;
+      background: var(--blue-pale); border: 1px solid var(--blue-border);
+      color: var(--blue-dark); font-size: 0.58rem; font-weight: 700;
     }
 
     /* ── 구분선 ── */
@@ -102,11 +104,11 @@
     .ctrl-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 
     #startBtn { background: #111; color: #fff; }
-    body.phase-work   #startBtn { background: #ff6347; }
-    body.phase-rest   #startBtn { background: #52c41a; }
+    body.phase-work   #startBtn { background: var(--tomato); }
+    body.phase-rest   #startBtn { background: var(--green); }
     body.phase-done   #startBtn { background: #f5f5f5; color: #bbb; }
-    body.preview-work #startBtn { background: #ff6347; }
-    body.preview-rest #startBtn { background: #52c41a; }
+    body.preview-work #startBtn { background: var(--tomato); }
+    body.preview-rest #startBtn { background: var(--green); }
 
     #stopBtn { background: #f5f5f5; color: #999; }
 
@@ -142,11 +144,32 @@
     .aot-switch { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 0.68rem; color: #555; }
     .aot-switch input { display: none; }
     .aot-track { width: 30px; height: 17px; background: #ddd; border-radius: 9px; position: relative; flex-shrink: 0; transition: background 0.2s; }
-    .aot-switch input:checked + .aot-track { background: #ff6347; }
+    .aot-switch input:checked + .aot-track { background: var(--tomato); }
     .aot-thumb { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 0.2s; }
     .aot-switch input:checked + .aot-track .aot-thumb { left: 15px; }
     .aot-switch input:disabled + .aot-track { opacity: 0.3; cursor: not-allowed; }
-    .aot-warn { color: tomato; font-size: 0.6rem; margin-top: 4px; line-height: 1.4; }
+    .aot-warn { color: var(--tomato); font-size: 0.6rem; margin-top: 4px; line-height: 1.4; }
+
+    /* ══════════════ 다크모드 ══════════════
+       phase-* 바디 배경은 var(--tomato-pale) 등 토큰을 쓰고 있어 tokens.css의
+       다크 오버라이드로 이미 자동 조정됨. 여기서는 순수 회색조만 다룬다. */
+    :root[data-theme="dark"] body { background: #121212; color: #ccc; }
+    :root[data-theme="dark"] .phase-bar { background: #2a2a2a; }
+    :root[data-theme="dark"] #phase-label { color: #555; }
+    :root[data-theme="dark"] #time-display { color: #f0f0f0; }
+    :root[data-theme="dark"] #cycle-label { color: #555; }
+    :root[data-theme="dark"] body.phase-work #cycle-label, :root[data-theme="dark"] body.phase-rest #cycle-label,
+    :root[data-theme="dark"] body.preview-work #cycle-label, :root[data-theme="dark"] body.preview-rest #cycle-label { color: #8a8a8a; }
+    :root[data-theme="dark"] .divider { background: #262626; }
+    :root[data-theme="dark"] #startBtn { background: #e8e8e8; color: #121212; }
+    :root[data-theme="dark"] body.phase-done #startBtn { background: #262626; color: #555; }
+    :root[data-theme="dark"] #stopBtn { background: #262626; color: #7a7a7a; }
+    :root[data-theme="dark"] .setting-label { color: #9a9a9a; }
+    :root[data-theme="dark"] .num-btn { background: #262626; color: #a0a0a0; }
+    :root[data-theme="dark"] .num-val { color: #f0f0f0; }
+    :root[data-theme="dark"] .unit { color: #7a7a7a; }
+    :root[data-theme="dark"] .aot-switch { color: #a0a0a0; }
+    :root[data-theme="dark"] .aot-track { background: #3a3a3a; }
   </style>
 </head>
 <body>

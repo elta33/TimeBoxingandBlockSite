@@ -141,6 +141,9 @@
   "noDataToRestore":     { "message": "복원할 설정 데이터가 없습니다." },
   "importSuccess":       { "message": "설정을 불러왔습니다." },
 
+  "settingsOtherTitle": { "message": "기타 설정" },
+  "darkModeLabel":      { "message": "다크 모드" },
+
   "pomoTimerSettings": { "message": "타이머 설정" },
   "pomoWorkTime":      { "message": "작업 시간" },
   "pomoRestTime":      { "message": "휴식 시간" },

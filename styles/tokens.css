@@ -1,0 +1,63 @@
+/* ── TBB 공용 컬러 토큰 ──
+   options.html / popup.html / block.html / pomodoro-pip.html 4개 화면이
+   전부 이 파일을 <link>로 불러온다. 브랜드/상태 색을 바꿀 땐 반드시 여기서만
+   수정할 것 — 각 화면의 <style> 안에 같은 값을 새로 하드코딩하지 말 것.
+
+   범위는 의도적으로 "상태를 표현하는 브랜드 색"으로 한정했다(빨강/파랑/초록/노랑
+   계열). 회색조(#111~#fff)는 화면마다 쓰임새가 제각각이라 변수화해도 얻는 이득이
+   적어 이번 리팩터에서는 제외함. */
+:root {
+  /* tomato — 위험/차단/삭제 계열 */
+  --tomato: #ff6347;
+  --tomato-hover: #e5533a;
+  --tomato-deep: #c73e24;
+  --tomato-locked: #8a3524;
+  --tomato-muted: #ffab91;
+  --tomato-light: #ffd6c9;
+  --tomato-mid: #ff8563;
+  --tomato-pale: #fff1ee;
+  --tomato-text: #b23a1e;
+
+  /* blue — 강조/정보/포커스 배지 계열 */
+  --blue: #1890ff;
+  --blue-dark: #0050b3;
+  --blue-pale: #e6f7ff;
+  --blue-border: #91d5ff;
+
+  /* green — 허용/성공 계열 */
+  --green: #52c41a;
+  --green-hover: #47b312;
+  --green-pale: #f0fff4;
+  --green-pale-border: #c6f6d5;
+
+  /* amber — 스트릭/경고/완료 계열 */
+  --amber: #faad14;
+  --amber-pale: #fffbf0;
+  --amber-pale-border: #fde68a;
+}
+
+/* ── 다크모드 오버라이드 ──
+   options.html/popup.html/pomodoro-pip.html이 <html data-theme="dark">를 세팅하면
+   여기 재정의된 값을 쓴다(캐스케이드로 위 :root 값을 덮어씀). block.html은 이
+   속성을 세팅하는 스크립트를 로드하지 않으므로(이미 자체 다크 오버레이 테마라
+   토글과 무관) 아래 블록의 영향을 받지 않는다.
+
+   base 색(--tomato, --green, --amber, --blue 등)은 채도가 충분해 다크 배경에서도
+   그대로 읽히므로 유지. "pale/light/border" 계열만 밝은 배경 전제로 만들어져
+   다크 배경에서 거의 흰색처럼 튀거나 위에 얹는 텍스트와 대비가 무너지므로
+   재정의한다. */
+:root[data-theme="dark"] {
+  --tomato-light: #4a2b22;
+  --tomato-pale: #2a1712;
+  --tomato-text: #ff9d7f;
+
+  --blue-dark: #6cb8ff;
+  --blue-pale: #12283a;
+  --blue-border: #2f5c82;
+
+  --green-pale: #132018;
+  --green-pale-border: #24402c;
+
+  --amber-pale: #241f0c;
+  --amber-pale-border: #4a3e17;
+}

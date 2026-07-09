@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Focus Timeboxer</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles/tokens.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -55,7 +57,7 @@
       font-size: 14px; padding: 3px 8px; border-radius: 5px;
       font-weight: 500; flex-shrink: 0; white-space: nowrap;
     }
-    .p-badge-permanent { background: #fff1ee; border: 1px solid #ffd6c9; color: #b23a1e; }
+    .p-badge-permanent { background: var(--tomato-pale); border: 1px solid var(--tomato-light); color: var(--tomato-text); }
     .p-badge-general   { background: #fffbe6; border: 1px solid #ffe58f; color: #875500; }
 
     /* ── 하루 스케줄 토글 ── */
@@ -67,7 +69,7 @@
       transition: background 0.2s; flex-shrink: 0; outline: none;
     }
     .p-switch-track:focus-visible { box-shadow: 0 0 0 2px #bbb; }
-    .p-switch-track.on { background: #ff6347; }
+    .p-switch-track.on { background: var(--tomato); }
     .p-switch-thumb {
       position: absolute; top: 2px; left: 2px;
       width: 14px; height: 14px; border-radius: 50%;
@@ -76,7 +78,7 @@
     }
     .p-switch-track.on .p-switch-thumb { left: 16px; }
     .p-toggle-lbl { font-size: 14px; color: #bbb; transition: color 0.2s; }
-    .p-toggle-lbl.active { color: #ff6347; font-weight: 500; }
+    .p-toggle-lbl.active { color: var(--tomato); font-weight: 500; }
 
     /* ── 스케줄 섹션 ── */
     #scheduleSection { border-bottom: none; transition: opacity 0.2s; }
@@ -86,16 +88,16 @@
     .p-box-card {
       background: #f8f8f8; border: 1px solid #ebebeb; border-radius: 7px; padding: 8px 10px;
     }
-    .p-box-card.active { background: #fff1ee; border-color: #ffd6c9; }
+    .p-box-card.active { background: var(--tomato-pale); border-color: var(--tomato-light); }
     .p-box-card-top { display: flex; align-items: center; gap: 6px; }
-    .p-box-dot { width: 7px; height: 7px; border-radius: 50%; background: #ff6347; flex-shrink: 0; }
-    .p-box-dot.dim { background: #ffab91; }
+    .p-box-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tomato); flex-shrink: 0; }
+    .p-box-dot.dim { background: var(--tomato-muted); }
     .p-box-name {
-      font-size: 17px; font-weight: 500; color: #b23a1e;
+      font-size: 17px; font-weight: 500; color: var(--tomato-text);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
     }
     .p-box-name.dim { color: #333; font-weight: 400; }
-    .p-box-time-active { font-size: 14px; color: #b23a1e; opacity: 0.75; margin-top: 3px; margin-left: 13px; }
+    .p-box-time-active { font-size: 14px; color: var(--tomato-text); opacity: 0.75; margin-top: 3px; margin-left: 13px; }
 
     /* ── 다음 박스 행 ── */
     .p-box-row {
@@ -121,6 +123,30 @@
     /* ── 기타 ── */
     .p-empty { font-size: 16px; color: #ccc; text-align: center; padding: 10px 0; }
     .p-upcoming-label { margin-top: 10px; }
+
+    /* ══════════════ 다크모드 ══════════════
+       options.html과 동일한 방식: <html data-theme="dark">일 때만 적용되는
+       오버라이드를 맨 끝에 별도로 쌓는다. tomato-pale 등 토큰 배경은
+       styles/tokens.css의 다크 오버라이드로 이미 자동 처리됨. */
+    :root[data-theme="dark"] body { background: #121212; color: #e0e0e0; }
+    :root[data-theme="dark"] .p-header { border-bottom-color: #262626; }
+    :root[data-theme="dark"] .p-settings-btn { color: #6a6a6a; }
+    :root[data-theme="dark"] .p-settings-btn:hover { color: #d8d8d8; }
+    :root[data-theme="dark"] .p-section { border-bottom-color: #262626; }
+    :root[data-theme="dark"] .p-section-label { color: #7a7a7a; }
+    :root[data-theme="dark"] .p-add-btn { background: #1c1c1c; border-color: #3a3a3a; color: #aaa; }
+    :root[data-theme="dark"] .p-add-btn:hover { background: #262626; }
+    :root[data-theme="dark"] .p-badge-general { background: #2e2812; border-color: #4a3e17; color: #e0b84d; }
+    :root[data-theme="dark"] .p-switch-track { background: #3a3a3a; }
+    :root[data-theme="dark"] .p-toggle-lbl { color: #5e5e5e; }
+    :root[data-theme="dark"] .p-box-card { background: #1c1c1c; border-color: #2a2a2a; }
+    :root[data-theme="dark"] .p-box-name.dim { color: #d0d0d0; }
+    :root[data-theme="dark"] .p-box-row { background: #1c1c1c; }
+    :root[data-theme="dark"] .p-box-row-name { color: #d0d0d0; }
+    :root[data-theme="dark"] .p-box-row-time { color: #7a7a7a; }
+    :root[data-theme="dark"] .p-badge-daily { background: #10233a; color: #6cb8ff; }
+    :root[data-theme="dark"] .p-badge-weekly { background: #241a33; color: #b98ff0; }
+    :root[data-theme="dark"] .p-empty { color: #555; }
   </style>
 </head>
 <body>

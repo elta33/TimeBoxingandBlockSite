@@ -471,7 +471,7 @@ function renderWeekDetailPanel(box, boxIndex) {
   wPopupRow.appendChild(wPopupConfirmBtn);
 
   const wPopupWarn = document.createElement('div');
-  wPopupWarn.style.cssText = 'font-size:0.78rem;color:#ff6347;margin-top:5px;display:none;font-weight:600;';
+  wPopupWarn.style.cssText = 'font-size:0.78rem;color:var(--tomato);margin-top:5px;display:none;font-weight:600;';
   wAddDomainPopup.appendChild(wPopupRow);
   wAddDomainPopup.appendChild(wPopupWarn);
   wAddPopupWrap.appendChild(wAddDomainPopup);
@@ -1783,7 +1783,7 @@ function _renderStreakCalendar(allEvents, streak) {
     }
 
     if (isToday) {
-      cell.style.outline = '2px solid #1890ff';
+      cell.style.outline = '2px solid var(--blue)';
       cell.style.outlineOffset = '-1px';
       cell.style.borderRadius = '2px';
     }
@@ -1978,6 +1978,20 @@ document.addEventListener('DOMContentLoaded', () => {
     dailyScheduleEnabled = !e.target.checked;
     chrome.storage.local.set({ dailyScheduleEnabled });
     applyDailyScheduleVisual();
+  });
+
+  // 다크모드 토글
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  chrome.storage.local.get(['darkModeEnabled'], result => {
+    if (darkModeToggle) darkModeToggle.checked = !!result.darkModeEnabled;
+  });
+  darkModeToggle?.addEventListener('change', e => {
+    chrome.storage.local.set({ darkModeEnabled: e.target.checked });
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.darkModeEnabled && darkModeToggle) {
+      darkModeToggle.checked = !!changes.darkModeEnabled.newValue;
+    }
   });
 
   function updateWeekStartToggleVisibility() {

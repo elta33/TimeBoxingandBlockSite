@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title data-i18n="blockPageTitle">접속 차단됨</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/components.css">
   <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; }
@@ -50,7 +52,7 @@
     h1 {
       font-size: 2rem;
       margin: 0 0 28px;
-      color: #ff6347;
+      color: var(--tomato);
       text-shadow: 0 2px 12px rgba(0,0,0,0.6);
     }
 
@@ -175,7 +177,7 @@
     }
     .cust-clear-all {
       font-size: 0.73rem;
-      color: #ff6347;
+      color: var(--tomato);
       background: none; border: none;
       cursor: pointer; padding: 2px 7px;
       border-radius: 4px;
@@ -241,7 +243,7 @@
       width: 22px; height: 22px;
       background: rgba(255,99,71,0.12);
       border: none; border-radius: 4px;
-      color: #ff6347; font-size: 0.9rem; line-height: 1;
+      color: var(--tomato); font-size: 0.9rem; line-height: 1;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: background 0.15s;
@@ -421,7 +423,7 @@
     .cust-item.sel-disabled  { opacity: 0.2 !important; cursor: not-allowed !important; }
     .cust-item.sel-selected  { outline: 2px solid rgba(99,179,237,0.85); background: rgba(99,179,237,0.1); opacity: 1 !important; }
 
-    .reason-keyword { color: #ff6347; }
+    .reason-keyword { color: var(--tomato); }
 
     /* ──────────────── 이미지 미리보기 팝업 ──────────────── */
     #img-preview-backdrop {
@@ -440,7 +442,12 @@
       box-shadow: 0 0 60px rgba(0,0,0,0.8);
     }
 
-    /* ──────────────── Todo 패널 (dark) ──────────────── */
+    /* ──────────────── Todo 패널 (dark) ────────────────
+       공용 구조(치수/레이아웃/애니메이션)는 styles/components.css에서 상속받고,
+       여기서는 다크 테마에만 필요한 색상/테두리/그림자/z-index 차이만 오버라이드한다.
+       #todoTrigger는 라이트 테마(options.html)와 배치 방식 자체가 달라(옵션: 항상
+       fixed로 떠있음, 여기: 버튼 행에 정적으로 있다가 드래그해야 fixed로 전환)
+       공용 파일로 옮기지 않고 그대로 둔다. */
     /* 기본 상태: btn-row의 세 번째 버튼으로 자연스럽게 배치됨 (position은 정적) */
     #todoTrigger {
       display: flex;
@@ -453,113 +460,48 @@
       touch-action: none;
     }
     /* 드래그로 위치를 옮기면 JS가 position:fixed로 전환해 자유롭게 배치됨 */
-    .todo-trigger-icon { font-size: 1rem; line-height: 1; }
-    .todo-trigger-count {
-      display: inline-flex; align-items: center; justify-content: center;
-      min-width: 18px; height: 18px; background: #ff6347; color: #fff;
-      border-radius: 9px; font-size: 0.68rem; font-weight: 700; padding: 0 4px; line-height: 1;
-    }
     #todoPopup {
-      position: fixed;
-      width: 280px; max-height: 440px;
-      background: #1e1e2e; border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 14px; box-shadow: 0 8px 36px rgba(0,0,0,0.55);
-      display: flex; flex-direction: column;
-      z-index: 160; overflow: hidden; color: #fff;
-      visibility: hidden; opacity: 0; transform: scale(0.08);
-      transform-origin: top right;
-      transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34,1.4,0.64,1), visibility 0s linear 0.25s;
+      background: #1e1e2e; border-color: rgba(255,255,255,0.12);
+      box-shadow: 0 8px 36px rgba(0,0,0,0.55);
+      z-index: 160; color: #fff;
     }
     #todoDonePopup {
-      position: fixed;
-      width: 280px; max-height: 300px;
-      background: #1e1e2e; border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 14px; box-shadow: 0 8px 36px rgba(0,0,0,0.55);
-      display: flex; flex-direction: column;
-      z-index: 158; overflow: hidden; color: #fff;
-      visibility: hidden; opacity: 0; transform: scale(0.08);
-      transform-origin: top right;
-      transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34,1.4,0.64,1), visibility 0s linear 0.25s;
+      background: #1e1e2e; border-color: rgba(255,255,255,0.12);
+      box-shadow: 0 8px 36px rgba(0,0,0,0.55);
+      z-index: 158; color: #fff;
     }
-    #todoPopup.todo-popup-open,
-    #todoDonePopup.todo-popup-open {
-      visibility: visible; opacity: 1; transform: scale(1);
-      transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34,1.4,0.64,1), visibility 0s;
-    }
-    .todo-popup-header {
-      display: flex; align-items: center; padding: 12px 14px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.08); gap: 8px; flex-shrink: 0;
-    }
-    .todo-popup-title { font-size: 0.92rem; font-weight: 700; color: rgba(255,255,255,0.92); flex: 1; }
+    .todo-popup-header { border-bottom-color: rgba(255,255,255,0.08); }
+    .todo-popup-title { color: rgba(255,255,255,0.92); }
     .todo-badge-btn {
-      font-size: 0.7rem; font-weight: 600; color: #7ec8f0;
-      background: rgba(99,179,237,0.12); border: 1px solid rgba(99,179,237,0.28);
-      border-radius: 10px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0;
-      cursor: pointer; font-family: inherit; line-height: 1.4; transition: background 0.12s;
+      color: #7ec8f0;
+      background: rgba(99,179,237,0.12); border-color: rgba(99,179,237,0.28);
     }
     .todo-badge-btn:hover { background: rgba(99,179,237,0.25); }
-    .todo-close-btn {
-      width: 22px; height: 22px; border: none; background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.55); border-radius: 50%; font-size: 1rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.12s, color 0.12s;
-      padding: 0; flex-shrink: 0; font-family: inherit; line-height: 1;
-    }
+    .todo-close-btn { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); }
     .todo-close-btn:hover { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.9); }
-    .todo-input-row {
-      display: flex; gap: 6px; padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
-    }
+    .todo-input-row { border-bottom-color: rgba(255,255,255,0.07); }
     .todo-input-row input[type="text"] {
-      flex: 1; min-width: 0; padding: 7px 10px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 7px; font-size: 0.85rem; font-family: inherit; color: #fff;
-      outline: none; transition: border-color 0.15s, background 0.15s;
+      background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); color: #fff;
     }
     .todo-input-row input[type="text"]::placeholder { color: rgba(255,255,255,0.3); }
     .todo-input-row input[type="text"]:focus {
       border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.09);
     }
     .todo-add-btn {
-      padding: 7px 11px; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.88);
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 7px;
-      font-size: 0.82rem; font-weight: 600; cursor: pointer;
-      font-family: inherit; transition: background 0.12s; white-space: nowrap; flex-shrink: 0;
+      background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.88);
+      border: 1px solid rgba(255,255,255,0.2);
     }
     .todo-add-btn:hover { background: rgba(255,255,255,0.22); }
-    .todo-list-meta {
-      display: flex; justify-content: flex-end; align-items: center;
-      padding: 5px 14px 2px; flex-shrink: 0;
-    }
-    .todo-list-meta-btn {
-      font-size: 0.72rem; color: #ff6347; background: none; border: none;
-      cursor: pointer; padding: 2px 6px; border-radius: 4px;
-      font-family: inherit; font-weight: 600; transition: background 0.12s;
-    }
     .todo-list-meta-btn:hover { background: rgba(255,99,71,0.18); }
-    .todo-list {
-      flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0;
-      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent;
-    }
-    .todo-list::-webkit-scrollbar { width: 4px; }
-    .todo-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
-    .todo-empty { text-align: center; padding: 28px 0; color: rgba(255,255,255,0.25); font-size: 0.82rem; }
-    .todo-item { display: flex; align-items: center; gap: 8px; padding: 7px 14px; transition: background 0.1s; }
+    .todo-list { scrollbar-color: rgba(255,255,255,0.12) transparent; }
+    .todo-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+    .todo-empty { color: rgba(255,255,255,0.25); }
     .todo-item:hover { background: rgba(255,255,255,0.05); }
-    .todo-cb { flex-shrink: 0; width: 15px; height: 15px; cursor: pointer; accent-color: #7ec8f0; margin: 0; }
-    .todo-text {
-      flex: 1; min-width: 0; font-size: 0.85rem; color: rgba(255,255,255,0.82);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .todo-item.todo-done .todo-text { color: rgba(255,255,255,0.28); text-decoration: line-through; }
-    .todo-del {
-      flex-shrink: 0; width: 20px; height: 20px; background: none; border: none;
-      color: rgba(255,255,255,0.3); font-size: 1rem; cursor: pointer; border-radius: 3px; padding: 0;
-      display: flex; align-items: center; justify-content: center;
-      transition: color 0.12s, background 0.12s; opacity: 0; font-family: inherit; line-height: 1;
-    }
-    .todo-item:hover .todo-del { opacity: 1; }
-    .todo-del:hover { color: #ff6347; background: rgba(255,99,71,0.15); }
+    .todo-cb { accent-color: #7ec8f0; }
+    .todo-text { color: rgba(255,255,255,0.82); }
+    .todo-item.todo-done .todo-text { color: rgba(255,255,255,0.28); }
+    .todo-del { color: rgba(255,255,255,0.3); }
+    .todo-del:hover { background: rgba(255,99,71,0.15); }
   </style>
 </head>
 <body>

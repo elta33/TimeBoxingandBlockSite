@@ -55,7 +55,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       fullBg.setAttribute('cx', CX); fullBg.setAttribute('cy', CY);
       fullBg.setAttribute('r', (R_OUTER + R_INNER) / 2);
       fullBg.setAttribute('fill', 'none');
-      fullBg.setAttribute('stroke', '#f0f0f0');
+      fullBg.setAttribute('stroke', 'var(--donut-track)');
       fullBg.setAttribute('stroke-width', R_OUTER - R_INNER);
       bgGroup.appendChild(fullBg);
       return;
@@ -69,7 +69,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       arc.setAttribute('d', pathD);
       arc.setAttribute('fill', 'none');
-      arc.setAttribute('stroke', '#f0f0f0');
+      arc.setAttribute('stroke', 'var(--donut-track)');
       arc.setAttribute('stroke-width', R_OUTER - R_INNER);
       bgGroup.appendChild(arc);
     });
@@ -97,7 +97,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     tick.setAttribute('x1', tickStart.x); tick.setAttribute('y1', tickStart.y);
     tick.setAttribute('x2', tickEnd.x);   tick.setAttribute('y2', tickEnd.y);
-    tick.setAttribute('stroke', isMajor ? '#bbb' : '#ddd');
+    tick.setAttribute('stroke', isMajor ? 'var(--donut-tick-major)' : 'var(--donut-tick-minor)');
     tick.setAttribute('stroke-width', isMajor ? 1.5 : 1);
     svg.appendChild(tick);
 
@@ -106,7 +106,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       txt.setAttribute('x', lp.x); txt.setAttribute('y', lp.y);
       txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('dominant-baseline', 'middle');
-      txt.setAttribute('font-size', '11'); txt.setAttribute('fill', '#aaa');
+      txt.setAttribute('font-size', '11'); txt.setAttribute('fill', 'var(--donut-tick-label)');
       txt.setAttribute('font-family', 'inherit');
       txt.textContent = `${String(h).padStart(2,'0')}`;
       svg.appendChild(txt);
@@ -133,7 +133,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       nameEl.setAttribute('x', CX); nameEl.setAttribute('y', CY - 18);
       nameEl.setAttribute('text-anchor', 'middle'); nameEl.setAttribute('dominant-baseline', 'middle');
       nameEl.setAttribute('font-size', '15'); nameEl.setAttribute('font-weight', 'bold');
-      nameEl.setAttribute('fill', '#ff6347');
+      nameEl.setAttribute('fill', 'var(--tomato)');
       nameEl.setAttribute('font-family', 'inherit');
       nameEl.textContent = box.name.length > 10 ? box.name.slice(0, 10) + '…' : box.name;
       centerGroup.appendChild(nameEl);
@@ -141,7 +141,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       const timeEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       timeEl.setAttribute('x', CX); timeEl.setAttribute('y', CY + 8);
       timeEl.setAttribute('text-anchor', 'middle'); timeEl.setAttribute('dominant-baseline', 'middle');
-      timeEl.setAttribute('font-size', '13'); timeEl.setAttribute('fill', '#555');
+      timeEl.setAttribute('font-size', '13'); timeEl.setAttribute('fill', 'var(--donut-time-label)');
       timeEl.setAttribute('font-family', 'inherit');
       timeEl.textContent = `${box.startTime} – ${box.endTime}`;
       centerGroup.appendChild(timeEl);
@@ -150,7 +150,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       modeEl.setAttribute('x', CX); modeEl.setAttribute('y', CY + 30);
       modeEl.setAttribute('text-anchor', 'middle'); modeEl.setAttribute('dominant-baseline', 'middle');
       modeEl.setAttribute('font-size', '11');
-      modeEl.setAttribute('fill', '#ff6347');
+      modeEl.setAttribute('fill', 'var(--tomato)');
       modeEl.setAttribute('font-family', 'inherit');
       modeEl.textContent = T('donutBlockBox');
       centerGroup.appendChild(modeEl);
@@ -162,14 +162,14 @@ function renderDayView(boxes, wrap, onEditBox) {
       dayEl.setAttribute('x', CX); dayEl.setAttribute('y', CY - 12);
       dayEl.setAttribute('text-anchor', 'middle'); dayEl.setAttribute('dominant-baseline', 'middle');
       dayEl.setAttribute('font-size', '16'); dayEl.setAttribute('font-weight', 'bold');
-      dayEl.setAttribute('fill', '#333'); dayEl.setAttribute('font-family', 'inherit');
+      dayEl.setAttribute('fill', 'var(--donut-day-label)'); dayEl.setAttribute('font-family', 'inherit');
       dayEl.textContent = `${mm}-${dd}`;
       centerGroup.appendChild(dayEl);
 
       const hintEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       hintEl.setAttribute('x', CX); hintEl.setAttribute('y', CY + 12);
       hintEl.setAttribute('text-anchor', 'middle'); hintEl.setAttribute('dominant-baseline', 'middle');
-      hintEl.setAttribute('font-size', '12'); hintEl.setAttribute('fill', '#bbb');
+      hintEl.setAttribute('font-size', '12'); hintEl.setAttribute('fill', 'var(--donut-hint)');
       hintEl.setAttribute('font-family', 'inherit');
       hintEl.textContent = T('donutSelectHint');
       centerGroup.appendChild(hintEl);
@@ -188,7 +188,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', innerPt.x); line.setAttribute('y1', innerPt.y);
     line.setAttribute('x2', outerPt.x); line.setAttribute('y2', outerPt.y);
-    line.setAttribute('stroke', '#faad14');
+    line.setAttribute('stroke', 'var(--amber)');
     line.setAttribute('stroke-width', '2.5');
     line.setAttribute('stroke-linecap', 'round');
     clockGroup.appendChild(line);
@@ -203,7 +203,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     const badgeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     badgeRect.setAttribute('x', lp.x - textW / 2); badgeRect.setAttribute('y', lp.y - textH / 2);
     badgeRect.setAttribute('width', textW); badgeRect.setAttribute('height', textH);
-    badgeRect.setAttribute('rx', 5); badgeRect.setAttribute('fill', '#faad14');
+    badgeRect.setAttribute('rx', 5); badgeRect.setAttribute('fill', 'var(--amber)');
     clockGroup.appendChild(badgeRect);
 
     const badgeTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -273,7 +273,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     addDomainPopup.style.cssText = [
       'display:none;position:absolute;z-index:200;',
       'top:calc(100% + 6px);left:0;',
-      'background:#fff;border:1px solid #ddd;border-radius:8px;',
+      'background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;',
       'box-shadow:0 4px 16px rgba(0,0,0,0.13);',
       'padding:10px 12px;min-width:260px;'
     ].join('');
@@ -281,7 +281,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     const popupInput = document.createElement('input');
     popupInput.type = 'text';
     popupInput.placeholder = T('placeholderGithub');
-    popupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
+    popupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid var(--panel-border);border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
 
     const popupConfirmBtn = document.createElement('button');
     popupConfirmBtn.className = 'btn btn-sm';
@@ -294,7 +294,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     popupRow.appendChild(popupConfirmBtn);
 
     const popupWarn = document.createElement('div');
-    popupWarn.style.cssText = 'font-size:0.78rem;color:#ff6347;margin-top:5px;display:none;font-weight:600;';
+    popupWarn.style.cssText = 'font-size:0.78rem;color:var(--tomato);margin-top:5px;display:none;font-weight:600;';
     addDomainPopup.appendChild(popupRow);
     addDomainPopup.appendChild(popupWarn);
     addPopupWrap.appendChild(addDomainPopup);
@@ -475,7 +475,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     const startM = timeToMins(box.startTime);
     let endM = timeToMins(box.endTime);
     if (endM <= startM) endM += TOTAL_MINS;
-    const color = '#ff6347';
+    const color = 'var(--tomato)';
 
     let seg;
     if (endM - startM >= TOTAL_MINS) {
