@@ -845,7 +845,8 @@ function renderWeekView(boxes, wrap, scrollToMins) {
   headerRow.className = 'week-header-row';
   headerRow.style.gridTemplateColumns = '52px repeat(7, 1fr)';
   const cornerCell = document.createElement('div');
-  cornerCell.style.cssText = 'width:52px;border-right:1px solid #e8e8e8;background:#fafafa;';
+  cornerCell.className = 'week-corner-cell';
+  cornerCell.style.width = '52px';
   headerRow.appendChild(cornerCell);
   weekOrder.forEach(({ label, fullLabel, dow }) => {
     const internalDow = dow === 0 ? 6 : dow - 1;
@@ -1215,8 +1216,6 @@ function updateDailyToggleVisibility() {
 // ── 통계 탭 ──
 
 let _statsPeriod = 'today';
-let _streakCalPopover = null;
-let _streakCalHideTimer = null;
 
 function _statsTodayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -1302,7 +1301,9 @@ function _renderBlockBarChart(allEvents, period) {
     bar.style.width = days <= 7 ? '50px' : '100%';
     bar.dataset.targetHeight = targetH;
 
-    if (focusMins > 0) {
+    // 30일 뷰는 막대 폭이 좁아 상시 라벨끼리 겹치므로, 이미 같은 정보를
+    // 더 자세히 보여주는 호버 팝오버(stats-bar-popover)에 맡기고 여기선 생략한다.
+    if (focusMins > 0 && days <= 7) {
       const tip = document.createElement('span');
       tip.className = 'stats-bar-tooltip';
       tip.textContent = _statsFormatMins(focusMins);
@@ -1582,7 +1583,7 @@ function _renderHeatmap(allEvents, period) {
     const barH = v > 0 ? Math.max(minH, (v / maxVal) * cH) : minH * 0.4;
     const y = baseY - barH;
     const isPeak = v > 0 && h === peakH;
-    const barFill = isPeak ? '#0d2a4a' : '#8aa9bd';
+    const barFill = isPeak ? 'var(--heatmap-bar-peak)' : 'var(--heatmap-bar)';
 
     const rect = mk('rect', {
       x: (cx - barW / 2).toFixed(1),
@@ -1634,10 +1635,13 @@ function _renderHeatmap(allEvents, period) {
 }
 
 function _renderStreakCalendar(allEvents, streak) {
-  const card = document.querySelector('.stats-hero-card.stats-streak');
-  if (!card) return;
+  const container = document.getElementById('streakCalSector');
+  if (!container) return;
 
-  const WEEKS = 13;
+  // 그리드가 이제 섹터 전체 폭을 그대로 쓰므로(좌우 분할 폐지), solved.ac처럼
+  // 거의 1년 치를 보여줄 수 있을 만큼 주 수를 넉넉히 잡는다. 실제 렌더 폭이
+  // 예상과 달라 넘치더라도 .scal-calendar-col의 overflow-x:auto가 받아준다.
+  const WEEKS = 40;
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
@@ -1679,58 +1683,39 @@ function _renderStreakCalendar(allEvents, streak) {
     }
   }
 
-  // 팝오버 첫 생성
-  if (!_streakCalPopover) {
-    _streakCalPopover = document.createElement('div');
-    _streakCalPopover.className = 'streak-cal-popover';
-    document.body.appendChild(_streakCalPopover);
-
-    const showCal = () => {
-      clearTimeout(_streakCalHideTimer);
-      _streakCalPopover.style.display = 'block';
-      _streakCalPopover.style.animation = 'none';
-      requestAnimationFrame(() => {
-        const rect = card.getBoundingClientRect();
-        const pw = _streakCalPopover.offsetWidth;  // reflow → animation:none 확정
-        const ph = _streakCalPopover.offsetHeight;
-        let left = rect.left + rect.width / 2 - pw / 2;
-        let top = rect.top - ph - 10;
-        left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
-        if (top < 8) top = rect.bottom + 10;
-        _streakCalPopover.style.left = left + 'px';
-        _streakCalPopover.style.top = top + 'px';
-        _streakCalPopover.style.animation = 'streakCalFadeIn 0.22s cubic-bezier(0.34,1.4,0.64,1) both';
-      });
-    };
-    const hideCal = () => {
-      _streakCalHideTimer = setTimeout(() => { _streakCalPopover.style.display = 'none'; }, 120);
-    };
-
-    card.addEventListener('mouseenter', showCal);
-    card.addEventListener('mouseleave', hideCal);
-    _streakCalPopover.addEventListener('mouseenter', () => clearTimeout(_streakCalHideTimer));
-    _streakCalPopover.addEventListener('mouseleave', hideCal);
-  }
-
   // 내용 재구성
-  _streakCalPopover.innerHTML = '';
+  container.innerHTML = '';
 
-  // 타이틀 행
-  const titleRow = document.createElement('div');
-  titleRow.className = 'scal-title-row';
-  const titleEl = document.createElement('span');
-  titleEl.className = 'scal-title';
-  titleEl.textContent = '스트릭 달력';
-  const badge = document.createElement('span');
-  badge.className = 'scal-streak-badge';
-  badge.textContent = streak.current > 0 ? `🔥 ${streak.current}일 연속` : '기록을 시작하세요!';
-  titleRow.append(titleEl, badge);
-  _streakCalPopover.appendChild(titleRow);
+  // 상단 — 삭제된 히어로 카드가 보여주던 "현재 스트릭" 수치를 크게 표시.
+  // 섹터 타이틀(예: "📅 스트릭 달력")은 위아래 여백만 늘려서 뺐다 — 아래
+  // "🔥 연속 집중 스트릭" eyebrow 라벨이 사실상 같은 역할을 한다.
+  // solved.ac 스트릭 달력처럼 큰 숫자 → 전체 폭 그리드 순서로 세로 배치.
+  const top = document.createElement('div');
+  top.className = 'scal-top';
+  const eyebrowEl = document.createElement('div');
+  eyebrowEl.className = 'scal-eyebrow';
+  eyebrowEl.textContent = '🔥 연속 집중 스트릭';
+  const valueEl = document.createElement('div');
+  valueEl.className = 'scal-stats-value';
+  const valueNum = document.createElement('span');
+  valueNum.textContent = String(streak.current);
+  const valueUnit = document.createElement('span');
+  valueUnit.className = 'scal-stats-unit';
+  valueUnit.textContent = '일째';
+  valueEl.append(valueNum, valueUnit);
+  top.append(eyebrowEl, valueEl);
+  container.appendChild(top);
+
+  // 달력 컬럼(섹터 전체 폭 사용)
+  const calCol = document.createElement('div');
+  calCol.className = 'scal-calendar-col';
+
+  const PITCH = 23; // 칸 20px + gap 3px (CSS .scal-cell/.scal-days/.scal-grid와 짝 맞출 것)
 
   // 월 레이블
   const monthsEl = document.createElement('div');
   monthsEl.className = 'scal-months';
-  monthsEl.style.width = (WEEKS * 20 - 2) + 'px';
+  monthsEl.style.width = (WEEKS * PITCH - 3) + 'px';
   let lastMonth = -1;
   for (let w = 0; w < WEEKS; w++) {
     const m = parseInt(dateStrs[w * 7].split('-')[1]) - 1;
@@ -1738,7 +1723,7 @@ function _renderStreakCalendar(allEvents, streak) {
       lastMonth = m;
       const lbl = document.createElement('span');
       lbl.textContent = (m + 1) + '월';
-      lbl.style.left = (w * 20) + 'px';
+      lbl.style.left = (w * PITCH) + 'px';
       monthsEl.appendChild(lbl);
     }
   }
@@ -1761,6 +1746,10 @@ function _renderStreakCalendar(allEvents, streak) {
   const grid = document.createElement('div');
   grid.className = 'scal-grid';
 
+  // 칸 hover 팝오버 — 브라우저 기본 title 툴팁(지연 있고 스타일링 불가)을 대체.
+  const cellPopover = document.createElement('div');
+  cellPopover.className = 'scal-cell-popover';
+
   dateStrs.forEach(ds => {
     const isFuture = ds > todayStr;
     const isToday = ds === todayStr;
@@ -1775,9 +1764,7 @@ function _renderStreakCalendar(allEvents, streak) {
       cell.style.opacity = '0';
     } else if (hasActivity) {
       const intensity = mins > 0 ? Math.min(1, 0.3 + (mins / maxMins) * 0.7) : 0.4;
-      cell.style.background = isStreak
-        ? `rgba(250,173,20,${intensity})`
-        : `rgba(24,144,255,${intensity})`;
+      cell.style.background = `rgba(250,173,20,${intensity})`;
     } else {
       cell.style.background = '#efefef';
     }
@@ -1791,7 +1778,19 @@ function _renderStreakCalendar(allEvents, streak) {
     if (!isFuture) {
       const [, mm, dd] = ds.split('-');
       const minsText = mins > 0 ? ` · ${_statsFormatMins(mins)}` : '';
-      cell.title = `${parseInt(mm)}/${parseInt(dd)}${minsText}${isStreak ? ' 🔥' : ''}`;
+      const popText = `${parseInt(mm)}/${parseInt(dd)}${minsText}${isStreak ? ' 🔥' : ''}`;
+      cell.addEventListener('mouseenter', () => {
+        cellPopover.textContent = popText;
+        cellPopover.style.display = 'block';
+        const cellRect = cell.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        cellPopover.style.left = (cellRect.left + cellRect.width / 2 - containerRect.left) + 'px';
+        cellPopover.style.top = (cellRect.top - containerRect.top) + 'px';
+        cellPopover.style.animation = 'none';
+        cellPopover.offsetWidth;
+        cellPopover.style.animation = 'popoverFadeIn 0.2s cubic-bezier(0.34,1.4,0.64,1) both';
+      });
+      cell.addEventListener('mouseleave', () => { cellPopover.style.display = 'none'; });
     }
 
     grid.appendChild(cell);
@@ -1799,21 +1798,29 @@ function _renderStreakCalendar(allEvents, streak) {
 
   rightEl.append(monthsEl, grid);
   wrap.append(daysEl, rightEl);
-  _streakCalPopover.appendChild(wrap);
+  calCol.appendChild(wrap);
+  container.append(calCol, cellPopover);
 
-  // 범례
+  // 하단 — 최장 기록 텍스트 + 범례를 한 줄에(solved.ac 패턴).
+  // 색 자체는 스트릭 여부와 무관하게 전부 집중 시간 강도(노란 계열) 하나로 통일돼
+  // 있으므로, "며칠 연속인지"는 위쪽 큰 수치와 각 칸의 hover 툴팁으로 확인한다.
+  const footer = document.createElement('div');
+  footer.className = 'scal-footer';
+  const bestEl = document.createElement('div');
+  bestEl.className = 'scal-best';
+  bestEl.textContent = streak.longest > 0
+    ? T('statsStreakBest', [String(streak.longest)])
+    : T('statsStreakNone');
   const legend = document.createElement('div');
   legend.className = 'scal-legend';
   const mkCell = (bg) => { const s = document.createElement('span'); s.className = 'scal-leg-cell'; s.style.background = bg; return s; };
   const mkLbl  = (t)  => { const s = document.createElement('span'); s.className = 'scal-leg-lbl';  s.textContent = t; return s; };
-  const gap = document.createElement('span'); gap.style.cssText = 'width:6px;display:inline-block';
   legend.append(
     mkLbl('없음'), mkCell('#efefef'),
-    mkCell('rgba(24,144,255,0.4)'), mkCell('rgba(24,144,255,0.85)'), mkLbl('집중'),
-    gap,
-    mkCell('rgba(250,173,20,0.75)'), mkLbl('🔥 스트릭')
+    mkCell('rgba(250,173,20,0.4)'), mkCell('rgba(250,173,20,0.85)'), mkLbl('집중')
   );
-  _streakCalPopover.appendChild(legend);
+  footer.append(bestEl, legend);
+  container.appendChild(footer);
 }
 
 function renderStats(period) {
@@ -1828,16 +1835,6 @@ function renderStats(period) {
     const allEvents = data.focusEvents || [];
     const streak    = data.focusStreak || { current: 0, longest: 0, lastDate: '' };
     const todayStr  = _statsTodayStr();
-
-    // 스트릭 카드
-    const streakVal = document.getElementById('stat-streak-val');
-    const streakSub = document.getElementById('stat-streak-sub');
-    if (streakVal) streakVal.textContent = streak.current;
-    if (streakSub) {
-      streakSub.textContent = streak.longest > 0
-        ? T('statsStreakBest', [String(streak.longest)])
-        : T('statsStreakNone');
-    }
 
     // 집중 시간 카드 (기간별 합산)
     const focusVal   = document.getElementById('stat-focus-val');

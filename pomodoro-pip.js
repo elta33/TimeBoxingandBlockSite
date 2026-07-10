@@ -156,6 +156,11 @@ chrome.storage.onChanged.addListener(function(changes) {
   if (changes.pomodoroState)         _state     = changes.pomodoroState.newValue         || _state;
   if (changes.pomodoroSettings)      _settings  = changes.pomodoroSettings.newValue      || _settings;
   if (changes.pomodoroCycleOverrides) _overrides = changes.pomodoroCycleOverrides.newValue || [];
+  // 실제 Document PiP로 승격된 뒤에는 _activeDoc이 pipWindow.document로 바뀌어 있어
+  // theme.js(원래 document에서만 돔) 리스너가 거기까지 못 닿는다 — 여기서 직접 반영한다.
+  if (changes.darkModeEnabled) {
+    _activeDoc.documentElement.setAttribute('data-theme', changes.darkModeEnabled.newValue ? 'dark' : 'light');
+  }
   scheduleTick();
 });
 
@@ -301,9 +306,15 @@ function _promoteToRealPip() {
 // self-promote 경로와, 옵션 페이지가 미리 requestWindow()까지 마친 뒤 넘겨주는 경로 양쪽에서 재사용.
 function _adoptRealPipWindow(pipWindow, hostWindowId) {
   _everPromoted = true;
-  document.querySelectorAll('style').forEach(function(styleEl) {
-    pipWindow.document.head.appendChild(styleEl.cloneNode(true));
+  // Document PiP 창은 완전히 새 document라 <link rel="stylesheet">(styles/tokens.css)를
+  // 상속하지 않는다 — <style> 블록만 옮기면 var(--tomato) 등이 전부 미정의라 화이트/투명으로
+  // 깨진다. link와 style을 문서 순서 그대로(캐스케이드 순서 유지) 함께 복사해야 한다.
+  document.querySelectorAll('link[rel="stylesheet"], style').forEach(function(el) {
+    pipWindow.document.head.appendChild(el.cloneNode(true));
   });
+  // 다크모드 여부(data-theme)도 새 document의 <html>에는 안 붙어있으므로 현재 값을 그대로 옮긴다.
+  var theme = document.documentElement.getAttribute('data-theme');
+  if (theme) pipWindow.document.documentElement.setAttribute('data-theme', theme);
 
   var root = document.getElementById('pomoPipRoot');
   pipWindow.document.body.appendChild(root); // 노드 이동 — 리스너는 그대로 유지됨

@@ -389,7 +389,7 @@ function renderDayView(boxes, wrap, onEditBox) {
         seg.setAttribute('opacity', isSelected ? '1' : '0.85');
         seg.setAttribute('transform', '');
       } else {
-        seg.setAttribute('stroke', isSelected ? '#fff' : 'none');
+        seg.setAttribute('stroke', isSelected ? 'var(--select-outline)' : 'none');
         seg.setAttribute('stroke-width', isSelected ? '3' : '0');
         const midMins = (timeToMins(box.startTime) + (timeToMins(box.endTime) <= timeToMins(box.startTime) ? timeToMins(box.endTime) + TOTAL_MINS : timeToMins(box.endTime))) / 2;
         const midAngle = minsToAngle(midMins);
@@ -435,7 +435,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     const pushed = `translate(${pushOffset * Math.cos(rad)}, ${pushOffset * Math.sin(rad)})`;
 
     seg.style.transition = 'transform 0.15s ease';
-    seg.setAttribute('stroke', '#fff');
+    seg.setAttribute('stroke', 'var(--select-outline)');
     seg.setAttribute('stroke-width', '3');
 
     let count = 0;
@@ -444,7 +444,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     function doPulse() {
       if (count >= TOTAL_PULSES) {
         seg.setAttribute('transform', baseTransform);
-        seg.setAttribute('stroke', wasSelected ? '#fff' : 'none');
+        seg.setAttribute('stroke', wasSelected ? 'var(--select-outline)' : 'none');
         seg.setAttribute('stroke-width', wasSelected ? '3' : '0');
         return;
       }

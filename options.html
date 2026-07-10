@@ -21,6 +21,15 @@
   --donut-hint: #bbb;
   --panel-bg: #fff;
   --panel-border: #ddd;
+  /* 선택된 박스(주간 뷰 tbox, 도넛 세그먼트) 테두리 — 자신이 놓인 배경과 같은 색을
+     써서 "배경이 파고든 틈" 처럼 보이게 하는 용도. 라이트에선 그게 흰색이지만
+     다크에선 카드 배경색이어야 한다(흰색 그대로 두면 튄다). */
+  --select-outline: #fff;
+  /* "차단 시간대 분포" SVG 막대(options.js _renderHeatmap)의 fill. 라이트는 원래의
+     블루 계열, 다크는 보라 계열 — JS가 style 문자열에 직접 'var(--heatmap-bar*)'를
+     넣으므로 여기 라이트/다크 값만 관리하면 된다. */
+  --heatmap-bar: #8aa9bd;
+  --heatmap-bar-peak: #0d2a4a;
 }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -59,6 +68,7 @@ body {
 
 /* ── 카드(섹터) ── */
 .sector { background: #fff; border-radius: 12px; padding: 22px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+#streakCalSector { position: relative; }
 .sector-title { display: flex; justify-content: space-between; align-items: center; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid #efefef; font-size: 1.5rem; font-weight: 700; color: #111; }
 .sector-desc { font-size: 0.9rem; color: #888; margin: 0 0 12px; }
 
@@ -200,7 +210,7 @@ button { cursor: pointer; font-family: inherit; }
 .tbox { position: absolute; left: 4px; right: 4px; border-radius: 6px; padding: 5px 9px; color: #fff; cursor: pointer; transition: filter 0.12s, box-shadow 0.12s; box-sizing: border-box; min-height: 20px; z-index: 1; }
 .tbox:hover { filter: brightness(1.07); box-shadow: 0 3px 10px rgba(0,0,0,0.18); z-index: 5; }
 .tbox.box-block { background: var(--tomato); }
-.tbox.selected { outline: 2px solid #fff; outline-offset: -2px; box-shadow: 0 3px 12px rgba(0,0,0,0.3); z-index: 6; }
+.tbox.selected { outline: 2px solid var(--select-outline); outline-offset: -2px; box-shadow: 0 3px 12px rgba(0,0,0,0.3); z-index: 6; }
 .tbox.box-allow { background: var(--green); }
 .tbox-name { font-size: 0.78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tbox-time { font-size: 0.68rem; opacity: 0.85; margin-top: 1px; }
@@ -236,6 +246,7 @@ button { cursor: pointer; font-family: inherit; }
 
 /* ── 일주일 뷰 ── */
 .week-header-row { display: grid; position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #e4e4e4; }
+.week-corner-cell { border-right: 1px solid #e8e8e8; background: #fafafa; }
 .week-day-label { position: relative; text-align: center; font-size: 0.72rem; font-weight: 700; color: #777; padding: 6px 0; border-right: 1px solid #f0f0f0; cursor: pointer; transition: color 0.12s, background 0.12s; }
 .week-day-label:hover { color: #111; background: #fafafa; }
 .week-day-label:last-child { border-right: none; }
@@ -358,6 +369,8 @@ button { cursor: pointer; font-family: inherit; }
 .switch-label input[type="checkbox"] { display: none; }
 .switch-track { width: 40px; height: 22px; background: #ddd; border-radius: 11px; position: relative; transition: background 0.2s; flex-shrink: 0; }
 .switch-label input[type="checkbox"]:checked + .switch-track { background: var(--tomato); }
+/* 다크모드 토글만 예외 — tomato(위험/차단 강조색)가 아니라 앱의 모노크롬 "검정 필" 언어를 따름 */
+#darkModeToggle:checked + .switch-track { background: #111; }
 .switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 0.2s; }
 .switch-label input[type="checkbox"]:checked + .switch-track .switch-thumb { left: 20px; }
 #timetableWrap.daily-disabled .donut-container { filter: saturate(0.15) brightness(0.85); transition: filter 0.3s; }
@@ -384,11 +397,20 @@ button { cursor: pointer; font-family: inherit; }
 .stats-period-tab + .stats-period-tab { border-left: 1px solid #e0e0e0; }
 .stats-period-tab.active { background: #111; color: #fff; font-weight: 700; }
 
-.stats-hero-row {
+/* 스트릭 달력(넓은 폭 필요) + 집중시간/차단횟수 카드(세로로 쌓아도 되는 폭)를
+   한 줄에 배치 — 달력 섹터가 넓은데 카드까지 그 밑에 별도 줄로 두면 카드 쪽엔
+   위아래 여백만 넓어지고 달력 오른쪽엔 빈 공간만 남아 전체적으로 엉성해 보였다. */
+.stats-top-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 240px;
   gap: 14px;
   margin-bottom: 14px;
+  align-items: stretch;
+}
+.stats-side-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 .stats-hero-card {
   background: #fff;
@@ -398,12 +420,15 @@ button { cursor: pointer; font-family: inherit; }
   position: relative;
   overflow: hidden;
   border-left: 4px solid #eee;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
-.stats-hero-card.stats-streak { border-left-color: var(--amber); }
 .stats-hero-card.stats-focus  { border-left-color: var(--blue); }
 .stats-hero-card.stats-block  { border-left-color: var(--tomato); }
 .stats-hero-label {
-  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.07em; color: #bbb; margin-bottom: 10px;
 }
 .stats-hero-value {
@@ -411,7 +436,7 @@ button { cursor: pointer; font-family: inherit; }
   letter-spacing: -0.03em; line-height: 1;
 }
 .stats-hero-unit { font-size: 0.95rem; font-weight: 500; color: #888; margin-left: 3px; }
-.stats-hero-sub  { font-size: 0.72rem; color: #bbb; margin-top: 8px; }
+.stats-hero-sub  { font-size: 0.85rem; color: #bbb; margin-top: 8px; }
 
 .stats-main-grid {
   display: grid;
@@ -444,10 +469,9 @@ button { cursor: pointer; font-family: inherit; }
 .stats-bar-wrap { width: 100%; flex: 1; display: flex; align-items: flex-end; justify-content: center; position: relative; }
 .stats-bar {
   width: 100%; border-radius: 5px 5px 0 0;
-  background: #d0e8ff; min-height: 3px;
+  background: var(--blue); min-height: 3px;
   position: relative; transition: height 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.stats-bar.today { background: var(--blue); }
 .stats-bar-tooltip {
   position: absolute; bottom: calc(100% + 3px); left: 50%;
   transform: translateX(-50%);
@@ -546,18 +570,18 @@ button { cursor: pointer; font-family: inherit; }
 /* 바 차트 호버 */
 .stats-bar.hovered { filter: brightness(1.18); outline: 2px solid rgba(255,255,255,0.35); outline-offset: -1px; }
 
-/* 바 차트 팝오버 */
+/* 바 차트 팝오버 — 기본(라이트)은 화이트 톤, 다크는 아래 다크 오버라이드에서 어둡게 재정의 */
 .stats-bar-popover {
   position: absolute;
-  background: #1f1f1f;
-  color: #fff;
+  background: #fff;
+  color: #222;
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 0.78rem;
   pointer-events: none;
   z-index: 50;
   white-space: nowrap;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.28);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   display: none;
   min-width: 150px;
   transform: translateX(-50%) translateY(calc(-100% - 8px));
@@ -569,31 +593,31 @@ button { cursor: pointer; font-family: inherit; }
   top: 100%; left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: #1f1f1f;
+  border-top-color: #fff;
 }
 .stats-bar-popover-date {
-  font-weight: 700; color: #bbb;
+  font-weight: 700; color: #999;
   font-size: 0.72rem; letter-spacing: 0.03em;
   margin-bottom: 7px; padding-bottom: 5px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #eee;
 }
 .stats-bar-popover-section {
-  font-size: 0.68rem; font-weight: 700; color: #888;
+  font-size: 0.68rem; font-weight: 700; color: #999;
   text-transform: uppercase; letter-spacing: 0.06em;
   margin: 6px 0 4px;
 }
 .stats-bar-popover-row {
   display: flex; align-items: center; gap: 10px; padding: 3px 0;
 }
-.stats-bar-popover-domain { color: #fff; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.stats-bar-popover-domain { color: #222; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .stats-bar-popover-count  { color: #999; font-size: 0.72rem; }
-.stats-bar-popover-empty  { color: #666; margin-top: 2px; }
+.stats-bar-popover-empty  { color: #bbb; margin-top: 2px; }
 
 /* 시간대 분포 막대 팝오버 */
 .stats-heatmap-popover {
   position: absolute;
-  background: #1f1f1f;
-  color: #fff;
+  background: #fff;
+  color: #222;
   border-radius: 6px;
   padding: 5px 9px;
   font-size: 0.7rem;
@@ -601,7 +625,7 @@ button { cursor: pointer; font-family: inherit; }
   pointer-events: none;
   z-index: 50;
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.26);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   display: none;
   transform: translateX(-50%) translateY(calc(-100% - 8px));
   transform-origin: center bottom;
@@ -612,16 +636,12 @@ button { cursor: pointer; font-family: inherit; }
   top: 100%; left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: #1f1f1f;
+  border-top-color: #fff;
 }
 
 @keyframes popoverFadeIn {
   from { opacity: 0; transform: translateX(-50%) translateY(calc(-100% - 8px)) scale(0.82); }
   to   { opacity: 1; transform: translateX(-50%) translateY(calc(-100% - 8px)) scale(1); }
-}
-@keyframes streakCalFadeIn {
-  from { opacity: 0; transform: scale(0.88); }
-  to   { opacity: 1; transform: scale(1); }
 }
 
 /* 섹션 기간 배지 */
@@ -826,102 +846,128 @@ button { cursor: pointer; font-family: inherit; }
 .pin-modal-footer .btn-ghost { flex: 1; padding: 10px; }
 .pin-modal-footer .btn { flex: 1; padding: 10px; }
 
-/* ── 스트릭 달력 팝오버 ── */
-.streak-cal-popover {
-  display: none;
-  position: fixed;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 14px;
-  padding: 14px 16px 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-  z-index: 500;
-  user-select: none;
-  transform-origin: center bottom;
+/* ── 스트릭 달력(통계 탭에 고정 배치, 이전엔 호버 팝오버였음) ──
+   solved.ac 스트릭 달력 참고: 좌우 분할이 아니라 상단에 큰 숫자, 그 아래 전체
+   폭을 쓰는 그리드, 맨 아래 "최장 기록 + 범례"를 한 줄로 배치하는 세로 구성.
+   좌우로 나눴을 때는 두 블록 사이에 억지 여백이 생겼는데, 세로로 쌓으면 그리드가
+   섹터 폭을 그대로 다 쓰므로 그 문제가 없다. */
+.scal-top { margin-bottom: 16px; }
+.scal-eyebrow {
+  font-size: 0.85rem; font-weight: 700; color: #999;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 6px;
 }
-.scal-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+.scal-stats-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #111;
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
-.scal-title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-.scal-streak-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--amber);
-}
+.scal-stats-unit { font-size: 0.95rem; font-weight: 500; color: #888; margin-left: 4px; }
+/* overflow-x:auto가 있으면 스펙상 overflow-y도 auto로 강제되는데(한쪽이 visible이
+   아니면 다른 쪽 visible도 계산값이 auto가 됨), hover 시 칸이 scale()로 커지면서
+   첫/마지막 줄이 위아래로 넘쳐 스크롤바가 뜨던 원인이었다. 위아래로 살짝 여유
+   패딩을 둬서(칸이 실제로 커지는 양은 최대 1.5px씩) 그 여유 안에서 확대되게 한다. */
+.scal-calendar-col { width: 100%; overflow-x: auto; padding: 4px 0; }
+/* 팝오버는 이 컨테이너 밖, #streakCalSector에 직접 붙인다 — 안에 두면 첫 줄(월요일)
+   칸 위로 뜬 팝오버가 위쪽으로 넘치면서 또 스크롤바를 유발할 수 있다. */
 .scal-wrap {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   align-items: flex-start;
 }
 .scal-days {
   display: grid;
-  grid-template-rows: repeat(7, 18px);
-  gap: 2px;
-  padding-top: 22px;
+  grid-template-rows: repeat(7, 20px);
+  gap: 3px;
+  padding-top: 24px;
   width: 16px;
 }
 .scal-days span {
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   color: #ccc;
-  line-height: 18px;
+  line-height: 20px;
   text-align: right;
 }
 .scal-right {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .scal-months {
-  height: 20px;
+  height: 21px;
   position: relative;
 }
 .scal-months span {
   position: absolute;
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   color: #bbb;
   white-space: nowrap;
 }
 .scal-grid {
   display: grid;
   grid-auto-flow: column;
-  grid-template-rows: repeat(7, 18px);
-  gap: 2px;
+  grid-template-rows: repeat(7, 20px);
+  gap: 3px;
 }
 .scal-cell {
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
   cursor: default;
   transition: transform 0.08s;
   position: relative;
 }
-.scal-cell:hover { transform: scale(1.2); z-index: 1; }
+.scal-cell:hover { transform: scale(1.15); z-index: 1; }
+.scal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+.scal-best { font-size: 0.8rem; color: #666; font-weight: 600; }
 .scal-legend {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 10px;
-  justify-content: flex-end;
+  gap: 5px;
 }
 .scal-leg-lbl {
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   color: #bbb;
 }
 .scal-leg-cell {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
   display: inline-block;
   flex-shrink: 0;
+}
+/* 칸 hover 팝오버 — 브라우저 기본 title 툴팁(지연 있고 스타일링 불가)을 대체.
+   막대 그래프/시간대 분포 팝오버와 같은 패턴(즉시 표시, 라이트=화이트/다크=다크). */
+.scal-cell-popover {
+  position: absolute;
+  background: #fff;
+  color: #222;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 50;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  display: none;
+  transform: translateX(-50%) translateY(calc(-100% - 8px));
+  transform-origin: center bottom;
+}
+.scal-cell-popover::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #fff;
 }
 
 /* ── Todo 플로팅 패널 ── */
@@ -966,13 +1012,21 @@ button { cursor: pointer; font-family: inherit; }
   --donut-hint: #666;
   --panel-bg: #1c1c1c;
   --panel-border: #3a3a3a;
+  --select-outline: #1c1c1c;
+  --heatmap-bar: #5b4b8a;
+  --heatmap-bar-peak: #9b87f5;
 }
+
+/* 네이티브 스크롤바/폼 컨트롤이 다크에서도 자동으로 어둡게 렌더링되도록.
+   .week-scroll-body/.todo-list처럼 명시적으로 scrollbar-color를 준 곳은 그 값이
+   우선하고, .domain-list처럼 별도 스타일이 없는 스크롤 영역은 이걸로 커버된다. */
+:root[data-theme="dark"] { color-scheme: dark; }
 
 :root[data-theme="dark"] input[type="text"],
 :root[data-theme="dark"] input[type="time"],
 :root[data-theme="dark"] input[type="password"],
 :root[data-theme="dark"] select {
-  background: #1c1c1c;
+  background: #242424;
   color: #e0e0e0;
   border-color: #3a3a3a;
 }
@@ -983,7 +1037,7 @@ button { cursor: pointer; font-family: inherit; }
 
 :root[data-theme="dark"] body { background: #121212; color: #e0e0e0; }
 
-:root[data-theme="dark"] .app-header { background: #1a1a1a; border-bottom-color: #2e2e2e; }
+:root[data-theme="dark"] .app-header { background: #1c1c1c; border-bottom-color: #2e2e2e; }
 :root[data-theme="dark"] .app-title { color: #f2f2f2; }
 :root[data-theme="dark"] .main-tab { color: #7a7a7a; }
 :root[data-theme="dark"] .main-tab:hover { color: #d8d8d8; }
@@ -997,19 +1051,21 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .sector-title { color: #f2f2f2; border-bottom-color: #2e2e2e; }
 :root[data-theme="dark"] .sector-desc { color: #8a8a8a; }
 
-:root[data-theme="dark"] .btn { background: #e8e8e8; color: #121212; }
-:root[data-theme="dark"] .btn:hover { background: #fff; }
+:root[data-theme="dark"] .btn { background: #3a3a3a; color: #ececec; }
+:root[data-theme="dark"] .btn:hover { background: #484848; }
 :root[data-theme="dark"] .btn-ghost { border-color: #3a3a3a; color: #aaa; }
 :root[data-theme="dark"] .btn-ghost:hover { background: #262626; }
 
 :root[data-theme="dark"] .warn-text { color: var(--tomato); }
 
-:root[data-theme="dark"] .toggle-group label { border-color: #3a3a3a; background: #1c1c1c; color: #aaa; }
-:root[data-theme="dark"] .toggle-group input[type="radio"]:checked + label { background: #e8e8e8; color: #121212; border-color: #e8e8e8; }
-:root[data-theme="dark"] .mini-toggle label { border-color: #3a3a3a; background: #1c1c1c; color: #c4c4c4; }
-:root[data-theme="dark"] .mini-toggle input[type="radio"]:checked + label { background: #e8e8e8; color: #121212; border-color: #e8e8e8; }
+:root[data-theme="dark"] .toggle-group label { border-color: #3a3a3a; background: #242424; color: #aaa; }
+:root[data-theme="dark"] .toggle-group input[type="radio"]:checked + label { background: #3a3a3a; color: #ececec; border-color: #3a3a3a; }
+:root[data-theme="dark"] .mini-toggle label { border-color: #3a3a3a; background: #242424; color: #c4c4c4; }
+:root[data-theme="dark"] .mini-toggle input[type="radio"]:checked + label { background: #3a3a3a; color: #ececec; border-color: #3a3a3a; }
 
 :root[data-theme="dark"] .custom-domain-item { background: #242424; }
+:root[data-theme="dark"] .domain-list { scrollbar-color: #3a3a3a transparent; }
+:root[data-theme="dark"] .domain-list::-webkit-scrollbar-thumb { background: #3a3a3a; }
 
 :root[data-theme="dark"] .form-label { color: #9a9a9a; }
 :root[data-theme="dark"] .form-row select,
@@ -1022,116 +1078,136 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .form-divider { border-top-color: #3a3a3a; }
 
 :root[data-theme="dark"] .day-selector label { border-color: #3a3a3a; color: #9a9a9a; }
-:root[data-theme="dark"] .day-selector input[type="checkbox"]:checked + label { background: #e8e8e8; color: #121212; border-color: #e8e8e8; }
+:root[data-theme="dark"] .day-selector input[type="checkbox"]:checked + label { background: #3a3a3a; color: #ececec; border-color: #3a3a3a; }
 
 :root[data-theme="dark"] .view-tab-group { border-color: #3a3a3a; }
-:root[data-theme="dark"] .view-tab { background: #1c1c1c; color: #9a9a9a; }
-:root[data-theme="dark"] .view-tab.active { background: #e8e8e8; color: #121212; }
+:root[data-theme="dark"] .view-tab { background: #242424; color: #9a9a9a; }
+:root[data-theme="dark"] .view-tab.active { background: #3a3a3a; color: #ececec; }
 
-:root[data-theme="dark"] .timetable-outer { border-color: #2e2e2e; background: #1a1a1a; }
+:root[data-theme="dark"] .timetable-outer { border-color: #2e2e2e; background: #1c1c1c; }
 :root[data-theme="dark"] .week-scroll-body { scrollbar-color: #3a3a3a transparent; }
 :root[data-theme="dark"] .week-scroll-body::-webkit-scrollbar-thumb { background: #3a3a3a; }
 :root[data-theme="dark"] .week-start-toggle { color: #9a9a9a; }
-:root[data-theme="dark"] .time-label-col { border-right-color: #2a2a2a; background: #161616; }
+:root[data-theme="dark"] .time-label-col { border-right-color: #2a2a2a; background: #242424; }
+:root[data-theme="dark"] .week-corner-cell { border-right-color: #2a2a2a; background: #242424; }
 :root[data-theme="dark"] .time-label { color: #5e5e5e; }
 :root[data-theme="dark"] .time-label.on-hour { color: #7a7a7a; }
 :root[data-theme="dark"] .time-label.midnight { color: #c4c4c4; }
 :root[data-theme="dark"] .hour-line { border-top-color: rgba(255,255,255,0.05); }
 :root[data-theme="dark"] .hour-line.on-hour { border-top-color: rgba(255,255,255,0.1); }
 
-:root[data-theme="dark"] .week-header-row { background: #1a1a1a; border-bottom-color: #2e2e2e; }
+:root[data-theme="dark"] .week-header-row { background: #242424; border-bottom-color: #2e2e2e; }
 :root[data-theme="dark"] .week-day-label { color: #8a8a8a; border-right-color: #2a2a2a; }
-:root[data-theme="dark"] .week-day-label:hover { color: #f0f0f0; background: #242424; }
+:root[data-theme="dark"] .week-day-label:hover { color: #f0f0f0; background: #2c2c2c; }
 :root[data-theme="dark"] .week-day-col { border-right-color: #2a2a2a; }
 
 :root[data-theme="dark"] .empty-hint { color: #555; }
 
-:root[data-theme="dark"] .donut-detail-header { background: #1e1e1e; border-color: #2e2e2e; }
+:root[data-theme="dark"] .donut-detail-header { background: #242424; border-color: #2e2e2e; }
 :root[data-theme="dark"] .donut-detail-title { color: #e0e0e0; }
-:root[data-theme="dark"] .donut-master-row { background: #161616; border-left-color: #2e2e2e; border-right-color: #2e2e2e; }
+:root[data-theme="dark"] .donut-master-row { background: #242424; border-left-color: #2e2e2e; border-right-color: #2e2e2e; }
 :root[data-theme="dark"] .donut-domain-list { border-color: #2e2e2e; }
 :root[data-theme="dark"] .donut-domain-list .custom-domain-item { border-bottom-color: #2a2a2a; }
 :root[data-theme="dark"] .detail-empty { color: #5e5e5e; }
 
-:root[data-theme="dark"] .day-popup-modal { background: #1c1c1c; }
-:root[data-theme="dark"] .day-popup-form { background: #161616; border-color: #2e2e2e; }
+:root[data-theme="dark"] .day-popup-modal { background: #242424; }
+:root[data-theme="dark"] .day-popup-form { background: #2c2c2c; border-color: #383838; }
 :root[data-theme="dark"] .day-popup-close { color: #6a6a6a; }
 :root[data-theme="dark"] .day-popup-close:hover { color: #e0e0e0; background: #2a2a2a; }
 :root[data-theme="dark"] .day-popup-title { color: #f2f2f2; }
 
 :root[data-theme="dark"] .switch-label { color: #a0a0a0; }
 :root[data-theme="dark"] .switch-track { background: #3a3a3a; }
+:root[data-theme="dark"] #darkModeToggle:checked + .switch-track { background: #4a4a4a; }
 
 :root[data-theme="dark"] .stats-heading { color: #f2f2f2; }
 :root[data-theme="dark"] .stats-period-tabs { border-color: #333; }
 :root[data-theme="dark"] .stats-period-tab { background: #1c1c1c; color: #8a8a8a; }
 :root[data-theme="dark"] .stats-period-tab + .stats-period-tab { border-left-color: #333; }
-:root[data-theme="dark"] .stats-period-tab.active { background: #e8e8e8; color: #121212; }
+:root[data-theme="dark"] .stats-period-tab.active { background: #3a3a3a; color: #ececec; }
 
 :root[data-theme="dark"] .stats-hero-card { background: #1c1c1c; border-left-color: #333; }
+/* 위 베이스 규칙과 특이도가 같은 .stats-focus/.stats-block 라이트 규칙을
+   확실히 이기려면 클래스 2개짜리(특이도 0,3,0)로 다시 명시해야 한다 — 안 그러면
+   소스 순서상 이 베이스 다크 규칙이 이겨서 2장 다 회색으로 통일돼버린다. */
+:root[data-theme="dark"] .stats-hero-card.stats-focus  { border-left-color: #9b87f5; }
+:root[data-theme="dark"] .stats-hero-card.stats-block  { border-left-color: var(--tomato); }
 :root[data-theme="dark"] .stats-hero-label { color: #5e5e5e; }
 :root[data-theme="dark"] .stats-hero-value { color: #f2f2f2; }
 :root[data-theme="dark"] .stats-hero-unit { color: #8a8a8a; }
 :root[data-theme="dark"] .stats-hero-sub { color: #5e5e5e; }
 
-:root[data-theme="dark"] .stats-bar { background: rgba(24,144,255,0.22); }
+:root[data-theme="dark"] .stats-bar { background: #9b87f5; }
+:root[data-theme="dark"] .stats-bar-day.today { color: #c3b5fa; }
 :root[data-theme="dark"] .stats-bar-day { color: #5e5e5e; }
 
-:root[data-theme="dark"] .stats-domain-rank-item { border-bottom-color: #262626; }
+:root[data-theme="dark"] .stats-bar-popover { background: #1f1f1f; color: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.28); }
+:root[data-theme="dark"] .stats-bar-popover::after { border-top-color: #1f1f1f; }
+:root[data-theme="dark"] .stats-bar-popover-date { color: #bbb; border-bottom-color: #333; }
+:root[data-theme="dark"] .stats-bar-popover-section { color: #888; }
+:root[data-theme="dark"] .stats-bar-popover-domain { color: #fff; }
+:root[data-theme="dark"] .stats-bar-popover-count { color: #999; }
+:root[data-theme="dark"] .stats-bar-popover-empty { color: #666; }
+:root[data-theme="dark"] .stats-heatmap-popover { background: #1f1f1f; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.26); }
+:root[data-theme="dark"] .stats-heatmap-popover::after { border-top-color: #1f1f1f; }
+:root[data-theme="dark"] .scal-cell-popover { background: #1f1f1f; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.26); }
+:root[data-theme="dark"] .scal-cell-popover::after { border-top-color: #1f1f1f; }
+
+:root[data-theme="dark"] .stats-domain-rank-item { border-bottom-color: #242424; }
 :root[data-theme="dark"] .stats-rank-num { color: #555; }
 :root[data-theme="dark"] .stats-rank-domain { color: #d0d0d0; }
-:root[data-theme="dark"] .stats-rank-bar-bg { background: #262626; }
+:root[data-theme="dark"] .stats-rank-bar-bg { background: #242424; }
 :root[data-theme="dark"] .stats-rank-count { color: #7a7a7a; }
 
-:root[data-theme="dark"] .stats-pomo-card { background: #161616; border-color: #2a2a2a; border-left-color: #5c3a28; }
-:root[data-theme="dark"] .stats-pomo-card.active { background: #1c1c1c; }
+:root[data-theme="dark"] .stats-pomo-card { background: #242424; border-color: #2e2e2e; border-left-color: var(--tomato-muted); }
+:root[data-theme="dark"] .stats-pomo-card.active { background: #2c2c2c; border-left-color: var(--tomato); }
 :root[data-theme="dark"] .stats-pomo-card-label { color: #7a7a7a; }
 :root[data-theme="dark"] .stats-pomo-card-value { color: #f2f2f2; }
 :root[data-theme="dark"] .stats-pomo-title-sub { color: #5e5e5e; }
 
-:root[data-theme="dark"] .stats-heatmap-cell { background: #262626; }
+:root[data-theme="dark"] .stats-heatmap-cell { background: #242424; }
 :root[data-theme="dark"] .stats-heatmap-labels span { color: #555; }
 :root[data-theme="dark"] .stats-heatmap-legend-label { color: #5e5e5e; }
-:root[data-theme="dark"] .stats-section-period { background: #262626; color: #8a8a8a; }
+:root[data-theme="dark"] .stats-section-period { background: #242424; color: #8a8a8a; }
 :root[data-theme="dark"] .stats-empty { color: #555; }
 
 :root[data-theme="dark"] .pomo-setting { color: #a0a0a0; }
 :root[data-theme="dark"] .pomo-setting label { color: #c4c4c4; }
 :root[data-theme="dark"] .pomo-num-input { border-color: #3a3a3a; }
 :root[data-theme="dark"] .pomo-num-btn { background: #242424; color: #a0a0a0; }
-:root[data-theme="dark"] .pomo-num-btn:hover { background: #2e2e2e; }
+:root[data-theme="dark"] .pomo-num-btn:hover { background: #2c2c2c; }
 :root[data-theme="dark"] .pomo-num-val { border-left-color: #333; border-right-color: #333; }
 
-:root[data-theme="dark"] .pomo-display { background: #1c1c1c; }
+:root[data-theme="dark"] .pomo-display { background: #242424; }
 :root[data-theme="dark"] .pomo-phase-label { color: #555; }
 :root[data-theme="dark"] .pomo-time { color: #f2f2f2; }
 :root[data-theme="dark"] .pomo-cycle-info { color: #555; }
 :root[data-theme="dark"] .pomo-display.phase-work .pomo-cycle-info,
 :root[data-theme="dark"] .pomo-display.phase-rest .pomo-cycle-info { color: #8a8a8a; }
 
-:root[data-theme="dark"] .pomo-import-menu { background: #1c1c1c; border-color: #333; }
+:root[data-theme="dark"] .pomo-import-menu { background: #242424; border-color: #333; }
 :root[data-theme="dark"] .pomo-import-item { color: #d0d0d0; }
-:root[data-theme="dark"] .pomo-import-item:hover { background: #262626; }
+:root[data-theme="dark"] .pomo-import-item:hover { background: #2c2c2c; }
 
 :root[data-theme="dark"] .pomo-preset-strip-label { color: #7a7a7a; }
-:root[data-theme="dark"] .pomo-preset-popover { background: #1c1c1c; border-color: #333; }
+:root[data-theme="dark"] .pomo-preset-popover { background: #242424; border-color: #333; }
 :root[data-theme="dark"] .pomo-preset-popover input { border-color: #3a3a3a; }
 :root[data-theme="dark"] .pomo-preset-popover input:focus { border-color: #666; }
-:root[data-theme="dark"] .pomo-preset-nav-btn { border-color: #3a3a3a; background: #1c1c1c; color: #9a9a9a; }
-:root[data-theme="dark"] .pomo-preset-nav-btn:hover:not(:disabled) { background: #262626; }
-:root[data-theme="dark"] .pomo-preset-item { background: #1c1c1c; border-color: #2a2a2a; }
-:root[data-theme="dark"] .pomo-preset-item:hover { background: #242424; border-color: #3a3a3a; }
+:root[data-theme="dark"] .pomo-preset-nav-btn { border-color: #3a3a3a; background: #242424; color: #9a9a9a; }
+:root[data-theme="dark"] .pomo-preset-nav-btn:hover:not(:disabled) { background: #2c2c2c; }
+:root[data-theme="dark"] .pomo-preset-item { background: #242424; border-color: #2e2e2e; }
+:root[data-theme="dark"] .pomo-preset-item:hover { background: #2c2c2c; border-color: #3a3a3a; }
 :root[data-theme="dark"] .pomo-preset-name { color: #e0e0e0; }
 :root[data-theme="dark"] .pomo-preset-meta { color: #8a8a8a; }
 :root[data-theme="dark"] .pomo-preset-page-indicator { color: #5e5e5e; }
 :root[data-theme="dark"] .pomo-preset-empty { color: #5e5e5e; }
 
-:root[data-theme="dark"] .pomo-advanced-modal { background: #1c1c1c; }
+:root[data-theme="dark"] .pomo-advanced-modal { background: #242424; }
 :root[data-theme="dark"] .pomo-advanced-modal-title { color: #f2f2f2; }
 :root[data-theme="dark"] .pomo-advanced-close-btn { color: #7a7a7a; }
 :root[data-theme="dark"] .pomo-advanced-close-btn:hover { color: #d0d0d0; }
 :root[data-theme="dark"] .pomo-advanced-basetext { color: #7a7a7a; }
-:root[data-theme="dark"] .pomo-advanced-item { background: #1c1c1c; border-color: #2a2a2a; }
+:root[data-theme="dark"] .pomo-advanced-item { background: #2c2c2c; border-color: #383838; }
 :root[data-theme="dark"] .pomo-advanced-name-input { border-color: #3a3a3a; background: #242424; }
 :root[data-theme="dark"] .pomo-advanced-name-input:focus { border-color: #666; }
 :root[data-theme="dark"] .pomo-advanced-name-input::placeholder { color: #555; }
@@ -1142,8 +1218,8 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .pomo-advanced-empty { color: #5e5e5e; }
 :root[data-theme="dark"] .pomo-advanced-add-btn { border-color: #3a3a3a; color: #9a9a9a; }
 :root[data-theme="dark"] .pomo-advanced-add-btn:hover { background: #242424; border-color: #4a4a4a; }
-:root[data-theme="dark"] .pomo-cycle-picker { background: #1c1c1c; border-color: #333; }
-:root[data-theme="dark"] .pomo-cycle-picker-item { border-color: #3a3a3a; background: #242424; color: #d0d0d0; }
+:root[data-theme="dark"] .pomo-cycle-picker { background: #242424; border-color: #333; }
+:root[data-theme="dark"] .pomo-cycle-picker-item { border-color: #3a3a3a; background: #2c2c2c; color: #d0d0d0; }
 :root[data-theme="dark"] .pomo-cycle-picker-item:hover { background: #2e2e2e; }
 :root[data-theme="dark"] .pomo-cycle-picker-empty { color: #5e5e5e; }
 :root[data-theme="dark"] .pomo-advanced-footer { border-top-color: #2a2a2a; }
@@ -1151,24 +1227,26 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .pin-section-label { color: #a0a0a0; }
 :root[data-theme="dark"] .pin-input-group input[type="password"] { border-color: #3a3a3a; }
 :root[data-theme="dark"] .pin-status-badge.pin-inactive { background: #242424; color: #6a6a6a; }
-:root[data-theme="dark"] .pin-modal { background: #1c1c1c; }
+:root[data-theme="dark"] .pin-modal { background: #242424; }
 :root[data-theme="dark"] .pin-modal-title { color: #f2f2f2; }
 :root[data-theme="dark"] .pin-modal-sub { color: #7a7a7a; }
 :root[data-theme="dark"] .pin-modal-input { background: #242424; color: #e4e4e4; border-color: #3a3a3a; }
 :root[data-theme="dark"] .pin-modal-input:focus { border-color: #888; }
 
-:root[data-theme="dark"] .streak-cal-popover { background: #1c1c1c; border-color: #333; }
-:root[data-theme="dark"] .scal-title { color: #7a7a7a; }
 :root[data-theme="dark"] .scal-days span { color: #555; }
 :root[data-theme="dark"] .scal-months span { color: #5e5e5e; }
 :root[data-theme="dark"] .scal-leg-lbl { color: #5e5e5e; }
+:root[data-theme="dark"] .scal-eyebrow { color: #7a7a7a; }
+:root[data-theme="dark"] .scal-stats-value { color: #f2f2f2; }
+:root[data-theme="dark"] .scal-stats-unit { color: #8a8a8a; }
+:root[data-theme="dark"] .scal-best { color: #a0a0a0; }
 
 /* ── Todo 패널(다크) — block.html의 다크 톤을 그대로 참고하되 배지 색만 green으로 유지 ── */
-:root[data-theme="dark"] #todoTrigger { background: #e8e8e8; color: #121212; }
-:root[data-theme="dark"] #todoTrigger:hover { background: #fff; }
+:root[data-theme="dark"] #todoTrigger { background: #3a3a3a; color: #ececec; }
+:root[data-theme="dark"] #todoTrigger:hover { background: #484848; }
 :root[data-theme="dark"] #todoPopup,
 :root[data-theme="dark"] #todoDonePopup {
-  background: #1c1c1c; border-color: #333;
+  background: #242424; border-color: #333;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
 :root[data-theme="dark"] .todo-popup-header { border-bottom-color: #2a2a2a; }
@@ -1177,18 +1255,18 @@ button { cursor: pointer; font-family: inherit; }
   background: rgba(82,196,26,0.14); border-color: rgba(82,196,26,0.32);
 }
 :root[data-theme="dark"] .todo-badge-btn:hover { background: rgba(82,196,26,0.26); }
-:root[data-theme="dark"] .todo-close-btn { background: #262626; color: #8a8a8a; }
+:root[data-theme="dark"] .todo-close-btn { background: #2c2c2c; color: #8a8a8a; }
 :root[data-theme="dark"] .todo-close-btn:hover { background: #333; color: #e0e0e0; }
 :root[data-theme="dark"] .todo-input-row { border-bottom-color: #262626; }
 :root[data-theme="dark"] .todo-input-row input[type="text"] { border-color: #3a3a3a; background: #242424; color: #e0e0e0; }
 :root[data-theme="dark"] .todo-input-row input[type="text"]:focus { border-color: #666; }
-:root[data-theme="dark"] .todo-add-btn { background: #e8e8e8; color: #121212; }
-:root[data-theme="dark"] .todo-add-btn:hover { background: #fff; }
+:root[data-theme="dark"] .todo-add-btn { background: #3a3a3a; color: #ececec; }
+:root[data-theme="dark"] .todo-add-btn:hover { background: #484848; }
 :root[data-theme="dark"] .todo-list-meta-btn:hover { background: rgba(255,99,71,0.18); }
 :root[data-theme="dark"] .todo-list { scrollbar-color: #3a3a3a transparent; }
 :root[data-theme="dark"] .todo-list::-webkit-scrollbar-thumb { background: #3a3a3a; }
 :root[data-theme="dark"] .todo-empty { color: #555; }
-:root[data-theme="dark"] .todo-item:hover { background: #242424; }
+:root[data-theme="dark"] .todo-item:hover { background: #2c2c2c; }
 :root[data-theme="dark"] .todo-cb { accent-color: #e0e0e0; }
 :root[data-theme="dark"] .todo-text { color: #d0d0d0; }
 :root[data-theme="dark"] .todo-item.todo-done .todo-text { color: #555; }
@@ -1455,25 +1533,21 @@ button { cursor: pointer; font-family: inherit; }
       </div>
     </div>
 
-    <div class="stats-hero-row">
-      <div class="stats-hero-card stats-streak">
-        <div class="stats-hero-label" data-i18n="statsStreak">🔥 연속 집중 스트릭</div>
-        <div class="stats-hero-value">
-          <span id="stat-streak-val">0</span><span class="stats-hero-unit" data-i18n="statsDayUnit">일째</span>
+    <div class="stats-top-row">
+      <div class="sector" id="streakCalSector"></div>
+      <div class="stats-side-cards">
+        <div class="stats-hero-card stats-focus">
+          <div class="stats-hero-label" id="stat-focus-title" data-i18n="statsFocusTime">⏱ 오늘 집중 시간</div>
+          <div class="stats-hero-value" id="stat-focus-val">—</div>
+          <div class="stats-hero-sub" id="stat-focus-sub" data-i18n="statsFocusSub">타임박스 실 집중 누적</div>
         </div>
-        <div class="stats-hero-sub" id="stat-streak-sub"></div>
-      </div>
-      <div class="stats-hero-card stats-focus">
-        <div class="stats-hero-label" id="stat-focus-title" data-i18n="statsFocusTime">⏱ 오늘 집중 시간</div>
-        <div class="stats-hero-value" id="stat-focus-val">—</div>
-        <div class="stats-hero-sub" id="stat-focus-sub" data-i18n="statsFocusSub">타임박스 실 집중 누적</div>
-      </div>
-      <div class="stats-hero-card stats-block">
-        <div class="stats-hero-label" id="stat-block-title" data-i18n="statsBlockCount">🚫 차단 횟수</div>
-        <div class="stats-hero-value">
-          <span id="stat-block-val">0</span><span class="stats-hero-unit" data-i18n="statsBlockUnit">회</span>
+        <div class="stats-hero-card stats-block">
+          <div class="stats-hero-label" id="stat-block-title" data-i18n="statsBlockCount">🚫 차단 횟수</div>
+          <div class="stats-hero-value">
+            <span id="stat-block-val">0</span><span class="stats-hero-unit" data-i18n="statsBlockUnit">회</span>
+          </div>
+          <div class="stats-hero-sub" id="stat-block-sub" data-i18n="statsBlockSub">방어한 분산 시도</div>
         </div>
-        <div class="stats-hero-sub" id="stat-block-sub" data-i18n="statsBlockSub">방어한 분산 시도</div>
       </div>
     </div>
 

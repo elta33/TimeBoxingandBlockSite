@@ -128,6 +128,7 @@
        options.html과 동일한 방식: <html data-theme="dark">일 때만 적용되는
        오버라이드를 맨 끝에 별도로 쌓는다. tomato-pale 등 토큰 배경은
        styles/tokens.css의 다크 오버라이드로 이미 자동 처리됨. */
+    :root[data-theme="dark"] { color-scheme: dark; }
     :root[data-theme="dark"] body { background: #121212; color: #e0e0e0; }
     :root[data-theme="dark"] .p-header { border-bottom-color: #262626; }
     :root[data-theme="dark"] .p-settings-btn { color: #6a6a6a; }

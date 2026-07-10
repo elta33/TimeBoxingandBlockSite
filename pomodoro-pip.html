@@ -153,6 +153,7 @@
     /* ══════════════ 다크모드 ══════════════
        phase-* 바디 배경은 var(--tomato-pale) 등 토큰을 쓰고 있어 tokens.css의
        다크 오버라이드로 이미 자동 조정됨. 여기서는 순수 회색조만 다룬다. */
+    :root[data-theme="dark"] { color-scheme: dark; }
     :root[data-theme="dark"] body { background: #121212; color: #ccc; }
     :root[data-theme="dark"] .phase-bar { background: #2a2a2a; }
     :root[data-theme="dark"] #phase-label { color: #555; }
@@ -161,7 +162,7 @@
     :root[data-theme="dark"] body.phase-work #cycle-label, :root[data-theme="dark"] body.phase-rest #cycle-label,
     :root[data-theme="dark"] body.preview-work #cycle-label, :root[data-theme="dark"] body.preview-rest #cycle-label { color: #8a8a8a; }
     :root[data-theme="dark"] .divider { background: #262626; }
-    :root[data-theme="dark"] #startBtn { background: #e8e8e8; color: #121212; }
+    :root[data-theme="dark"] #startBtn { background: #3a3a3a; color: #ececec; }
     :root[data-theme="dark"] body.phase-done #startBtn { background: #262626; color: #555; }
     :root[data-theme="dark"] #stopBtn { background: #262626; color: #7a7a7a; }
     :root[data-theme="dark"] .setting-label { color: #9a9a9a; }

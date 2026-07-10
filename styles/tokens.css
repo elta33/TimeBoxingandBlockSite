@@ -42,22 +42,33 @@
    속성을 세팅하는 스크립트를 로드하지 않으므로(이미 자체 다크 오버레이 테마라
    토글과 무관) 아래 블록의 영향을 받지 않는다.
 
-   base 색(--tomato, --green, --amber, --blue 등)은 채도가 충분해 다크 배경에서도
-   그대로 읽히므로 유지. "pale/light/border" 계열만 밝은 배경 전제로 만들어져
-   다크 배경에서 거의 흰색처럼 튀거나 위에 얹는 텍스트와 대비가 무너지므로
-   재정의한다. */
+   base 색(--tomato, --green, --amber, --blue)도 라이트 모드용 원색 그대로 쓰면
+   어두운 배경 위에서 네온처럼 튀어 차분한 다크 톤과 안 어울리므로 눌러 쓴다.
+   "pale/light/border" 계열은 밝은 배경 전제로 만들어져 다크 배경에서 거의
+   흰색처럼 튀거나 위에 얹는 텍스트와 대비가 무너지므로 별도로 재정의한다.
+
+   tomato 전경색(--tomato/-hover/-deep/-locked/-muted/-mid/-text)은 흰색 오버레이를
+   얹어봤다가(40%→20%로 낮춰봐도 봄) 결국 사용자가 "그냥 원색대로 하라"고 해서
+   라이트 테마 값을 다크에서도 그대로 쓰기로 함 — 그래서 여기 따로 재정의하지
+   않는다(재정의 안 하면 위 :root의 라이트 값이 그대로 상속됨). 다시 톤을 조정해
+   달라는 요청이 오기 전까진 이 전경색들을 다크 전용으로 새로 하드코딩하지 말 것.
+   pale/light 계열(배경 워시용)은 애초에 이 논의 대상이 아니라 기존처럼 어두운
+   배경 톤으로 별도 관리한다. */
 :root[data-theme="dark"] {
   --tomato-light: #4a2b22;
   --tomato-pale: #2a1712;
-  --tomato-text: #ff9d7f;
 
+  --blue: #5b9bd9;
   --blue-dark: #6cb8ff;
   --blue-pale: #12283a;
   --blue-border: #2f5c82;
 
+  --green: #6bab5c;
+  --green-hover: #5a9a4c;
   --green-pale: #132018;
   --green-pale-border: #24402c;
 
+  --amber: #d1a052;
   --amber-pale: #241f0c;
   --amber-pale-border: #4a3e17;
 }
