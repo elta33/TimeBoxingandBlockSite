@@ -88,6 +88,11 @@ body {
 
 /* ── 레이아웃 그리드 ── */
 .block-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+/* 설정 탭: 왼쪽 칸(백업/복원 + 기타 설정)을 하나의 grid item으로 묶어 세로로
+   쌓음 — 옆 칸(잠금 PIN)이 훨씬 길어도 grid row 높이에 안 끌려가고 두 섹터가
+   붙어서 나온다(예전엔 grid auto-flow로 다음 행에 배치돼 PIN 섹터 높이만큼
+   여백이 생겼었음). */
+.settings-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .scheduler-grid { display: grid; grid-template-columns: 420px 1fr; gap: 15px; align-items: start; }
 
 /* ── 입력 행 공통 ── */
@@ -1204,6 +1209,18 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .pomo-cycle-info { color: #555; }
 :root[data-theme="dark"] .pomo-display.phase-work .pomo-cycle-info,
 :root[data-theme="dark"] .pomo-display.phase-rest .pomo-cycle-info { color: #8a8a8a; }
+/* 위 .pomo-display/.pomo-phase-label 다크 규칙(특이도 0,3,0)이 아래 라이트
+   phase-* 규칙(.pomo-display.phase-work 등, 특이도 0,2,0)보다 특이도가 높아서
+   작동 중에도 항상 이겨버리던 버그 — 대기 상태 회색만 보이고 phase별 배경/
+   테두리/라벨색이 다크모드에서 하나도 안 보였음. dark+phase 조합으로 특이도를
+   역전시켜 고침. */
+:root[data-theme="dark"] .pomo-display.phase-work { background: var(--tomato-pale); border-color: var(--tomato-light); }
+:root[data-theme="dark"] .pomo-display.phase-rest { background: var(--green-pale); border-color: var(--green-pale-border); }
+:root[data-theme="dark"] .pomo-display.phase-done { background: var(--amber-pale); border-color: var(--amber-pale-border); }
+:root[data-theme="dark"] .pomo-display.phase-work .pomo-phase-label { color: var(--tomato); }
+:root[data-theme="dark"] .pomo-display.phase-rest .pomo-phase-label { color: var(--green); }
+:root[data-theme="dark"] .pomo-display.phase-done .pomo-phase-label { color: var(--amber); }
+
 
 :root[data-theme="dark"] .pomo-import-menu { background: #242424; border-color: #333; }
 :root[data-theme="dark"] .pomo-import-item { color: #d0d0d0; }
@@ -1603,15 +1620,31 @@ button { cursor: pointer; font-family: inherit; }
   <div class="tab-panel" id="tab-settings">
     <div class="block-grid" style="align-items:start;">
 
-      <div class="sector">
-        <div class="sector-title" data-i18n="settingsBackupTitle">데이터 백업 / 복원</div>
-        <p class="sector-desc" data-i18n="settingsBackupDesc">도메인 목록, 타임박스 스케줄, 설정을 파일로 저장하거나 불러옵니다.</p>
-        <div style="display:flex; gap:10px; margin-bottom:12px;">
-          <button id="exportBtn" class="btn" data-i18n="exportBtn">내보내기 (Export)</button>
-          <button id="importBtn" class="btn" data-i18n="importBtn">불러오기 (Import)</button>
-          <input type="file" id="importFile" accept=".json" style="display:none;">
+      <div class="settings-col">
+        <div class="sector">
+          <div class="sector-title" data-i18n="settingsBackupTitle">데이터 백업 / 복원</div>
+          <p class="sector-desc" data-i18n="settingsBackupDesc">도메인 목록, 타임박스 스케줄, 설정을 파일로 저장하거나 불러옵니다.</p>
+          <div style="display:flex; gap:10px; margin-bottom:12px;">
+            <button id="exportBtn" class="btn" data-i18n="exportBtn">내보내기 (Export)</button>
+            <button id="importBtn" class="btn" data-i18n="importBtn">불러오기 (Import)</button>
+            <input type="file" id="importFile" accept=".json" style="display:none;">
+          </div>
+          <p style="font-size:0.82rem; color:#bbb; margin:0;" data-i18n="importOverwriteNote">불러오기는 기존 데이터를 완전히 덮어씁니다.</p>
         </div>
-        <p style="font-size:0.82rem; color:#bbb; margin:0;" data-i18n="importOverwriteNote">불러오기는 기존 데이터를 완전히 덮어씁니다.</p>
+
+        <div class="sector">
+          <div class="sector-title" data-i18n="settingsOtherTitle">기타 설정</div>
+          <div class="schedule-toggle-row" style="margin-bottom:0;">
+            <label class="switch-label">
+              <input type="checkbox" id="darkModeToggle">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span class="dark-mode-toggle-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <span data-i18n="darkModeLabel">다크 모드</span>
+              </span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="sector">
@@ -1641,20 +1674,6 @@ button { cursor: pointer; font-family: inherit; }
             <button class="btn" id="pinChangeBtn" style="flex:1;">변경</button>
             <button class="btn-danger" id="pinRemoveBtn" style="flex:1;padding:10px 16px;">PIN 해제</button>
           </div>
-        </div>
-      </div>
-
-      <div class="sector">
-        <div class="sector-title" data-i18n="settingsOtherTitle">기타 설정</div>
-        <div class="schedule-toggle-row" style="margin-bottom:0;">
-          <label class="switch-label">
-            <input type="checkbox" id="darkModeToggle">
-            <span class="switch-track"><span class="switch-thumb"></span></span>
-            <span class="dark-mode-toggle-label">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-              <span data-i18n="darkModeLabel">다크 모드</span>
-            </span>
-          </label>
         </div>
       </div>
 
