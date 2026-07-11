@@ -9,16 +9,8 @@ var _previewActive = false;
 var _previewTimer  = null;
 
 function _advCycleLabel(n) { return n + T('pomoAdvancedCycleSuffix'); }
-function _findCycleOverride(cycleNum, overrides) {
-  for (var i = 0; i < overrides.length; i++) { if (overrides[i].cycle === cycleNum) return overrides[i]; }
-  return null;
-}
 function _advEffectiveName(item) {
   return (item.name || '').trim() || _advCycleLabel(item.cycle);
-}
-function _resolveCycleWork(cycleNum, settings, overrides) {
-  var found = _findCycleOverride(cycleNum, overrides);
-  return found ? found.workMins : settings.workMins;
 }
 
 // ── 상단 탭 고정(Document PiP) 상태 ──
@@ -106,7 +98,7 @@ function render() {
   } else if (s.phase === 'done') {
     timeEl.textContent = '00:00';
   } else {
-    timeEl.textContent = fmt(_resolveCycleWork(1, g, _overrides) * 60);
+    timeEl.textContent = fmt(_resolveCycleTimes(1, g, _overrides).workMins * 60);
   }
 
   var total = s.totalCycles || g.cycles;
@@ -115,7 +107,7 @@ function render() {
     ? (cur + ' / ' + total) : ('1 / ' + total);
 
   if (badgeEl) {
-    var differs = ov && (ov.workMins !== g.workMins || ov.restMins !== g.restMins);
+    var differs = _cycleOverrideDiffers(ov, g);
     badgeEl.style.display = (s.phase !== 'done' && differs) ? 'inline-block' : 'none';
   }
 }
@@ -219,7 +211,7 @@ _activeDoc.getElementById('startBtn').addEventListener('click', function() {
       var s = getUISettings();
       chrome.storage.local.set({
         pomodoroSettings: s,
-        pomodoroState: { active: true, phase: 'work', endTime: Date.now() + _resolveCycleWork(1, s, overrides) * 60 * 1000, cycle: 1, totalCycles: s.cycles },
+        pomodoroState: { active: true, phase: 'work', endTime: Date.now() + _resolveCycleTimes(1, s, overrides).workMins * 60 * 1000, cycle: 1, totalCycles: s.cycles },
       });
     } else {
       var ovCur = _findCycleOverride(state.cycle || 1, overrides);

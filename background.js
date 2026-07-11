@@ -1,4 +1,6 @@
 // background.js
+importScripts('pomodoro-shared.js');
+
 const BLOCK_PAGE_PATH = "/block.html";
 
 function getCurrentMinutes() {
@@ -175,15 +177,6 @@ async function _statsLogBoxMinute() {
   await chrome.storage.local.set({ focusEvents: events });
 }
 
-// 회차별 예외 설정이 있으면 그 값을, 없으면 기본 설정값을 반환
-function _resolveCycleTimes(cycleNum, settings, overrides) {
-  const found = (overrides || []).find(o => o.cycle === cycleNum);
-  return {
-    workMins: found ? found.workMins : settings.workMins,
-    restMins: found ? found.restMins : settings.restMins,
-  };
-}
-
 // 포모도로 페이즈 자동 전환 (1분 알람 틱마다 체크)
 async function checkPomodoroPhase() {
   const data      = await chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides']);
@@ -194,7 +187,7 @@ async function checkPomodoroPhase() {
   if (!state?.active || !state.endTime) return;
   const now = Date.now();
   if (now < state.endTime) return;
-  // options.js / pomodoro-pip.js의 _pomoTick이 먼저 전환했을 경우 중복 전환 방지.
+  // options-pomodoro.js / pomodoro-pip.js의 _pomoTick이 먼저 전환했을 경우 중복 전환 방지.
   // advancedAt이 10초 이내면 UI가 이미 처리한 것으로 간주하고 넘어감.
   if (state.advancedAt && now - state.advancedAt < 10000) return;
 

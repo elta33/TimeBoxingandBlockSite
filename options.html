@@ -25,12 +25,12 @@
      써서 "배경이 파고든 틈" 처럼 보이게 하는 용도. 라이트에선 그게 흰색이지만
      다크에선 카드 배경색이어야 한다(흰색 그대로 두면 튄다). */
   --select-outline: #fff;
-  /* "차단 시간대 분포" SVG 막대(options.js _renderHeatmap)의 fill. 라이트는 원래의
+  /* "차단 시간대 분포" SVG 막대(options-stats.js _renderHeatmap)의 fill. 라이트는 원래의
      블루 계열, 다크는 보라 계열 — JS가 style 문자열에 직접 'var(--heatmap-bar*)'를
      넣으므로 여기 라이트/다크 값만 관리하면 된다. */
   --heatmap-bar: #8aa9bd;
   --heatmap-bar-peak: #0d2a4a;
-  /* 스트릭 달력 칸(options.js _renderStreakCalendar) 색 — solved.ac 스트릭 배지
+  /* 스트릭 달력 칸(options-stats.js _renderStreakCalendar) 색 — solved.ac 스트릭 배지
      참고: 옅음=낮은 집중 → 짙음=높은 집중으로 가다가, 최상위 구간만 어두워지는
      대신 채도 높은 튀는 색으로 반전(집중이 확 높은 날을 한눈에 강조).
      --scal-cell-empty: 활동이 아예 없는 날의 기본색(회색).
@@ -1818,7 +1818,11 @@ button { cursor: pointer; font-family: inherit; }
   <script src="storage.js"></script>
   <script src="i18n.js"></script>
   <script src="render-day.js"></script>
-  <script src="options.js"></script>
+  <script src="options-core.js"></script>
+  <script src="options-stats.js"></script>
+  <script src="options-init.js"></script>
+  <script src="pomodoro-shared.js"></script>
+  <script src="options-pomodoro.js"></script>
   <script src="todo.js"></script>
 </body>
 </html>

@@ -25,9 +25,14 @@ TimeBoxingandBlockSite/
 ├── background.js          # Service Worker — DNR 규칙 관리, 알람, SPA 차단 판별
 │
 ├── popup.html / popup.js  # 툴바 아이콘 클릭 시 나타나는 팝업
-├── options.html / options.js  # 전체 설정 페이지 (5개 탭)
-├── storage.js             # options.js가 공유하는 스토리지 CRUD 헬퍼
-├── render-day.js          # 하루 도넛(원형) 타임테이블 SVG 렌더러
+├── options.html            # 전체 설정 페이지 (5개 탭)
+├── options-core.js         # PIN 잠금 + 도메인 리스트 유틸 + 타임박스 스케줄러 + 내보내기/불러오기
+├── options-stats.js        # 통계 탭 렌더링 (바 차트/상위 도메인/포모도로 통계/히트맵/스트릭 달력)
+├── options-init.js         # 옵션 페이지 부트스트랩 (DOMContentLoaded — 탭 전환, 다크모드, PIN, 내보내기 버튼 연결)
+├── options-pomodoro.js     # 포모도로 타이머 탭 UI (표시/틱/프리셋/고급 설정)
+├── pomodoro-shared.js      # 사이클별 시간 계산 공용 로직 — background.js(importScripts)/options-pomodoro.js/pomodoro-pip.js 공유
+├── storage.js              # options-core.js가 사용하는 스토리지 CRUD 헬퍼
+├── render-day.js           # 하루 도넛(원형) 타임테이블 SVG 렌더러
 │
 ├── block.html / block.js  # 차단 페이지 (배경 이미지, 인용구, 커스텀 UI)
 │
@@ -109,7 +114,7 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 
 ### 3-4. 포모도로 타이머
 
-`pomodoroState` 스토리지로 상태를 공유하며, background.js / options.js / pomodoro-pip.js 세 곳이 동시에 구독한다.
+`pomodoroState` 스토리지로 상태를 공유하며, background.js / options-pomodoro.js / pomodoro-pip.js 세 곳이 동시에 구독한다. 사이클별 시간 계산(`_resolveCycleTimes`/`_findCycleOverride`/`_cycleOverrideDiffs`)은 `pomodoro-shared.js`에 공용으로 구현되어 있다 (background.js는 `importScripts`로, options-pomodoro.js/pomodoro-pip.js는 `<script>` 태그로 로드).
 
 ```js
 // pomodoroState 구조
@@ -125,7 +130,7 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 ```
 
 - `background.js`: 1분 알람(`timeboxTicker`)마다 `checkPomodoroPhase()` 호출 → endTime 초과 시 페이즈 자동 전환
-- `options.js` / `pomodoro-pip.js`: setInterval 기반 1초 tick으로 카운트다운 표시 및 페이즈 전환
+- `options-pomodoro.js` / `pomodoro-pip.js`: setInterval 기반 1초 tick으로 카운트다운 표시 및 페이즈 전환
 - 경쟁 조건 방지: UI가 먼저 전환했을 경우 `advancedAt`이 10초 이내이면 background가 중복 전환하지 않음
 - **PiP 창**: `chrome.windows.create({ type: 'popup' })`로 별도 창 생성, `pipWindowId`로 이미 열린 창 재사용
 - **Always on Top**: 설정 토글 활성화 시 PiP 창을 Document PiP API 방식으로 승격(`pomodoro-pip.js` L272~)
@@ -177,7 +182,7 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 { current: 5, longest: 12, lastDate: "2026-06-28" }
 ```
 
-**통계 탭 시각화 (`options.js`):**
+**통계 탭 시각화 (`options-stats.js`):**
 
 | 구성 요소 | 함수 | 내용 |
 |---------|------|------|
