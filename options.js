@@ -141,6 +141,19 @@ function timeToMins(timeStr) {
   return h * 60 + m;
 }
 
+// ── 공통: 쓰레기통 삭제 아이콘 (도메인 리스트 / 포모도로 프리셋 / 타임박스
+// 주간뷰 박스 삭제 버튼이 전부 이 아이콘을 공유) ──
+const TRASH_ICON_SVG = '<svg viewBox="0 0 24 24" width="29" height="29" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+function _makeTrashButton(title, onClick, extraClass) {
+  const btn = document.createElement('button');
+  btn.className = 'icon-trash-btn' + (extraClass ? ' ' + extraClass : '');
+  btn.title = title;
+  btn.setAttribute('aria-label', title);
+  btn.innerHTML = TRASH_ICON_SVG;
+  btn.onclick = onClick;
+  return btn;
+}
+
 // ── 공통: 차단 관리 탭 도메인 리스트 렌더링 ──
 function renderList(elementId, items, storageKey, warnId) {
   const ul = document.getElementById(elementId);
@@ -151,9 +164,7 @@ function renderList(elementId, items, storageKey, warnId) {
     const span = document.createElement('span');
     span.textContent = item; span.title = item; span.className = 'domain-text';
     li.appendChild(span);
-    const delBtn = document.createElement('button');
-    delBtn.textContent = T('delete'); delBtn.className = 'btn-danger btn-sm';
-    delBtn.onclick = () => deleteItem(storageKey, index);
+    const delBtn = _makeTrashButton(T('delete'), () => deleteItem(storageKey, index));
     li.appendChild(delBtn);
     ul.appendChild(li);
   });
@@ -176,9 +187,7 @@ function createCustomDomainItemUI(domain, mode, idPrefix, elType, onDelete) {
   modeBadge.textContent = T('allow');
   controls.appendChild(modeBadge);
 
-  const delBtn = document.createElement('button');
-  delBtn.className = 'btn-danger btn-sm'; delBtn.textContent = T('delete');
-  delBtn.onclick = (e) => { e.stopPropagation(); onDelete(); };
+  const delBtn = _makeTrashButton(T('delete'), (e) => { e.stopPropagation(); onDelete(); });
   controls.appendChild(delBtn);
 
   item.appendChild(controls);
@@ -343,7 +352,7 @@ function buildBoxCard(box, boxIndex, isWeek) {
     if (_pinEnabled) {
       delBtn.textContent = '🔒';
     } else {
-      delBtn.innerHTML = '<span class="tbox-del-cross"></span>';
+      delBtn.innerHTML = TRASH_ICON_SVG;
     }
     delBtn.title = T('deleteBoxTitle');
     delBtn.onclick = (e) => {
@@ -1409,12 +1418,26 @@ function _renderTopDomains(filteredEvents) {
   });
 
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const SLOTS = 5; // 도메인 개수(0~5)와 무관하게 항상 5행 높이를 예약 —
+                    // 옆 집중 통계 섹터와 stretch로 세로가 맞물려 있어, 여기가
+                    // 출렁이면 막대 그래프 높이까지 따라 출렁이기 때문.
+
+  function placeholderRow() {
+    const li = document.createElement('li');
+    li.className = 'stats-domain-rank-item stats-domain-placeholder';
+    li.innerHTML = '<span class="stats-rank-num">&nbsp;</span>'
+      + '<div class="stats-rank-info"><span class="stats-rank-domain">&nbsp;</span>'
+      + '<div class="stats-rank-bar-bg"><div class="stats-rank-bar-fill" style="width:0"></div></div></div>'
+      + '<span class="stats-rank-count">&nbsp;</span>';
+    return li;
+  }
 
   if (!sorted.length) {
     const li = document.createElement('li');
-    li.className = 'stats-empty';
+    li.className = 'stats-domain-rank-item stats-domain-empty';
     li.textContent = T('statsNoData');
     listEl.appendChild(li);
+    for (let i = 1; i < SLOTS; i++) listEl.appendChild(placeholderRow());
     return;
   }
 
@@ -1451,6 +1474,8 @@ function _renderTopDomains(filteredEvents) {
     li.append(rank, info, countEl);
     listEl.appendChild(li);
   });
+
+  for (let i = sorted.length; i < SLOTS; i++) listEl.appendChild(placeholderRow());
 
   // 왼쪽에서 오른쪽으로 늘어나는 진입 애니메이션
   requestAnimationFrame(() => {
@@ -1634,6 +1659,17 @@ function _renderHeatmap(allEvents, period) {
   if (periodEl) periodEl.textContent = T('statsPeriod' + (period === 'today' ? 'Today' : period));
 }
 
+// 스트릭 달력 칸의 집중 강도 색 — solved.ac 스트릭 배지 참고, 연속
+// 그라데이션이 아니라 이산 4단계(--scal-t1~t4, options.html에 라이트/다크
+// 값 정의)로 매핑. 옅음→짙음으로 가다가 최상위(t4)만 채도 높은 튀는 색으로
+// 반전시켜 "확 높은 집중"을 한눈에 강조한다. var()라 테마 전환 시 라이브 반영.
+function _scalIntensityColor(intensity) {
+  if (intensity >= 0.88) return 'var(--scal-t4)';
+  if (intensity >= 0.65) return 'var(--scal-t3)';
+  if (intensity >= 0.45) return 'var(--scal-t2)';
+  return 'var(--scal-t1)';
+}
+
 function _renderStreakCalendar(allEvents, streak) {
   const container = document.getElementById('streakCalSector');
   if (!container) return;
@@ -1764,9 +1800,9 @@ function _renderStreakCalendar(allEvents, streak) {
       cell.style.opacity = '0';
     } else if (hasActivity) {
       const intensity = mins > 0 ? Math.min(1, 0.3 + (mins / maxMins) * 0.7) : 0.4;
-      cell.style.background = `rgba(250,173,20,${intensity})`;
+      cell.style.background = _scalIntensityColor(intensity);
     } else {
-      cell.style.background = '#efefef';
+      cell.style.background = 'var(--scal-cell-empty)';
     }
 
     if (isToday) {
@@ -1809,8 +1845,9 @@ function _renderStreakCalendar(allEvents, streak) {
   const mkCell = (bg) => { const s = document.createElement('span'); s.className = 'scal-leg-cell'; s.style.background = bg; return s; };
   const mkLbl  = (t)  => { const s = document.createElement('span'); s.className = 'scal-leg-lbl';  s.textContent = t; return s; };
   legend.append(
-    mkLbl('없음'), mkCell('#efefef'),
-    mkCell('rgba(250,173,20,0.4)'), mkCell('rgba(250,173,20,0.85)'), mkLbl('집중')
+    mkLbl('없음'), mkCell('var(--scal-cell-empty)'),
+    mkCell('var(--scal-t1)'), mkCell('var(--scal-t2)'), mkCell('var(--scal-t3)'), mkCell('var(--scal-t4)'),
+    mkLbl('집중')
   );
   legendRow.appendChild(legend);
 
@@ -2239,15 +2276,13 @@ function renderPomoList(list) {
     li.className = 'custom-domain-item';
     const span = document.createElement('span');
     span.textContent = domain; span.title = domain; span.className = 'domain-text';
-    const del  = document.createElement('button');
-    del.textContent = T('delete'); del.className = 'btn-danger btn-sm';
-    del.onclick = () => {
+    const del = _makeTrashButton(T('delete'), () => {
       chrome.storage.local.get(['pomodoroList'], r => {
         const arr = r.pomodoroList || [];
         arr.splice(i, 1);
         chrome.storage.local.set({ pomodoroList: arr }, loadPomoData);
       });
-    };
+    });
     li.append(span, del);
     ul.appendChild(li);
   });
@@ -2290,18 +2325,14 @@ function renderPomoPresets(presets) {
     li.className = 'pomo-preset-item';
     li.onclick = () => _applyPomoPreset(preset);
 
-    const delX = document.createElement('button');
-    delX.className = 'pomo-preset-del-x';
-    delX.setAttribute('aria-label', T('delete'));
-    delX.textContent = '×';
-    delX.onclick = (e) => {
+    const delX = _makeTrashButton(T('delete'), (e) => {
       e.stopPropagation();
       chrome.storage.local.get(['pomodoroPresets'], r => {
         const arr = r.pomodoroPresets || [];
         arr.splice(i, 1);
         chrome.storage.local.set({ pomodoroPresets: arr }, loadPomoData);
       });
-    };
+    }, 'pomo-preset-del-x');
 
     const name = document.createElement('span');
     name.className = 'pomo-preset-name';
