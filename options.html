@@ -397,59 +397,51 @@ button { cursor: pointer; font-family: inherit; }
 .stats-period-tab + .stats-period-tab { border-left: 1px solid #e0e0e0; }
 .stats-period-tab.active { background: #111; color: #fff; font-weight: 700; }
 
-/* 스트릭 달력(넓은 폭 필요) + 집중시간/차단횟수 카드(세로로 쌓아도 되는 폭)를
-   한 줄에 배치 — 달력 섹터가 넓은데 카드까지 그 밑에 별도 줄로 두면 카드 쪽엔
-   위아래 여백만 넓어지고 달력 오른쪽엔 빈 공간만 남아 전체적으로 엉성해 보였다. */
-.stats-top-row {
-  display: grid;
-  grid-template-columns: 1fr 240px;
-  gap: 14px;
-  margin-bottom: 14px;
-  align-items: stretch;
-}
-.stats-side-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.stats-hero-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 18px 20px 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  position: relative;
-  overflow: hidden;
-  border-left: 4px solid #eee;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.stats-hero-card.stats-focus  { border-left-color: var(--blue); }
-.stats-hero-card.stats-block  { border-left-color: var(--tomato); }
-.stats-hero-label {
-  font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.07em; color: #bbb; margin-bottom: 10px;
-}
-.stats-hero-value {
-  font-size: 2.2rem; font-weight: 800; color: #111;
-  letter-spacing: -0.03em; line-height: 1;
-}
-.stats-hero-unit { font-size: 0.95rem; font-weight: 500; color: #888; margin-left: 3px; }
-.stats-hero-sub  { font-size: 0.85rem; color: #bbb; margin-top: 8px; }
-
-.stats-main-grid {
-  display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-.stats-bottom-grid {
+/* 통계 탭 그룹 — 히어로 카드/따로 노는 그리드 대신, 같은 주제(집중/차단)를
+   타이틀 하나 밑에 큰 수치 + 관련 상세를 전부 묶어 배치. 스트릭 달력은 폭이
+   넓게 남아 포모도로 통계(가로로 너무 길쭉했음)와 한 줄에 묶었다 — 두 .stats-group-grid
+   행 모두 같은 2칸 그리드를 재사용. */
+.stats-group-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+  margin-bottom: 14px;
   align-items: start;
 }
+/* 스트릭 달력 : 포모도로 통계 = 7:3 — 포모도로는 세로 스택 카드라 좁아도 되고,
+   스트릭은 주간 그리드가 있어 넓을수록 좋다. */
+.stats-top-grid { grid-template-columns: 7fr 3fr; }
+/* 차단 통계: 차단 횟수 큰 수치 + 상위 차단 도메인을 가로 한 줄에 */
+.stats-block-top {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+.stat-block-count { flex: 0 0 130px; }
+.stats-block-domains { flex: 1; min-width: 0; }
+/* 그룹 상단의 큰 수치 — 스트릭 달력의 .stat-eyebrow/.stat-value와 공유하는
+   범용 클래스(이전엔 scal- 접두사로 달력 전용이었으나 여기서도 그대로 재사용). */
+.stat-eyebrow {
+  font-size: 0.85rem; font-weight: 700; color: #999;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #111;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.stat-unit { font-size: 0.95rem; font-weight: 500; color: #888; margin-left: 4px; }
+.stat-sub { font-size: 0.85rem; color: #bbb; margin-top: 8px; }
+
+.stats-subsection {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.stats-subsection-title { font-size: 0.95rem; font-weight: 700; color: #333; margin-bottom: 8px; }
 
 /* 바 차트 */
 .stats-bar-chart-inner {
@@ -504,7 +496,7 @@ button { cursor: pointer; font-family: inherit; }
 /* 포모도로 통계 */
 .stats-pomo-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-top: 4px;
 }
@@ -852,19 +844,8 @@ button { cursor: pointer; font-family: inherit; }
    좌우로 나눴을 때는 두 블록 사이에 억지 여백이 생겼는데, 세로로 쌓으면 그리드가
    섹터 폭을 그대로 다 쓰므로 그 문제가 없다. */
 .scal-top { margin-bottom: 16px; }
-.scal-eyebrow {
-  font-size: 0.85rem; font-weight: 700; color: #999;
-  text-transform: uppercase; letter-spacing: 0.07em;
-  margin-bottom: 6px;
-}
-.scal-stats-value {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #111;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-.scal-stats-unit { font-size: 0.95rem; font-weight: 500; color: #888; margin-left: 4px; }
+/* 상단 큰 숫자는 .stat-eyebrow/.stat-value/.stat-unit(범용 클래스, 통계 그룹
+   섹터와 공유)를 그대로 쓴다 — scal- 전용 버전은 중복이라 없앴다. */
 /* overflow-x:auto가 있으면 스펙상 overflow-y도 auto로 강제되는데(한쪽이 visible이
    아니면 다른 쪽 visible도 계산값이 auto가 됨), hover 시 칸이 scale()로 커지면서
    첫/마지막 줄이 위아래로 넘쳐 스크롤바가 뜨던 원인이었다. 위아래로 살짝 여유
@@ -920,13 +901,12 @@ button { cursor: pointer; font-family: inherit; }
   position: relative;
 }
 .scal-cell:hover { transform: scale(1.15); z-index: 1; }
-.scal-footer {
+.scal-legend-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 14px;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
-.scal-best { font-size: 0.8rem; color: #666; font-weight: 600; }
+.scal-best { font-size: 0.8rem; color: #666; font-weight: 600; margin-top: 14px; }
 .scal-legend {
   display: flex;
   align-items: center;
@@ -1126,16 +1106,12 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .stats-period-tab + .stats-period-tab { border-left-color: #333; }
 :root[data-theme="dark"] .stats-period-tab.active { background: #3a3a3a; color: #ececec; }
 
-:root[data-theme="dark"] .stats-hero-card { background: #1c1c1c; border-left-color: #333; }
-/* 위 베이스 규칙과 특이도가 같은 .stats-focus/.stats-block 라이트 규칙을
-   확실히 이기려면 클래스 2개짜리(특이도 0,3,0)로 다시 명시해야 한다 — 안 그러면
-   소스 순서상 이 베이스 다크 규칙이 이겨서 2장 다 회색으로 통일돼버린다. */
-:root[data-theme="dark"] .stats-hero-card.stats-focus  { border-left-color: #9b87f5; }
-:root[data-theme="dark"] .stats-hero-card.stats-block  { border-left-color: var(--tomato); }
-:root[data-theme="dark"] .stats-hero-label { color: #5e5e5e; }
-:root[data-theme="dark"] .stats-hero-value { color: #f2f2f2; }
-:root[data-theme="dark"] .stats-hero-unit { color: #8a8a8a; }
-:root[data-theme="dark"] .stats-hero-sub { color: #5e5e5e; }
+:root[data-theme="dark"] .stat-eyebrow { color: #7a7a7a; }
+:root[data-theme="dark"] .stat-value { color: #f2f2f2; }
+:root[data-theme="dark"] .stat-unit { color: #8a8a8a; }
+:root[data-theme="dark"] .stat-sub { color: #7a7a7a; }
+:root[data-theme="dark"] .stats-subsection { border-top-color: #2e2e2e; }
+:root[data-theme="dark"] .stats-subsection-title { color: #e0e0e0; }
 
 :root[data-theme="dark"] .stats-bar { background: #9b87f5; }
 :root[data-theme="dark"] .stats-bar-day.today { color: #c3b5fa; }
@@ -1236,9 +1212,6 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .scal-days span { color: #555; }
 :root[data-theme="dark"] .scal-months span { color: #5e5e5e; }
 :root[data-theme="dark"] .scal-leg-lbl { color: #5e5e5e; }
-:root[data-theme="dark"] .scal-eyebrow { color: #7a7a7a; }
-:root[data-theme="dark"] .scal-stats-value { color: #f2f2f2; }
-:root[data-theme="dark"] .scal-stats-unit { color: #8a8a8a; }
 :root[data-theme="dark"] .scal-best { color: #a0a0a0; }
 
 /* ── Todo 패널(다크) — block.html의 다크 톤을 그대로 참고하되 배지 색만 green으로 유지 ── */
@@ -1533,37 +1506,8 @@ button { cursor: pointer; font-family: inherit; }
       </div>
     </div>
 
-    <div class="stats-top-row">
+    <div class="stats-group-grid stats-top-grid">
       <div class="sector" id="streakCalSector"></div>
-      <div class="stats-side-cards">
-        <div class="stats-hero-card stats-focus">
-          <div class="stats-hero-label" id="stat-focus-title" data-i18n="statsFocusTime">⏱ 오늘 집중 시간</div>
-          <div class="stats-hero-value" id="stat-focus-val">—</div>
-          <div class="stats-hero-sub" id="stat-focus-sub" data-i18n="statsFocusSub">타임박스 실 집중 누적</div>
-        </div>
-        <div class="stats-hero-card stats-block">
-          <div class="stats-hero-label" id="stat-block-title" data-i18n="statsBlockCount">🚫 차단 횟수</div>
-          <div class="stats-hero-value">
-            <span id="stat-block-val">0</span><span class="stats-hero-unit" data-i18n="statsBlockUnit">회</span>
-          </div>
-          <div class="stats-hero-sub" id="stat-block-sub" data-i18n="statsBlockSub">방어한 분산 시도</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="stats-main-grid">
-      <div class="sector">
-        <div class="sector-title" id="stat-chart-title"></div>
-        <div id="stat-bar-chart"></div>
-      </div>
-      <div class="sector">
-        <div class="sector-title" data-i18n="statsTopDomains">상위 차단 도메인</div>
-        <div class="sector-desc" id="stat-top-domains-period"></div>
-        <ul class="stats-domain-rank" id="stat-top-domains"></ul>
-      </div>
-    </div>
-
-    <div class="stats-bottom-grid">
       <div class="sector">
         <div class="sector-title">
           <span data-i18n="statsPomoTitle">🍅 포모도로 통계</span>
@@ -1571,14 +1515,42 @@ button { cursor: pointer; font-family: inherit; }
         </div>
         <div id="stat-pomo-content"></div>
       </div>
+    </div>
+
+    <div class="stats-group-grid">
       <div class="sector">
-        <div class="sector-title" data-i18n="statsHeatmapTitle">차단 시간대 분포</div>
-        <div class="sector-desc" id="stat-heatmap-period"></div>
-        <div id="stat-heatmap-wrap" style="position:relative">
-          <svg id="stat-heatmap" viewBox="0 0 220 70" width="100%" style="display:block;overflow:visible;margin-top:4px"></svg>
+        <div class="sector-title" data-i18n="statsFocusGroupTitle">⏱ 집중 통계</div>
+        <div class="stat-eyebrow" id="stat-focus-title" data-i18n="statsFocusTime">오늘 집중 시간</div>
+        <div class="stat-value" id="stat-focus-val">—</div>
+        <div class="stat-sub" id="stat-focus-sub" data-i18n="statsFocusSub">타임박스 실 집중 누적</div>
+        <div class="stats-subsection">
+          <div class="stats-subsection-title" id="stat-chart-title"></div>
+          <div id="stat-bar-chart"></div>
         </div>
-        <div class="stats-heatmap-labels">
-          <span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>23시</span>
+      </div>
+      <div class="sector">
+        <div class="sector-title" data-i18n="statsBlockGroupTitle">🚫 차단 통계</div>
+        <div class="stats-block-top">
+          <div class="stat-block-count">
+            <div class="stat-eyebrow" id="stat-block-title" data-i18n="statsBlockCount">차단 횟수</div>
+            <div class="stat-value"><span id="stat-block-val">0</span><span class="stat-unit" data-i18n="statsBlockUnit">회</span></div>
+            <div class="stat-sub" id="stat-block-sub" data-i18n="statsBlockSub">방어한 분산 시도</div>
+          </div>
+          <div class="stats-block-domains">
+            <div class="stats-subsection-title" data-i18n="statsTopDomains">상위 차단 도메인</div>
+            <div class="sector-desc" id="stat-top-domains-period"></div>
+            <ul class="stats-domain-rank" id="stat-top-domains"></ul>
+          </div>
+        </div>
+        <div class="stats-subsection">
+          <div class="stats-subsection-title" data-i18n="statsHeatmapTitle">차단 시간대 분포</div>
+          <div class="sector-desc" id="stat-heatmap-period"></div>
+          <div id="stat-heatmap-wrap" style="position:relative">
+            <svg id="stat-heatmap" viewBox="0 0 220 70" width="100%" style="display:block;overflow:visible;margin-top:4px"></svg>
+          </div>
+          <div class="stats-heatmap-labels">
+            <span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>23시</span>
+          </div>
         </div>
       </div>
     </div>

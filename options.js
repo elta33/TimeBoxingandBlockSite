@@ -1638,10 +1638,10 @@ function _renderStreakCalendar(allEvents, streak) {
   const container = document.getElementById('streakCalSector');
   if (!container) return;
 
-  // 그리드가 이제 섹터 전체 폭을 그대로 쓰므로(좌우 분할 폐지), solved.ac처럼
-  // 거의 1년 치를 보여줄 수 있을 만큼 주 수를 넉넉히 잡는다. 실제 렌더 폭이
-  // 예상과 달라 넘치더라도 .scal-calendar-col의 overflow-x:auto가 받아준다.
-  const WEEKS = 40;
+  // 스트릭 달력이 포모도로 통계와 한 줄을 7:3 비율로 나눠 쓴다 — 그 폭(~880px)에
+  // 맞춰 주 수를 잡는다. 실제 렌더 폭이 예상과 달라 넘치더라도
+  // .scal-calendar-col의 overflow-x:auto가 받아준다.
+  const WEEKS = 36;
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
@@ -1693,14 +1693,14 @@ function _renderStreakCalendar(allEvents, streak) {
   const top = document.createElement('div');
   top.className = 'scal-top';
   const eyebrowEl = document.createElement('div');
-  eyebrowEl.className = 'scal-eyebrow';
+  eyebrowEl.className = 'stat-eyebrow';
   eyebrowEl.textContent = '🔥 연속 집중 스트릭';
   const valueEl = document.createElement('div');
-  valueEl.className = 'scal-stats-value';
+  valueEl.className = 'stat-value';
   const valueNum = document.createElement('span');
   valueNum.textContent = String(streak.current);
   const valueUnit = document.createElement('span');
-  valueUnit.className = 'scal-stats-unit';
+  valueUnit.className = 'stat-unit';
   valueUnit.textContent = '일째';
   valueEl.append(valueNum, valueUnit);
   top.append(eyebrowEl, valueEl);
@@ -1798,19 +1798,12 @@ function _renderStreakCalendar(allEvents, streak) {
 
   rightEl.append(monthsEl, grid);
   wrap.append(daysEl, rightEl);
-  calCol.appendChild(wrap);
-  container.append(calCol, cellPopover);
 
-  // 하단 — 최장 기록 텍스트 + 범례를 한 줄에(solved.ac 패턴).
+  // 범례("없음/집중" 색 표기) — 달력 우상단에, 그리드 오른쪽 끝에 맞춰 배치.
   // 색 자체는 스트릭 여부와 무관하게 전부 집중 시간 강도(노란 계열) 하나로 통일돼
   // 있으므로, "며칠 연속인지"는 위쪽 큰 수치와 각 칸의 hover 툴팁으로 확인한다.
-  const footer = document.createElement('div');
-  footer.className = 'scal-footer';
-  const bestEl = document.createElement('div');
-  bestEl.className = 'scal-best';
-  bestEl.textContent = streak.longest > 0
-    ? T('statsStreakBest', [String(streak.longest)])
-    : T('statsStreakNone');
+  const legendRow = document.createElement('div');
+  legendRow.className = 'scal-legend-row';
   const legend = document.createElement('div');
   legend.className = 'scal-legend';
   const mkCell = (bg) => { const s = document.createElement('span'); s.className = 'scal-leg-cell'; s.style.background = bg; return s; };
@@ -1819,8 +1812,18 @@ function _renderStreakCalendar(allEvents, streak) {
     mkLbl('없음'), mkCell('#efefef'),
     mkCell('rgba(250,173,20,0.4)'), mkCell('rgba(250,173,20,0.85)'), mkLbl('집중')
   );
-  footer.append(bestEl, legend);
-  container.appendChild(footer);
+  legendRow.appendChild(legend);
+
+  calCol.append(legendRow, wrap);
+  container.append(calCol, cellPopover);
+
+  // 하단 — 최장 기록 텍스트만 남음(범례는 위로 이동).
+  const bestEl = document.createElement('div');
+  bestEl.className = 'scal-best';
+  bestEl.textContent = streak.longest > 0
+    ? T('statsStreakBest', [String(streak.longest)])
+    : T('statsStreakNone');
+  container.appendChild(bestEl);
 }
 
 function renderStats(period) {
