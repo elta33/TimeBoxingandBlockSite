@@ -12,6 +12,7 @@
 - 포모도로 프리셋으로 자주 쓰는 설정을 저장·복원하고, 사이클별 시간을 개별 오버라이드 가능
 - 설정 페이지 내 플로팅 할일(Todo) 패널로 집중 중 할 일 관리
 - PIN 잠금으로 삭제·초기화 등 파괴적 조작을 보호
+- 라이트/다크 모드 지원 (시스템 설정 자동 감지, 토글로 고정)
 - 한국어/영어 현지화 지원
 
 ---
@@ -41,8 +42,12 @@ TimeBoxingandBlockSite/
 │
 ├── pomodoro-pip.html / pomodoro-pip.js  # Picture-in-Picture 포모도로 창
 │
+├── theme.js               # 다크모드 적용·동기화 (options/popup/pip에서 로드, block.html 제외)
 ├── todo.js                # 플로팅 할일 패널 (드래그 가능, options.html & block.html 공유)
 ├── i18n.js                # __MSG_key__ 처리 및 T() 헬퍼 함수
+├── styles/
+│   ├── tokens.css         # 공용 CSS 컬러 토큰 (tomato/blue/green/amber 계열 + 다크모드 오버라이드)
+│   └── components.css     # 공통 컴포넌트 CSS
 └── _locales/
     ├── ko/messages.json   # 한국어 문자열
     └── en/messages.json   # 영어 문자열
@@ -220,7 +225,17 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 - PIN 미설정 시 모든 조작 허용 (기본값)
 - PIN 설정·변경·비활성화 UI는 **설정** 탭에 위치
 
-### 3-8. 차단 화면 커스터마이징
+### 3-8. 다크모드 시스템
+
+`theme.js`가 options.html / popup.html / pomodoro-pip.html 세 화면에서 공통으로 로드된다.
+
+- 최초 진입 시 `prefers-color-scheme` 시스템 설정을 읽어 `darkModeEnabled` 스토리지에 저장
+- 이후에는 저장 값 기준 — 설정 탭 토글로 변경 가능
+- `<html data-theme="dark | light">` 속성으로 CSS 스코프를 제어하며, `styles/tokens.css`의 `:root[data-theme="dark"]` 블록이 색상 변수를 오버라이드
+- `localStorage`에도 캐시하여 chrome.storage 비동기 응답 전 깜빡임(FOUC) 방지
+- **block.html은 이 시스템 제외** — 자체 다크 배경 테마를 사용하며, MV3 CSP로 인해 `<head>` 인라인 스크립트를 쓸 수 없어 `data-theme` 설정이 별도로 처리됨
+
+### 3-9. 차단 화면 커스터마이징
 
 `block.html`에서 제공하는 기능:
 
@@ -255,6 +270,7 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 | `lockPin` | `object` | PIN 잠금 정보 `{ hash, salt, enabled }` |
 | `todoItems` | `object[]` | 할일 항목 `[{ id, text, done }]` |
 | `todoTriggerPos` | `object` | Todo 아이콘 위치 `{ left, top }` |
+| `darkModeEnabled` | `boolean` | 다크모드 활성화 여부 (최초 진입 시 시스템 설정으로 초기화) |
 
 ---
 
@@ -314,3 +330,4 @@ HTML에서는 `data-i18n`, `data-i18n-placeholder`, `data-i18n-title`, `data-i18
 - **SPA 차단 폴백**: content.js는 초기 로드 시에도 `requestBlockCheck(location.href)`를 호출해 DNR 리다이렉트 실패를 보완한다.
 - **포모도로 경쟁 조건**: background alarms와 UI tick이 동시에 페이즈 전환을 시도할 수 있어 `advancedAt` 필드로 10초 이내 중복 전환을 가드한다.
 - **Base64 이미지 저장**: `chrome.storage.local` 용량 한도(10MB)에 유의가 필요하다.
+- **다크모드 FOUC 방지**: MV3 CSP는 `<head>` 내 인라인 `<script>`를 차단하므로, 비동기 chrome.storage 응답 전 깜빡임은 `localStorage` 캐시(`tbb-theme`)로 우회한다. block.html은 다크 배경을 기본으로 쓰므로 `theme.js`를 로드하지 않는다.
