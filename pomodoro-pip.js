@@ -43,7 +43,7 @@ if (!window.frameElement) {
 // (승격된 적이 있으면 _onRealPipClosed 쪽이 더 정확한 위치를 이미 기록하므로 건너뛴다.)
 window.addEventListener('pagehide', function() {
   if (_everPromoted) return;
-  try { chrome.storage.local.set({ pomodoroPipPos: { left: window.screenX, top: window.screenY } }); } catch (e) {}
+  try { TBBStorage.set({ pomodoroPipPos: { left: window.screenX, top: window.screenY } }); } catch (e) {}
 });
 
 // ── 렌더 ──
@@ -156,7 +156,7 @@ chrome.storage.onChanged.addListener(function(changes) {
   scheduleTick();
 });
 
-chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], function(data) {
+TBBStorage.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], function(data) {
   if (chrome.runtime.lastError) { scheduleTick(); return; }
   if (data.pomodoroState)    _state     = data.pomodoroState;
   if (data.pomodoroSettings) _settings  = data.pomodoroSettings;
@@ -175,7 +175,7 @@ function getUISettings() {
 
 function applySettings(s, previewPhase) {
   _settings = s;
-  chrome.storage.local.set({ pomodoroSettings: s });
+  TBBStorage.set({ pomodoroSettings: s });
   if (previewPhase && !_state.active) {
     var secs = previewPhase === 'work' ? s.workMins * 60 : s.restMins * 60;
     showPreview(previewPhase, secs, s.cycles);
@@ -200,16 +200,16 @@ function makeRepeatBtn(id, action) {
 
 // ── 시작 / 일시정지 ──
 _activeDoc.getElementById('startBtn').addEventListener('click', function() {
-  chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], function(data) {
+  TBBStorage.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], function(data) {
     var state     = data.pomodoroState    || { active: false, phase: 'idle' };
     var settings  = data.pomodoroSettings || _settings;
     var overrides = data.pomodoroCycleOverrides || [];
     if (state.active) {
       var rem = Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000));
-      chrome.storage.local.set({ pomodoroState: Object.assign({}, state, { active: false, endTime: null, pausedRemaining: rem }) });
+      TBBStorage.set({ pomodoroState: Object.assign({}, state, { active: false, endTime: null, pausedRemaining: rem }) });
     } else if (state.phase === 'idle' || state.phase === 'done') {
       var s = getUISettings();
-      chrome.storage.local.set({
+      TBBStorage.set({
         pomodoroSettings: s,
         pomodoroState: { active: true, phase: 'work', endTime: Date.now() + _resolveCycleTimes(1, s, overrides).workMins * 60 * 1000, cycle: 1, totalCycles: s.cycles },
       });
@@ -219,16 +219,16 @@ _activeDoc.getElementById('startBtn').addEventListener('click', function() {
       var curRest = ovCur ? ovCur.restMins : settings.restMins;
       var rem2 = (state.pausedRemaining != null) ? state.pausedRemaining
         : (state.phase === 'work' ? curWork * 60 : curRest * 60);
-      chrome.storage.local.set({ pomodoroState: Object.assign({}, state, { active: true, endTime: Date.now() + rem2 * 1000, pausedRemaining: null }) });
+      TBBStorage.set({ pomodoroState: Object.assign({}, state, { active: true, endTime: Date.now() + rem2 * 1000, pausedRemaining: null }) });
     }
   });
 });
 
 // ── 중지 ──
 _activeDoc.getElementById('stopBtn').addEventListener('click', function() {
-  chrome.storage.local.get(['pomodoroSettings'], function(d) {
+  TBBStorage.get(['pomodoroSettings'], function(d) {
     var s = d.pomodoroSettings || _settings;
-    chrome.storage.local.set({ pomodoroState: { active: false, phase: 'idle', endTime: null, cycle: 1, totalCycles: s.cycles } });
+    TBBStorage.set({ pomodoroState: { active: false, phase: 'idle', endTime: null, cycle: 1, totalCycles: s.cycles } });
   });
 });
 
@@ -338,7 +338,7 @@ function _adoptRealPipWindow(pipWindow, hostWindowId) {
 // 토글로 껐다면(wantsHtml) html로 넘어가고, 그냥 닫았다면(X 버튼 등) 아무것도 열지 않고 끝낸다.
 function _onRealPipClosed(lastX, lastY, wantsHtml, hostWindowId) {
   if (typeof lastX === 'number' && typeof lastY === 'number') {
-    chrome.storage.local.set({ pomodoroPipPos: { left: lastX, top: lastY } });
+    TBBStorage.set({ pomodoroPipPos: { left: lastX, top: lastY } });
   }
   if (wantsHtml) {
     // pomodoroDefaultAlwaysOnTop(옵션 페이지 체크박스)은 건드리지 않는다 — 이건 이번 세션의
@@ -351,7 +351,7 @@ function _onRealPipClosed(lastX, lastY, wantsHtml, hostWindowId) {
     } else {
       var pipUrl = chrome.runtime.getURL('pomodoro-pip.html');
       chrome.windows.create({ url: pipUrl, type: 'popup', width: 280, height: 340, left: lastX, top: lastY }, function(win) {
-        chrome.storage.local.set({ pipWindowId: win.id });
+        TBBStorage.set({ pipWindowId: win.id });
       });
     }
   } else if (hostWindowId != null) {

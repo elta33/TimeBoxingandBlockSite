@@ -83,10 +83,10 @@ function renderPomoList(list) {
     const span = document.createElement('span');
     span.textContent = domain; span.title = domain; span.className = 'domain-text';
     const del = _makeTrashButton(T('delete'), () => {
-      chrome.storage.local.get(['pomodoroList'], r => {
+      TBBStorage.get(['pomodoroList'], r => {
         const arr = r.pomodoroList || [];
         arr.splice(i, 1);
-        chrome.storage.local.set({ pomodoroList: arr }, loadPomoData);
+        TBBStorage.set({ pomodoroList: arr }, loadPomoData);
       });
     });
     li.append(span, del);
@@ -101,7 +101,7 @@ let _pomoPresetEditing = false;
 
 function _applyPomoPreset(preset) {
   _savePomoSettings({ workMins: preset.workMins, restMins: preset.restMins, cycles: preset.cycles }, null);
-  chrome.storage.local.set({ pomodoroCycleOverrides: (preset.cycleOverrides || []).map(o => ({ ...o })) });
+  TBBStorage.set({ pomodoroCycleOverrides: (preset.cycleOverrides || []).map(o => ({ ...o })) });
 }
 
 function renderPomoPresets(presets) {
@@ -133,10 +133,10 @@ function renderPomoPresets(presets) {
 
     const delX = _makeTrashButton(T('delete'), (e) => {
       e.stopPropagation();
-      chrome.storage.local.get(['pomodoroPresets'], r => {
+      TBBStorage.get(['pomodoroPresets'], r => {
         const arr = r.pomodoroPresets || [];
         arr.splice(i, 1);
-        chrome.storage.local.set({ pomodoroPresets: arr }, loadPomoData);
+        TBBStorage.set({ pomodoroPresets: arr }, loadPomoData);
       });
     }, 'pomo-preset-del-x');
 
@@ -327,7 +327,7 @@ function _advSetBase(key, newVal) {
 }
 
 function _openAdvancedModal() {
-  chrome.storage.local.get(['pomodoroSettings', 'pomodoroCycleOverrides'], data => {
+  TBBStorage.get(['pomodoroSettings', 'pomodoroCycleOverrides'], data => {
     const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
     _advDraftSettings  = { workMins: settings.workMins, restMins: settings.restMins, cycles: settings.cycles };
     _advDraftOverrides = (data.pomodoroCycleOverrides || []).map(o => ({
@@ -456,11 +456,11 @@ function _advancePomoPhase(state, settings, overrides) {
     newState = { ...state, phase: 'work', endTime: now + next.workMins * 60 * 1000, cycle: cycle + 1, advancedAt: now };
   }
 
-  if (newState) chrome.storage.local.set({ pomodoroState: newState });
+  if (newState) TBBStorage.set({ pomodoroState: newState });
 }
 
 function _pomoTick() {
-  chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], data => {
+  TBBStorage.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], data => {
     const state     = data.pomodoroState    || { active: false, phase: 'idle' };
     const settings  = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
     const overrides = data.pomodoroCycleOverrides || [];
@@ -480,7 +480,7 @@ function _pomoTick() {
 }
 
 function loadPomoData() {
-  chrome.storage.local.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState', 'pomodoroPresets', 'pomodoroCycleOverrides'], data => {
+  TBBStorage.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState', 'pomodoroPresets', 'pomodoroCycleOverrides'], data => {
     const settings  = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
     const list      = data.pomodoroList     || [];
     const state     = data.pomodoroState    || { active: false, phase: 'idle' };
@@ -510,7 +510,7 @@ function _getPomoSettingsFromUI() {
 }
 
 function _savePomoSettings(s, previewPhase) {
-  chrome.storage.local.set({ pomodoroSettings: s });
+  TBBStorage.set({ pomodoroSettings: s });
   const wEl = document.getElementById('pomoWorkVal');
   const rEl = document.getElementById('pomoRestVal');
   const cEl = document.getElementById('pomoCyclesVal');
@@ -524,14 +524,14 @@ function _savePomoSettings(s, previewPhase) {
     clearTimeout(_pomoPreviewTimer);
     _pomoPreviewTimer = setTimeout(() => {
       _pomoPreviewActive = false;
-      chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], d => {
+      TBBStorage.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], d => {
         updatePomoDisplay(d.pomodoroState || { active: false, phase: 'idle' }, d.pomodoroSettings || s, d.pomodoroCycleOverrides || []);
       });
     }, 1500);
     const secs = previewPhase === 'work' ? s.workMins * 60 : s.restMins * 60;
     _previewPomoDisplay(previewPhase, secs, s.cycles);
   } else {
-    chrome.storage.local.get(['pomodoroState', 'pomodoroCycleOverrides'], d => {
+    TBBStorage.get(['pomodoroState', 'pomodoroCycleOverrides'], d => {
       const state = d.pomodoroState || { active: false, phase: 'idle' };
       if (!state.active) updatePomoDisplay(state, s, d.pomodoroCycleOverrides || []);
     });
@@ -539,13 +539,13 @@ function _savePomoSettings(s, previewPhase) {
 }
 
 function _importFromList(storageKey) {
-  chrome.storage.local.get([storageKey, 'pomodoroList'], data => {
+  TBBStorage.get([storageKey, 'pomodoroList'], data => {
     const source  = data[storageKey]  || [];
     const current = data.pomodoroList || [];
     const curSet  = new Set(current);
     const toAdd   = source.filter(d => !curSet.has(d));
     if (!toAdd.length) { alert(T('noNewItems')); return; }
-    chrome.storage.local.set({ pomodoroList: [...current, ...toAdd] }, loadPomoData);
+    TBBStorage.set({ pomodoroList: [...current, ...toAdd] }, loadPomoData);
   });
   document.getElementById('pomoImportMenu')?.classList.remove('open');
 }
@@ -599,34 +599,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 시작 / 일시정지 / 재개 ──
   document.getElementById('pomoStartBtn')?.addEventListener('click', () => {
-    chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], data => {
+    TBBStorage.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides'], data => {
       const state     = data.pomodoroState    || { active: false, phase: 'idle' };
       const settings  = data.pomodoroSettings || _getPomoSettingsFromUI();
       const overrides = data.pomodoroCycleOverrides || [];
 
       if (state.active) {
         const rem = Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000));
-        chrome.storage.local.set({ pomodoroState: { ...state, active: false, endTime: null, pausedRemaining: rem } });
+        TBBStorage.set({ pomodoroState: { ...state, active: false, endTime: null, pausedRemaining: rem } });
       } else if (state.phase === 'idle' || state.phase === 'done') {
         const s = _getPomoSettingsFromUI();
         const cur = _resolveCycleTimes(1, s, overrides);
-        chrome.storage.local.set({
+        TBBStorage.set({
           pomodoroSettings: s,
           pomodoroState: { active: true, phase: 'work', endTime: Date.now() + cur.workMins * 60 * 1000, cycle: 1, totalCycles: s.cycles },
         });
       } else {
         const cur = _resolveCycleTimes(state.cycle || 1, settings, overrides);
         const rem = state.pausedRemaining ?? (state.phase === 'work' ? cur.workMins * 60 : cur.restMins * 60);
-        chrome.storage.local.set({ pomodoroState: { ...state, active: true, endTime: Date.now() + rem * 1000, pausedRemaining: null } });
+        TBBStorage.set({ pomodoroState: { ...state, active: true, endTime: Date.now() + rem * 1000, pausedRemaining: null } });
       }
     });
   });
 
   // ── 중지 / 완료 확인 ──
   function _resetPomoState() {
-    chrome.storage.local.get(['pomodoroSettings'], d => {
+    TBBStorage.get(['pomodoroSettings'], d => {
       const s = d.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
-      chrome.storage.local.set({ pomodoroState: { active: false, phase: 'idle', endTime: null, cycle: 1, totalCycles: s.cycles } });
+      TBBStorage.set({ pomodoroState: { active: false, phase: 'idle', endTime: null, cycle: 1, totalCycles: s.cycles } });
     });
   }
   document.getElementById('pomoResetBtn')?.addEventListener('click', _resetPomoState);
@@ -640,11 +640,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const aotCheckboxSupported = 'documentPictureInPicture' in window;
   if (defaultAotCheckbox) {
     defaultAotCheckbox.disabled = !aotCheckboxSupported;
-    chrome.storage.local.get(['pomodoroDefaultAlwaysOnTop'], ({ pomodoroDefaultAlwaysOnTop }) => {
+    TBBStorage.get(['pomodoroDefaultAlwaysOnTop'], ({ pomodoroDefaultAlwaysOnTop }) => {
       defaultAotCheckbox.checked = aotCheckboxSupported && !!pomodoroDefaultAlwaysOnTop;
     });
     defaultAotCheckbox.addEventListener('change', () => {
-      chrome.storage.local.set({ pomodoroDefaultAlwaysOnTop: defaultAotCheckbox.checked });
+      TBBStorage.set({ pomodoroDefaultAlwaysOnTop: defaultAotCheckbox.checked });
     });
   }
 
@@ -652,12 +652,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // pomodoroDefaultAlwaysOnTop이 켜져 있으면 html 팝업을 띄우지 않고 바로 실제 PiP로 진입한다.
   document.getElementById('pomoPipBtn')?.addEventListener('click', () => {
     const aotSupported = 'documentPictureInPicture' in window;
-    chrome.storage.local.get(['pomodoroDefaultAlwaysOnTop'], ({ pomodoroDefaultAlwaysOnTop }) => {
+    TBBStorage.get(['pomodoroDefaultAlwaysOnTop'], ({ pomodoroDefaultAlwaysOnTop }) => {
       if (aotSupported && pomodoroDefaultAlwaysOnTop) {
         _createDirectPipWindow();
         return;
       }
-      chrome.storage.local.get(['pipWindowId'], ({ pipWindowId }) => {
+      TBBStorage.get(['pipWindowId'], ({ pipWindowId }) => {
         if (pipWindowId) {
           chrome.windows.get(pipWindowId, win => {
             if (chrome.runtime.lastError || !win) {
@@ -675,11 +675,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function _createPipWindow() {
     const pipUrl = chrome.runtime.getURL('pomodoro-pip.html');
-    chrome.storage.local.get(['pomodoroPipPos'], ({ pomodoroPipPos }) => {
+    TBBStorage.get(['pomodoroPipPos'], ({ pomodoroPipPos }) => {
       const opts = { url: pipUrl, type: 'popup', width: 280, height: 340 };
       if (pomodoroPipPos) { opts.left = pomodoroPipPos.left; opts.top = pomodoroPipPos.top; }
       chrome.windows.create(opts, win => {
-        chrome.storage.local.set({ pipWindowId: win.id });
+        TBBStorage.set({ pipWindowId: win.id });
       });
     });
   }
@@ -730,10 +730,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const name = (presetNameInput?.value || '').trim();
     if (!name) { presetNameInput?.focus(); return; }
     const s = _getPomoSettingsFromUI();
-    chrome.storage.local.get(['pomodoroPresets', 'pomodoroCycleOverrides'], d => {
+    TBBStorage.get(['pomodoroPresets', 'pomodoroCycleOverrides'], d => {
       const arr = d.pomodoroPresets || [];
       arr.push({ name, workMins: s.workMins, restMins: s.restMins, cycles: s.cycles, cycleOverrides: (d.pomodoroCycleOverrides || []).map(o => ({ ...o })) });
-      chrome.storage.local.set({ pomodoroPresets: arr }, () => {
+      TBBStorage.set({ pomodoroPresets: arr }, () => {
         if (presetNameInput) presetNameInput.value = '';
         presetPopover?.classList.remove('open');
         _pomoPresetPage = Math.ceil(arr.length / POMO_PRESET_PAGE_SIZE) - 1;
@@ -836,7 +836,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('pomoAdvancedApplyBtn')?.addEventListener('click', () => {
     _savePomoSettings({ ..._advDraftSettings }, null);
-    chrome.storage.local.set({ pomodoroCycleOverrides: _advDraftOverrides.map(o => ({ ...o, name: _advEffectiveName(o) })) });
+    TBBStorage.set({ pomodoroCycleOverrides: _advDraftOverrides.map(o => ({ ...o, name: _advEffectiveName(o) })) });
     _closeAdvancedModal();
   });
 
@@ -851,7 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function _confirmAdvancedSavePreset() {
     const name = (advSaveNameInput?.value || '').trim();
     if (!name) { advSaveNameInput?.focus(); return; }
-    chrome.storage.local.get(['pomodoroPresets'], d => {
+    TBBStorage.get(['pomodoroPresets'], d => {
       const arr = d.pomodoroPresets || [];
       arr.push({
         name,
@@ -860,7 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cycles: _advDraftSettings.cycles,
         cycleOverrides: _advDraftOverrides.map(o => ({ ...o, name: _advEffectiveName(o) })),
       });
-      chrome.storage.local.set({ pomodoroPresets: arr }, () => {
+      TBBStorage.set({ pomodoroPresets: arr }, () => {
         if (advSaveNameInput) advSaveNameInput.value = '';
         advSavePopover?.classList.remove('open');
         _pomoPresetPage = Math.ceil(arr.length / POMO_PRESET_PAGE_SIZE) - 1;
@@ -881,7 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const input  = document.getElementById('pomoDomainInput');
     const domain = cleanDomain((input?.value || '').trim());
     if (!domain) return;
-    chrome.storage.local.get(['pomodoroList'], d => {
+    TBBStorage.get(['pomodoroList'], d => {
       const arr = d.pomodoroList || [];
       const idx = arr.indexOf(domain);
       if (idx !== -1) {
@@ -890,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       arr.push(domain);
-      chrome.storage.local.set({ pomodoroList: arr }, () => {
+      TBBStorage.set({ pomodoroList: arr }, () => {
         if (input) input.value = '';
         hideWarn('pomoWarn');
         loadPomoData();
@@ -904,7 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── 전체 초기화 ──
   document.getElementById('clearPomoListBtn')?.addEventListener('click', () => {
     if (!confirm(T('clearPomoConfirm'))) return;
-    chrome.storage.local.set({ pomodoroList: [] }, loadPomoData);
+    TBBStorage.set({ pomodoroList: [] }, loadPomoData);
   });
 
   // ── 불러오기 드롭다운 ──

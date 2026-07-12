@@ -46,7 +46,7 @@ function getImgSrc(img) {
 // ─────────────────────────────────────────────
 function loadData() {
   return new Promise(resolve => {
-    chrome.storage.local.get([STORE_IMGS, STORE_QUOTES, STORE_LINKS], data => {
+    TBBStorage.get([STORE_IMGS, STORE_QUOTES, STORE_LINKS], data => {
       let imgs   = data[STORE_IMGS];
       let quotes = data[STORE_QUOTES];
       let links  = data[STORE_LINKS];
@@ -56,7 +56,7 @@ function loadData() {
       if (!Array.isArray(quotes)) { quotes = getDefaultQuotes();    updates[STORE_QUOTES] = quotes; }
       if (!Array.isArray(links))  { links  = [];              updates[STORE_LINKS]  = links;  }
 
-      if (Object.keys(updates).length) chrome.storage.local.set(updates);
+      if (Object.keys(updates).length) TBBStorage.set(updates);
       resolve({ imgs, quotes, links });
     });
   });
@@ -120,7 +120,7 @@ function _statsStreak(streak, dateStr) {
   if (!domain) return;
   const dateStr = new Date().toISOString().slice(0, 10);
   const ts = Math.floor(Date.now() / 1000);
-  chrome.storage.local.get(['focusEvents', 'focusStreak'], data => {
+  TBBStorage.get(['focusEvents', 'focusStreak'], data => {
     let events = data.focusEvents || [];
     let day = events.find(e => e.date === dateStr);
     if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
@@ -128,7 +128,7 @@ function _statsStreak(streak, dateStr) {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
     events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
     const streak = _statsStreak(data.focusStreak || null, dateStr);
-    chrome.storage.local.set({ focusEvents: events, focusStreak: streak });
+    TBBStorage.set({ focusEvents: events, focusStreak: streak });
   });
 })();
 
@@ -204,7 +204,7 @@ document.getElementById('openSettings')?.addEventListener('click', () => {
     return T('afterRelease', [timeStr]);
   }
 
-  chrome.storage.local.get(['dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled'], data => {
+  TBBStorage.get(['dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled'], data => {
     const dailyEnabled = data.dailyScheduleEnabled !== false;
     const dailyBoxes   = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : [];
     const weeklyBoxes  = data.weeklyBoxes || [];
@@ -238,9 +238,9 @@ let _selQuote = null;  // index into _quotes
 // ─────────────────────────────────────────────
 // 스토리지 저장
 // ─────────────────────────────────────────────
-function saveImages() { chrome.storage.local.set({ [STORE_IMGS]:   _imgs   }); }
-function saveQuotes() { chrome.storage.local.set({ [STORE_QUOTES]: _quotes }); }
-function saveLinks()  { chrome.storage.local.set({ [STORE_LINKS]:  _links  }); }
+function saveImages() { chrome.storage.local.set({ [STORE_IMGS]: _imgs }); }
+function saveQuotes() { TBBStorage.set({ [STORE_QUOTES]: _quotes }); }
+function saveLinks()  { TBBStorage.set({ [STORE_LINKS]:  _links  }); }
 
 // ─────────────────────────────────────────────
 // 렌더링: 링크 목록

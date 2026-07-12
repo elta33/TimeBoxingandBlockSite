@@ -10,7 +10,7 @@ let _doneOpen = false;
 
 // ── 스토리지 ──
 function _todoLoad(cb) {
-  chrome.storage.local.get([TODO_STORE_KEY, TODO_POS_KEY], data => {
+  TBBStorage.get([TODO_STORE_KEY, TODO_POS_KEY], data => {
     _todos = Array.isArray(data[TODO_STORE_KEY]) ? data[TODO_STORE_KEY] : [];
     const pos = data[TODO_POS_KEY];
     if (pos && typeof pos.left === 'number' && typeof pos.top === 'number') {
@@ -28,7 +28,7 @@ function _todoLoad(cb) {
 }
 
 function _todoSave() {
-  chrome.storage.local.set({ [TODO_STORE_KEY]: _todos });
+  TBBStorage.set({ [TODO_STORE_KEY]: _todos });
 }
 
 function _todoSavePos(left, top) {
@@ -374,9 +374,9 @@ function _todoInitDrag() {
       if (!inMain && !inDone && !inTrig && _todoOpen) _todoClosePopup();
     }, true);
 
-    // storage 변경 실시간 반영 (options ↔ block 공유)
+    // storage 변경 실시간 반영 (options ↔ block 공유, local/sync 양쪽 다 반영)
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local' || !changes[TODO_STORE_KEY]) return;
+      if (!changes[TODO_STORE_KEY]) return;
       _todos = changes[TODO_STORE_KEY].newValue || [];
       _todoUpdateHeader();
       if (_todoOpen) _todoRender();

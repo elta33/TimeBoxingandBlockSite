@@ -1,5 +1,5 @@
 // background.js
-importScripts('pomodoro-shared.js');
+importScripts('pomodoro-shared.js', 'storage-api.js');
 
 const BLOCK_PAGE_PATH = "/block.html";
 
@@ -25,13 +25,22 @@ function isTimeInBox(startStr, endStr) {
   return currentMin >= startMin && currentMin < endMin;
 }
 
-// 도메인 문자열에서 불필요한 http, www, 끝부분 슬래시 등을 완벽히 제거
+// 도메인 문자열에서 불필요한 http, www, 끝부분 슬래시 등을 완벽히 제거 + 유니코드(IDN) 도메인은 punycode로 정규화
+// (DNR urlFilter는 ASCII만 허용 — 정규화 안 하면 updateDynamicRules 전체가 실패함)
 function cleanDomain(d) {
-  return d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+  const domain = d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+  const sepIdx = domain.search(/[/?#]/);
+  const host = sepIdx === -1 ? domain : domain.slice(0, sepIdx);
+  const tail = sepIdx === -1 ? '' : domain.slice(sepIdx);
+  try {
+    return new URL('https://' + host).hostname + tail;
+  } catch (_) {
+    return domain;
+  }
 }
 
 async function updateBlockingRules() {
-  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
   const generalList = data.generalList || [];
   const permanentList = data.permanentList || [];
   // dailyBoxes: 요일 무관 오늘만 / weeklyBoxes: 요일 필터 적용
@@ -47,6 +56,11 @@ async function updateBlockingRules() {
   // reason: 'permanent' | 'general' | 'custom' — block.html에서 차단 사유 메시지 분기용
   function addDnrRule(domain, priority, isAllow, reason) {
     if (!domain) return;
+    // DNR urlFilter는 ASCII만 허용 — 하나라도 어기면 updateDynamicRules 전체가 실패하므로 개별 스킵
+    if (!/^[\x00-\x7F]*$/.test(domain)) {
+      console.warn(`[TBB] "${domain}"에 유효하지 않은 문자가 남아있어 차단 규칙에서 제외합니다.`);
+      return;
+    }
     let redirectPath = BLOCK_PAGE_PATH;
     if (!isAllow) {
       redirectPath += `?domain=${encodeURIComponent(domain)}`;
@@ -138,7 +152,7 @@ function _statsUpdateStreak(streak, dateStr) {
 
 async function _statsLogPomoSession(durationMins) {
   const dateStr = _statsTodayStr();
-  const data = await chrome.storage.local.get(['focusEvents', 'focusStreak']);
+  const data = await TBBStorage.get(['focusEvents', 'focusStreak']);
   let events = data.focusEvents || [];
   let day = events.find(e => e.date === dateStr);
   if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
@@ -146,12 +160,12 @@ async function _statsLogPomoSession(durationMins) {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
   events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
   const streak = _statsUpdateStreak(data.focusStreak || null, dateStr);
-  await chrome.storage.local.set({ focusEvents: events, focusStreak: streak });
+  await TBBStorage.set({ focusEvents: events, focusStreak: streak });
 }
 
 // 1분 알람마다 활성 타임박스 안에 있으면 오늘 focusMins +1
 async function _statsLogBoxMinute() {
-  const data = await chrome.storage.local.get([
+  const data = await TBBStorage.get([
     'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'focusEvents'
   ]);
   const dailyEnabled = data.dailyScheduleEnabled !== false;
@@ -174,12 +188,12 @@ async function _statsLogBoxMinute() {
 
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
   events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
-  await chrome.storage.local.set({ focusEvents: events });
+  await TBBStorage.set({ focusEvents: events });
 }
 
 // 포모도로 페이즈 자동 전환 (1분 알람 틱마다 체크)
 async function checkPomodoroPhase() {
-  const data      = await chrome.storage.local.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides']);
+  const data      = await TBBStorage.get(['pomodoroState', 'pomodoroSettings', 'pomodoroCycleOverrides']);
   const state     = data.pomodoroState;
   const settings  = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
   const overrides = data.pomodoroCycleOverrides || [];
@@ -209,6 +223,93 @@ async function checkPomodoroPhase() {
   if (newState) await chrome.storage.local.set({ pomodoroState: newState });
 }
 
+// ── local→sync 1회성 마이그레이션 ──
+// 기존 사용자는 차단 설정/통계가 전부 local에만 있으므로, 크로스 기기 동기화 도입 시
+// 한 번은 local 값을 sync로 옮겨줘야 다른 기기에서도 보인다.
+const _SYNC_MIGRATION_FLAG = '_syncMigrationDone_v1';
+
+// focusEvents는 기기마다 독립적으로 쌓여있을 수 있어 날짜 단위로 병합.
+// blocks/pomoSessions는 ts 기준 dedupe, focusMins는 이중 집계를 피하려 max 채택(완벽한 병합은 아님).
+function _mergeFocusEvents(localEvents, syncEvents) {
+  const byDate = new Map();
+  (syncEvents || []).forEach(e => byDate.set(e.date, {
+    date: e.date,
+    focusMins: e.focusMins || 0,
+    blocks: [...(e.blocks || [])],
+    pomoSessions: [...(e.pomoSessions || [])]
+  }));
+  (localEvents || []).forEach(e => {
+    const existing = byDate.get(e.date);
+    if (!existing) {
+      byDate.set(e.date, {
+        date: e.date,
+        focusMins: e.focusMins || 0,
+        blocks: [...(e.blocks || [])],
+        pomoSessions: [...(e.pomoSessions || [])]
+      });
+      return;
+    }
+    existing.focusMins = Math.max(existing.focusMins, e.focusMins || 0);
+    const blockKey = b => `${b.domain}|${b.ts}`;
+    const existingBlockKeys = new Set(existing.blocks.map(blockKey));
+    (e.blocks || []).forEach(b => { if (!existingBlockKeys.has(blockKey(b))) existing.blocks.push(b); });
+    const sessionKey = s => `${s.ts}|${s.durationMins}`;
+    const existingSessionKeys = new Set(existing.pomoSessions.map(sessionKey));
+    (e.pomoSessions || []).forEach(s => { if (!existingSessionKeys.has(sessionKey(s))) existing.pomoSessions.push(s); });
+  });
+  return Array.from(byDate.values());
+}
+
+async function _migrateToSync() {
+  const flag = await chrome.storage.local.get([_SYNC_MIGRATION_FLAG]);
+  if (flag[_SYNC_MIGRATION_FLAG]) return;
+
+  const listKeys = ['permanentList', 'generalList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday'];
+  const [localData, syncData] = await Promise.all([
+    chrome.storage.local.get([...listKeys, 'focusEvents', 'focusStreak']),
+    chrome.storage.sync.get([...listKeys, 'focusEvents', 'focusStreak'])
+  ]);
+
+  const toSync = {};
+  // 리스트/박스류: sync에 이미 값이 있으면(다른 기기가 먼저 마이그레이션) sync를 신뢰하고 local로 덮지 않음
+  listKeys.forEach(k => {
+    if (syncData[k] === undefined && localData[k] !== undefined) toSync[k] = localData[k];
+  });
+  if (localData.focusEvents || syncData.focusEvents) {
+    toSync.focusEvents = _mergeFocusEvents(localData.focusEvents, syncData.focusEvents);
+  }
+  if (syncData.focusStreak === undefined && localData.focusStreak !== undefined) {
+    toSync.focusStreak = localData.focusStreak;
+  }
+
+  if (Object.keys(toSync).length) await TBBStorage.set(toSync);
+  await chrome.storage.local.set({ [_SYNC_MIGRATION_FLAG]: true });
+}
+
+// ── 2차 마이그레이션 (투두/포모도로 설정·프리셋/차단화면 문구·링크) ──
+// v1과 별도 플래그로 분리 — v1이 이미 완료된 기존 사용자도 이 배치는 새로 받아야 함.
+const _SYNC_MIGRATION_FLAG_V2 = '_syncMigrationDone_v2';
+
+async function _migrateToSyncV2() {
+  const flag = await chrome.storage.local.get([_SYNC_MIGRATION_FLAG_V2]);
+  if (flag[_SYNC_MIGRATION_FLAG_V2]) return;
+
+  const keys = ['todoItems', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides', 'pomodoroList', 'customQuotes', 'customLinks'];
+  const [localData, syncData] = await Promise.all([
+    chrome.storage.local.get(keys),
+    chrome.storage.sync.get(keys)
+  ]);
+
+  const toSync = {};
+  // sync에 이미 값이 있으면(다른 기기가 먼저 마이그레이션) sync를 신뢰하고 local로 덮지 않음
+  keys.forEach(k => {
+    if (syncData[k] === undefined && localData[k] !== undefined) toSync[k] = localData[k];
+  });
+
+  if (Object.keys(toSync).length) await TBBStorage.set(toSync);
+  await chrome.storage.local.set({ [_SYNC_MIGRATION_FLAG_V2]: true });
+}
+
 // 데이터 변경 및 타이머 연동
 chrome.storage.onChanged.addListener(updateBlockingRules);
 chrome.alarms.create("timeboxTicker", { periodInMinutes: 1 });
@@ -220,7 +321,11 @@ chrome.alarms.onAlarm.addListener(async alarm => {
   }
 });
 chrome.runtime.onStartup.addListener(updateBlockingRules);
-chrome.runtime.onInstalled.addListener(updateBlockingRules);
+chrome.runtime.onInstalled.addListener(async () => {
+  await _migrateToSync();
+  await _migrateToSyncV2();
+  updateBlockingRules();
+});
 
 // PiP 창이 닫히면 저장된 ID 제거
 chrome.windows.onRemoved.addListener(windowId => {
@@ -255,7 +360,7 @@ async function shouldUrlBeBlocked(url) {
     return hostname === clean || hostname.endsWith('.' + clean);
   }
 
-  const data = await chrome.storage.local.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
   const permanentList = data.permanentList || [];
   const permBlocked = permanentList.find(d => matches(d));
   if (permBlocked) return { blocked: true, reason: 'permanent', domain: cleanDomain(permBlocked) };

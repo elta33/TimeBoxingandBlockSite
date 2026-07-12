@@ -326,7 +326,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       if (!domain) return;
       const mode = 'allow';
       const boxKey = getBoxKey();
-      chrome.storage.local.get([boxKey], function(result) {
+      TBBStorage.get([boxKey], function(result) {
         const boxes = result[boxKey] || [];
         const targetBox = boxes[boxIndex];
         if (!targetBox) return;
@@ -337,7 +337,7 @@ function renderDayView(boxes, wrap, onEditBox) {
           return;
         }
         targetBox.customDomains.push({ domain, mode });
-        chrome.storage.local.set({ [boxKey]: boxes }, () => {
+        TBBStorage.set({ [boxKey]: boxes }, () => {
           addDomainPopup.style.display = 'none';
           if (_popupOutsideHandler) document.removeEventListener('mousedown', _popupOutsideHandler);
           refreshPanel(boxes);

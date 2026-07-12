@@ -246,31 +246,36 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 
 ---
 
-## 4. 데이터 스토리지 (`chrome.storage.local`)
+## 4. 데이터 스토리지
 
-| 키 | 타입 | 설명 |
-|----|------|------|
-| `permanentList` | `string[]` | 상시 차단 도메인 목록 |
-| `generalList` | `string[]` | 일반 차단 도메인 목록 |
-| `dailyBoxes` | `Box[]` | 하루 타임박스 배열 |
-| `weeklyBoxes` | `Box[]` | 주간 타임박스 배열 |
-| `dailyScheduleEnabled` | `boolean` | 하루 스케줄 활성화 여부 (기본 true) |
-| `weekStartMonday` | `boolean` | 주 시작 요일 (false=일요일) |
-| `pomodoroState` | `object` | 포모도로 현재 상태 |
-| `pomodoroSettings` | `object` | `{ workMins, restMins, cycles }` |
-| `pomodoroList` | `string[]` | 포모도로 차단 도메인 목록 |
-| `pipWindowId` | `number` | PiP 창 ID |
-| `blockBgImages` | `object[]` | 차단 화면 배경 이미지 (Base64) |
-| `blockQuotes` | `string[]` | 차단 화면 인용구 |
-| `blockLinks` | `object[]` | 이미지-인용구 쌍 링크 |
-| `focusEvents` | `DayEvent[]` | 일별 집중 활동 이력 (최대 30일) |
-| `focusStreak` | `object` | `{ current, longest, lastDate }` |
-| `pomodoroPresets` | `object[]` | 저장된 포모도로 프리셋 목록 |
-| `pomodoroCycleOverrides` | `object[]` | 사이클별 시간 오버라이드 `[{ cycle, workMins, restMins }]` |
-| `lockPin` | `object` | PIN 잠금 정보 `{ hash, salt, enabled }` |
-| `todoItems` | `object[]` | 할일 항목 `[{ id, text, done }]` |
-| `todoTriggerPos` | `object` | Todo 아이콘 위치 `{ left, top }` |
-| `darkModeEnabled` | `boolean` | 다크모드 활성화 여부 (최초 진입 시 시스템 설정으로 초기화) |
+`storage-api.js`의 `TBBStorage.get/set`이 키별로 `chrome.storage.sync`/`chrome.storage.local`을 자동 라우팅한다 (호출부는 area를 신경 쓰지 않음). sync 대상은 크로스 기기 동기화가 의미 있고 크기·쓰기빈도가 안전한 키만 선별했다 — 활성 타이머·창 위치·Base64 이미지처럼 기기별 상태이거나 sync 용량(8KB/아이템) 위험이 큰 키는 의도적으로 local에 고정했다. 신규 sync 키 추가 시 `storage-api.js`의 `TBB_SYNC_KEYS`만 수정하면 된다.
+
+| 키 | 영역 | 타입 | 설명 |
+|----|------|------|------|
+| `permanentList` | sync | `string[]` | 상시 차단 도메인 목록 |
+| `generalList` | sync | `string[]` | 일반 차단 도메인 목록 |
+| `dailyBoxes` | sync | `Box[]` | 하루 타임박스 배열 |
+| `weeklyBoxes` | sync | `Box[]` | 주간 타임박스 배열 |
+| `dailyScheduleEnabled` | sync | `boolean` | 하루 스케줄 활성화 여부 (기본 true) |
+| `weekStartMonday` | sync | `boolean` | 주 시작 요일 (false=일요일) |
+| `focusEvents` | sync | `DayEvent[]` | 일별 집중 활동 이력 (최대 30일, sync 용량 초과 시 14일로 자동 축소) |
+| `focusStreak` | sync | `object` | `{ current, longest, lastDate }` |
+| `todoItems` | sync | `object[]` | 할일 항목 `[{ id, text, done }]` |
+| `pomodoroSettings` | sync | `object` | `{ workMins, restMins, cycles }` |
+| `pomodoroPresets` | sync | `object[]` | 저장된 포모도로 프리셋 목록 |
+| `pomodoroCycleOverrides` | sync | `object[]` | 사이클별 시간 오버라이드 `[{ cycle, workMins, restMins }]` |
+| `pomodoroList` | sync | `string[]` | 포모도로 차단 도메인 목록 |
+| `customQuotes` | sync | `string[]` | 차단 화면 인용구 |
+| `customLinks` | sync | `object[]` | 이미지-인용구 쌍 링크 `[{ imgName, quote }]` (참조하는 이미지가 sync 안 되는 커스텀 업로드면 다른 기기에서 매칭 안 될 수 있음 — graceful degradation) |
+| `pomodoroState` | local | `object` | 포모도로 현재 상태 (활성 타이머 — 기기 간 경합 방지 위해 로컬 고정) |
+| `pipWindowId` | local | `number` | PiP 창 ID (기기별 값) |
+| `pomodoroPipPos` | local | `object` | PiP 창 위치 `{ left, top }` (기기별 값) |
+| `customBgImages` | local | `object[]` | 차단 화면 배경 이미지 `[{ name, builtin?, data? }]` (Base64 — sync 용량 초과 확정이라 로컬 고정) |
+| `lockPin` | local | `object` | PIN 잠금 정보 `{ hash, salt, enabled }` (기기별로 다르게 쓰고 싶다는 사용자 판단으로 로컬 유지) |
+| `todoTriggerPos` | local | `object` | Todo 아이콘 위치 `{ left, top }` (기기별 값) |
+| `darkModeEnabled` | local | `boolean` | 다크모드 활성화 여부 (사용자 요청으로 로컬 유지, 최초 진입 시 시스템 설정으로 초기화) |
+| `_syncMigrationDone_v1` / `_syncMigrationDone_v2` | local | `boolean` | local→sync 1회성 마이그레이션 완료 플래그 (v1: 차단설정·통계, v2: 투두·포모도로 설정/프리셋·차단화면 문구/링크) |
+| `_syncMigrationDone_v1` | local | `boolean` | local→sync 1회성 마이그레이션 완료 플래그 |
 
 ---
 

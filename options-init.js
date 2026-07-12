@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => renderStats(btn.dataset.period));
   });
 
-  // focusEvents 변경 시 통계 탭이 열려있으면 실시간 재렌더링
+  // focusEvents 변경 시 통계 탭이 열려있으면 실시간 재렌더링 (local/sync 양쪽 다 반영)
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || !changes.focusEvents) return;
+    if (!changes.focusEvents) return;
     const statsPanel = document.getElementById('tab-stats');
     if (statsPanel && statsPanel.classList.contains('active')) {
       renderStats(_statsPeriod);
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 주 시작 토글 복원
   const weekStartWrap = document.getElementById('weekStartToggleWrap');
-  chrome.storage.local.get(['weekStartMonday'], result => {
+  TBBStorage.get(['weekStartMonday'], result => {
     weekStartMonday = !!result.weekStartMonday;
     const radio = document.querySelector(`input[name="weekStart"][value="${weekStartMonday ? 'mon' : 'sun'}"]`);
     if (radio) radio.checked = true;
@@ -43,14 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('input[name="weekStart"]').forEach(radio => {
     radio.addEventListener('change', () => {
       weekStartMonday = radio.value === 'mon';
-      chrome.storage.local.set({ weekStartMonday });
+      TBBStorage.set({ weekStartMonday });
       syncDaySelector();
       if (currentView === 'week') loadSettings();
     });
   });
 
   // 하루 스케줄 활성화 토글
-  chrome.storage.local.get(['dailyScheduleEnabled'], result => {
+  TBBStorage.get(['dailyScheduleEnabled'], result => {
     dailyScheduleEnabled = result.dailyScheduleEnabled !== false;
     const toggle = document.getElementById('dailyScheduleDisableToggle');
     if (toggle) toggle.checked = !dailyScheduleEnabled;
@@ -63,13 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
       _openPinModal('비활성화', () => {
         toggle.checked = !toggle.checked;
         dailyScheduleEnabled = !toggle.checked;
-        chrome.storage.local.set({ dailyScheduleEnabled });
+        TBBStorage.set({ dailyScheduleEnabled });
         applyDailyScheduleVisual();
       });
       return;
     }
     dailyScheduleEnabled = !e.target.checked;
-    chrome.storage.local.set({ dailyScheduleEnabled });
+    TBBStorage.set({ dailyScheduleEnabled });
     applyDailyScheduleVisual();
   });
 

@@ -113,9 +113,17 @@ async function _attemptPinUnlock() {
   });
 }
 
-// ── 도메인 정규화 ──
+// ── 도메인 정규화 (유니코드 IDN 도메인은 punycode로 변환 — background.js cleanDomain과 동일 정책) ──
 function cleanDomain(d) {
-  return d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+  const domain = d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+  const sepIdx = domain.search(/[/?#]/);
+  const host = sepIdx === -1 ? domain : domain.slice(0, sepIdx);
+  const tail = sepIdx === -1 ? '' : domain.slice(sepIdx);
+  try {
+    return new URL('https://' + host).hostname + tail;
+  } catch (_) {
+    return domain;
+  }
 }
 
 // ── 경고 표시 / 숨김 ──
@@ -512,7 +520,7 @@ function renderWeekDetailPanel(box, boxIndex) {
     if (!domain) return;
     const mode = 'allow';
     const boxKey = getBoxKey();
-    chrome.storage.local.get([boxKey], function(result) {
+    TBBStorage.get([boxKey], function(result) {
       const boxes = result[boxKey] || [];
       const targetBox = boxes[boxIndex];
       if (!targetBox) return;
@@ -523,7 +531,7 @@ function renderWeekDetailPanel(box, boxIndex) {
         return;
       }
       targetBox.customDomains.push({ domain, mode });
-      chrome.storage.local.set({ [boxKey]: boxes }, () => {
+      TBBStorage.set({ [boxKey]: boxes }, () => {
         wAddDomainPopup.style.display = 'none';
         if (_wPopupOutsideHandler) document.removeEventListener('mousedown', _wPopupOutsideHandler);
         refreshPanel(boxes);
@@ -735,7 +743,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
     if (newEndMin <= newStartMin) newEndMin += 24 * 60;
 
     const boxKey = 'weeklyBoxes';
-    chrome.storage.local.get([boxKey], function(result) {
+    TBBStorage.get([boxKey], function(result) {
       const boxes = result[boxKey] || [];
 
       // 겨침 검사 (해당 요일만, 수정 중인 자기 자신은 제외)
@@ -771,7 +779,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
       } else {
         boxes.push({ name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains] });
       }
-      chrome.storage.local.set({ [boxKey]: boxes }, () => {
+      TBBStorage.set({ [boxKey]: boxes }, () => {
         currentBoxes = boxes;
         if (warnEl) warnEl.style.display = 'none';
         exitPopupBoxEditMode();
@@ -1064,7 +1072,7 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
   if (newEndMin <= newStartMin) newEndMin += 24 * 60;
 
   const boxKey = getBoxKey();
-  chrome.storage.local.get([boxKey], function(result) {
+  TBBStorage.get([boxKey], function(result) {
     const boxes = result[boxKey] || [];
 
     const overlapIndices = [];
@@ -1139,11 +1147,11 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
         boxes.push({ name, startTime, endTime, mode: 'block', days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains] });
       });
     }
-    chrome.storage.local.set({ [boxKey]: boxes }, () => {
+    TBBStorage.set({ [boxKey]: boxes }, () => {
       exitBoxEditMode();
       const topMins = timeToMins(startTime);
       const key = getBoxKey();
-      chrome.storage.local.get(['generalList', 'permanentList', key], result => {
+      TBBStorage.get(['generalList', 'permanentList', key], result => {
         renderList('generalList',   result.generalList   || [], 'generalList',   'generalWarn');
         renderList('permanentList', result.permanentList || [], 'permanentList', 'permanentWarn');
         renderBoxes(result[key] || [], topMins);
@@ -1184,7 +1192,7 @@ function clearDaySelection() {
 
 function exportSettings() {
   const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides'];
-  chrome.storage.local.get(KEYS, data => {
+  TBBStorage.get(KEYS, data => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1204,7 +1212,7 @@ function importSettings(file) {
     const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides']);
     const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
     if (Object.keys(safe).length === 0) { alert(T('noDataToRestore')); return; }
-    chrome.storage.local.set(safe, () => {
+    TBBStorage.set(safe, () => {
       alert(T('importSuccess'));
       loadSettings();
     });

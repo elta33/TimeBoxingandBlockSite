@@ -1,7 +1,15 @@
 // popup.js
 
 function cleanDomain(d) {
-  return d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+  const domain = d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+  const sepIdx = domain.search(/[/?#]/);
+  const host = sepIdx === -1 ? domain : domain.slice(0, sepIdx);
+  const tail = sepIdx === -1 ? '' : domain.slice(sepIdx);
+  try {
+    return new URL('https://' + host).hostname + tail;
+  } catch (_) {
+    return domain;
+  }
 }
 
 function timeToMins(t) {
@@ -188,7 +196,7 @@ function toggleSchedule() {
   setToggleVisual(nowDisabled);
   const enabled = !nowDisabled;
   storageData.dailyScheduleEnabled = enabled;
-  chrome.storage.local.set({ dailyScheduleEnabled: enabled });
+  TBBStorage.set({ dailyScheduleEnabled: enabled });
 }
 
 switchTrack.addEventListener('click', toggleSchedule);
@@ -271,7 +279,7 @@ addPermanentBtn.addEventListener('click', () => {
   if (list.some(d => matchesDomain(currentHostname, d))) return;
   list.push(currentHostname);
   storageData.permanentList = list;
-  chrome.storage.local.set({ permanentList: list }, renderAll);
+  TBBStorage.set({ permanentList: list }, renderAll);
 });
 
 addGeneralBtn.addEventListener('click', () => {
@@ -280,7 +288,7 @@ addGeneralBtn.addEventListener('click', () => {
   if (list.some(d => matchesDomain(currentHostname, d))) return;
   list.push(currentHostname);
   storageData.generalList = list;
-  chrome.storage.local.set({ generalList: list }, renderAll);
+  TBBStorage.set({ generalList: list }, renderAll);
 });
 
 // ── 초기화 ──
@@ -295,7 +303,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
     }
   } catch (_) {}
 
-  chrome.storage.local.get(
+  TBBStorage.get(
     ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled'],
     result => {
       storageData = result;

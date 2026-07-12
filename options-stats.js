@@ -21,7 +21,7 @@ function _statsUpdateStreak(streak, dateStr) {
 
 function _statsLogPomoSession(durationMins) {
   const dateStr = _statsTodayStr();
-  chrome.storage.local.get(['focusEvents', 'focusStreak'], data => {
+  TBBStorage.get(['focusEvents', 'focusStreak'], data => {
     let events = data.focusEvents || [];
     let day = events.find(e => e.date === dateStr);
     if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
@@ -29,7 +29,7 @@ function _statsLogPomoSession(durationMins) {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
     events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
     const streak = _statsUpdateStreak(data.focusStreak || null, dateStr);
-    chrome.storage.local.set({ focusEvents: events, focusStreak: streak });
+    TBBStorage.set({ focusEvents: events, focusStreak: streak });
   });
 }
 
@@ -650,7 +650,7 @@ function renderStats(period) {
   });
 
   const keys = ['focusEvents', 'focusStreak', 'pomodoroSettings'];
-  chrome.storage.local.get(keys, data => {
+  TBBStorage.get(keys, data => {
     const allEvents = data.focusEvents || [];
     const streak    = data.focusStreak || { current: 0, longest: 0, lastDate: '' };
     const todayStr  = _statsTodayStr();
