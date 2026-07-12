@@ -32,7 +32,8 @@ TimeBoxingandBlockSite/
 ├── options-init.js         # 옵션 페이지 부트스트랩 (DOMContentLoaded — 탭 전환, 다크모드, PIN, 내보내기 버튼 연결)
 ├── options-pomodoro.js     # 포모도로 타이머 탭 UI (표시/틱/프리셋/고급 설정)
 ├── pomodoro-shared.js      # 사이클별 시간 계산 공용 로직 — background.js(importScripts)/options-pomodoro.js/pomodoro-pip.js 공유
-├── storage.js              # options-core.js가 사용하는 스토리지 CRUD 헬퍼
+├── storage-api.js          # TBBStorage.get/set — sync/local 자동 라우팅 레이어 (전 스크립트 공유)
+├── storage.js              # 설정 페이지 전역 상태 + CRUD 헬퍼 (TBBStorage 위에 구축)
 ├── render-day.js           # 하루 도넛(원형) 타임테이블 SVG 렌더러
 │
 ├── block.html / block.js  # 차단 페이지 (배경 이미지, 인용구, 커스텀 UI)
@@ -275,7 +276,6 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 | `todoTriggerPos` | local | `object` | Todo 아이콘 위치 `{ left, top }` (기기별 값) |
 | `darkModeEnabled` | local | `boolean` | 다크모드 활성화 여부 (사용자 요청으로 로컬 유지, 최초 진입 시 시스템 설정으로 초기화) |
 | `_syncMigrationDone_v1` / `_syncMigrationDone_v2` | local | `boolean` | local→sync 1회성 마이그레이션 완료 플래그 (v1: 차단설정·통계, v2: 투두·포모도로 설정/프리셋·차단화면 문구/링크) |
-| `_syncMigrationDone_v1` | local | `boolean` | local→sync 1회성 마이그레이션 완료 플래그 |
 
 ---
 
