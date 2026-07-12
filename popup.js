@@ -177,9 +177,13 @@ const scheduleSection = document.getElementById('scheduleSection');
 const currentBoxWrap  = document.getElementById('currentBoxWrap');
 const upcomingLabel   = document.getElementById('upcomingLabel');
 const upcomingBoxWrap = document.getElementById('upcomingBoxWrap');
+const pomoSection     = document.getElementById('pomoSection');
+const pomoStatusText  = document.getElementById('pomoStatusText');
+const pomoPipBtn      = document.getElementById('pomoPipBtn');
 
 let currentHostname = null;
 let storageData = {};
+let _pomoTickInterval = null;
 
 settingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
 
@@ -270,7 +274,64 @@ function renderAll() {
   } else {
     upcomingLabel.style.display = 'none';
   }
+
+  renderPomo();
 }
+
+// ── 포모도로 상태 한 줄 ──
+function fmtPomoRemaining(secs) {
+  const m = Math.floor(secs / 60), s = secs % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function renderPomo() {
+  clearInterval(_pomoTickInterval);
+  const state = storageData.pomodoroState || { active: false, phase: 'idle' };
+  if (!state.active || !state.endTime) {
+    pomoSection.style.display = 'none';
+    return;
+  }
+  pomoSection.style.display = 'block';
+  const icon = state.phase === 'rest' ? '☕' : '🍅';
+  const updateText = () => {
+    const rem = Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000));
+    pomoStatusText.textContent = `${icon} ${T('popupPomoRemaining', [fmtPomoRemaining(rem)])}`;
+  };
+  updateText();
+  _pomoTickInterval = setInterval(updateText, 1000);
+}
+
+// ── 포모도로 PiP 빠른 경로 ──
+function createPomoPipWindow() {
+  const pipUrl = chrome.runtime.getURL('pomodoro-pip.html');
+  TBBStorage.get(['pomodoroPipPos'], ({ pomodoroPipPos }) => {
+    const opts = { url: pipUrl, type: 'popup', width: 280, height: 340 };
+    if (pomodoroPipPos) { opts.left = pomodoroPipPos.left; opts.top = pomodoroPipPos.top; }
+    chrome.windows.create(opts, win => {
+      TBBStorage.set({ pipWindowId: win.id });
+    });
+  });
+}
+
+// 팝업(액션 팝업)은 실제 브라우저 윈도우가 아닌 특수한 서피스라 documentPictureInPicture
+// API가 정상적으로 창을 만들지 못하고(promise가 resolve/reject 없이 멈춤) 옵션 페이지와
+// 달리 "html 생략하고 곧장 PiP 승격"은 재현이 안 된다. 그래서 기본 상단 탭 고정 여부와
+// 무관하게 항상 일반 PiP 창(html)만 연다 — 상단 고정이 필요하면 그 창 안의 토글을 쓰면 된다.
+pomoPipBtn.addEventListener('click', () => {
+  TBBStorage.get(['pipWindowId'], ({ pipWindowId }) => {
+    if (pipWindowId) {
+      chrome.windows.get(pipWindowId, win => {
+        if (chrome.runtime.lastError || !win) {
+          createPomoPipWindow();
+        } else {
+          chrome.windows.update(pipWindowId, { focused: true });
+        }
+      });
+    } else {
+      createPomoPipWindow();
+    }
+  });
+});
 
 // ── 도메인 추가 핸들러 ──
 addPermanentBtn.addEventListener('click', () => {
@@ -304,7 +365,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
   } catch (_) {}
 
   TBBStorage.get(
-    ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled'],
+    ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState'],
     result => {
       storageData = result;
       renderAll();

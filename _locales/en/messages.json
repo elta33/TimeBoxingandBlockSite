@@ -208,6 +208,9 @@
   "popupPermanentBlocked": { "message": "Always Blocked" },
   "popupGeneralBlocked":   { "message": "General Blocked" },
   "typeBadgeDaily":        { "message": "Day" },
+  "popupPomoLabel":        { "message": "Pomodoro" },
+  "popupPomoRemaining":    { "message": "$1 left", "placeholders": { "1": { "content": "$1" } } },
+  "popupPomoPipTitle":     { "message": "Open PiP window" },
 
   "pipTitle":        { "message": "Pomodoro Timer" },
   "pipWorkLabel":    { "message": "Work" },

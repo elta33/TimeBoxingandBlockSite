@@ -208,6 +208,9 @@
   "popupPermanentBlocked": { "message": "상시 차단됨" },
   "popupGeneralBlocked":   { "message": "일반 차단됨" },
   "typeBadgeDaily":        { "message": "하루" },
+  "popupPomoLabel":        { "message": "포모도로" },
+  "popupPomoRemaining":    { "message": "$1 남음", "placeholders": { "1": { "content": "$1" } } },
+  "popupPomoPipTitle":     { "message": "PiP 창 열기" },
 
   "pipTitle":        { "message": "포모도로 타이머" },
   "pipWorkLabel":    { "message": "작업" },

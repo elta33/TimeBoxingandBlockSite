@@ -124,6 +124,15 @@
     .p-empty { font-size: 16px; color: #ccc; text-align: center; padding: 10px 0; }
     .p-upcoming-label { margin-top: 10px; }
 
+    /* ── 포모도로 상태 ── */
+    /* scheduleSection과 마찬가지로 표시될 때 팝업 맨 아래 섹션이 되므로 하단 테두리 제거 */
+    #pomoSection { border-bottom: none; }
+    .p-pomo-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .p-pomo-status {
+      font-size: 17px; font-weight: 500; color: var(--tomato-text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+    }
+
     /* ══════════════ 다크모드 ══════════════
        options.html과 동일한 방식: <html data-theme="dark">일 때만 적용되는
        오버라이드를 맨 끝에 별도로 쌓는다. tomato-pale 등 토큰 배경은
@@ -200,6 +209,15 @@
     <div id="currentBoxWrap"></div>
     <div id="upcomingLabel" class="p-section-label p-upcoming-label" style="display:none;" data-i18n="popupNextBox">다음 박스</div>
     <div id="upcomingBoxWrap"></div>
+  </div>
+
+  <!-- 포모도로 상태 -->
+  <div id="pomoSection" class="p-section" style="display:none;">
+    <div class="p-section-label" data-i18n="popupPomoLabel">포모도로</div>
+    <div class="p-pomo-row">
+      <span id="pomoStatusText" class="p-pomo-status"></span>
+      <button id="pomoPipBtn" class="p-add-btn" data-i18n="pomoPip" data-i18n-title="popupPomoPipTitle" title="PiP 열기">⧉ PiP</button>
+    </div>
   </div>
 
   <script src="i18n.js"></script>
