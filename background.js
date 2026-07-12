@@ -166,7 +166,7 @@ async function _statsLogPomoSession(durationMins) {
 // 1분 알람마다 활성 타임박스 안에 있으면 오늘 focusMins +1
 async function _statsLogBoxMinute() {
   const data = await TBBStorage.get([
-    'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'focusEvents'
+    'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'focusEvents', 'focusStreak'
   ]);
   const dailyEnabled = data.dailyScheduleEnabled !== false;
   const dailyBoxes   = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : [];
@@ -188,7 +188,8 @@ async function _statsLogBoxMinute() {
 
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
   events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
-  await TBBStorage.set({ focusEvents: events });
+  const streak = _statsUpdateStreak(data.focusStreak || null, dateStr);
+  await TBBStorage.set({ focusEvents: events, focusStreak: streak });
 }
 
 // 포모도로 페이즈 자동 전환 (1분 알람 틱마다 체크)
