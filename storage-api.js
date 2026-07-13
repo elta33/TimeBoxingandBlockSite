@@ -29,6 +29,18 @@ const TBB_SYNC_KEYS = new Set([
 const TBB_SYNC_BYTE_LIMIT = 7500;
 const TBB_FOCUS_EVENTS_TRIM_DAYS = 14;
 
+// sync 성공/실패·용량 축소 이력을 기기 로컬에만 남겨 설정 탭에 노출한다.
+// (동기화 여부를 사용자가 눈으로 확인할 방법이 console.warn뿐이라 "다른 기기에 왜 안 옮겨지지?"에
+// 답할 수 없었던 문제 — 이 키 자체는 절대 sync로 보내지 않는다: 기기마다 사정이 다르다)
+const TBB_SYNC_STATUS_KEY = '_syncStatus';
+
+async function _tbbRecordSyncStatus(patch) {
+  const cur = await chrome.storage.local.get([TBB_SYNC_STATUS_KEY]);
+  await chrome.storage.local.set({
+    [TBB_SYNC_STATUS_KEY]: { ...(cur[TBB_SYNC_STATUS_KEY] || {}), ...patch }
+  });
+}
+
 function _tbbByteSize(value) {
   return new TextEncoder().encode(JSON.stringify(value)).length;
 }
@@ -56,6 +68,7 @@ function _tbbGuardSyncPayload(obj) {
     if (k === 'focusEvents') {
       obj[k] = _tbbTrimFocusEvents(obj[k], TBB_FOCUS_EVENTS_TRIM_DAYS);
       console.warn(`[TBBStorage] focusEvents가 sync 용량 한도에 근접해 최근 ${TBB_FOCUS_EVENTS_TRIM_DAYS}일로 축소했습니다.`);
+      _tbbRecordSyncStatus({ trimmedFocusEventsAt: Date.now() });
     } else {
       console.warn(`[TBBStorage] ${k} 크기(${size}B)가 sync 한도에 근접해 동기화가 실패할 수 있습니다.`);
     }
@@ -91,9 +104,13 @@ async function _tbbSet(obj) {
     _tbbGuardSyncPayload(syncObj);
     tasks.push(
       chrome.storage.sync.set(syncObj)
-        .then(() => chrome.storage.local.remove(sync).catch(() => {})) // 과거 폴백 잔여분 정리
+        .then(() => {
+          chrome.storage.local.remove(sync).catch(() => {}); // 과거 폴백 잔여분 정리
+          _tbbRecordSyncStatus({ lastSuccessAt: Date.now(), lastErrorAt: null });
+        })
         .catch(err => {
           console.warn('[TBBStorage] sync 쓰기 실패, local에 백업 저장:', err);
+          _tbbRecordSyncStatus({ lastErrorAt: Date.now(), lastErrorMessage: String((err && err.message) || err) });
           return chrome.storage.local.set(syncObj);
         })
     );

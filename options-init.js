@@ -87,6 +87,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // 동기화 상태 인디케이터 — storage-api.js가 sync 성공/실패·용량 축소 시 기록하는
+  // _syncStatus(local 전용)를 읽어 "다른 기기에 왜 반영이 안 되지?"에 답할 정보를 보여준다.
+  function _fmtSyncTime(ts) {
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function _renderSyncStatus(status) {
+    const badge = document.getElementById('syncStatusBadge');
+    const textEl = document.getElementById('syncStatusText');
+    if (!badge || !textEl) return;
+    const s = status || {};
+    badge.classList.remove('sync-ok', 'sync-warn', 'sync-none');
+
+    const parts = [];
+    if (s.lastErrorAt) {
+      badge.classList.add('sync-warn');
+      parts.push(T('syncStatusFailed', [_fmtSyncTime(s.lastErrorAt)]));
+    } else if (s.lastSuccessAt) {
+      badge.classList.add('sync-ok');
+      parts.push(T('syncStatusOk', [_fmtSyncTime(s.lastSuccessAt)]));
+    } else {
+      badge.classList.add('sync-none');
+      parts.push(T('syncStatusNone'));
+    }
+    if (s.trimmedFocusEventsAt) parts.push(T('syncStatusTrimmed'));
+    textEl.textContent = parts.join(' · ');
+  }
+  chrome.storage.local.get(['_syncStatus'], result => _renderSyncStatus(result._syncStatus));
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes._syncStatus) _renderSyncStatus(changes._syncStatus.newValue);
+  });
+
   function updateWeekStartToggleVisibility() {
     if (weekStartWrap) weekStartWrap.style.display = currentView === 'week' ? 'flex' : 'none';
   }

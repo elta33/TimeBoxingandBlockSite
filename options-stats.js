@@ -656,9 +656,9 @@ function renderStats(period) {
     const todayStr  = _statsTodayStr();
 
     // 집중 시간 카드 (기간별 합산)
-    const focusVal   = document.getElementById('stat-focus-val');
-    const focusTitle = document.getElementById('stat-focus-title');
-    const focusSub   = document.getElementById('stat-focus-sub');
+    const focusVal    = document.getElementById('stat-focus-val');
+    const focusFixed  = document.getElementById('stat-focus-fixed');
+    const focusPeriod = document.getElementById('stat-focus-period');
     if (focusVal) {
       let mins = 0;
       if (_statsPeriod === 'today') {
@@ -673,14 +673,14 @@ function renderStats(period) {
       }
       focusVal.textContent = mins > 0 ? _statsFormatMins(mins) : '—';
       const pSuffix = _statsPeriod === 'today' ? '' : _statsPeriod;
-      if (focusTitle) focusTitle.textContent = T('statsFocusTime' + pSuffix);
-      if (focusSub)   focusSub.textContent   = T('statsFocusSub'  + pSuffix);
+      if (focusFixed)  focusFixed.textContent  = T('statsFocusSub');
+      if (focusPeriod) focusPeriod.textContent = T('statsFocusTime' + pSuffix);
     }
 
     // 차단 횟수 카드 (기간 필터)
-    const blockVal   = document.getElementById('stat-block-val');
-    const blockTitle = document.getElementById('stat-block-title');
-    const blockSub   = document.getElementById('stat-block-sub');
+    const blockVal    = document.getElementById('stat-block-val');
+    const blockFixed  = document.getElementById('stat-block-fixed');
+    const blockPeriod = document.getElementById('stat-block-period');
     if (blockVal) {
       const filtered = _statsPeriod === 'today'
         ? allEvents.filter(e => e.date === todayStr)
@@ -692,8 +692,8 @@ function renderStats(period) {
       const total = filtered.reduce((s, e) => s + (e.blocks || []).length, 0);
       blockVal.textContent = total;
       const pSuffix = _statsPeriod === 'today' ? '' : _statsPeriod;
-      if (blockTitle) blockTitle.textContent = T('statsBlockCount' + pSuffix);
-      if (blockSub)   blockSub.textContent   = T('statsBlockSub'   + pSuffix);
+      if (blockFixed)  blockFixed.textContent  = T('statsBlockSub');
+      if (blockPeriod) blockPeriod.textContent = T('statsBlockCount' + pSuffix);
     }
 
     // 차트 제목
