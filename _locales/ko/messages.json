@@ -78,6 +78,7 @@
   "generalBlockDesc":    { "message": "차단 박스가 활성화된 시간대에 적용됩니다." },
   "placeholderNetflix":  { "message": "예: netflix.com" },
   "placeholderYoutube":  { "message": "예: youtube.com" },
+  "placeholderDomainSearch": { "message": "도메인 검색" },
 
   "newBox":            { "message": "새 박스 추가" },
   "boxNameLabel":      { "message": "박스 이름" },

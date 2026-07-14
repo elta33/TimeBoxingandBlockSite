@@ -78,6 +78,7 @@
   "generalBlockDesc":    { "message": "Applied during active timebox blocks." },
   "placeholderNetflix":  { "message": "e.g. netflix.com" },
   "placeholderYoutube":  { "message": "e.g. youtube.com" },
+  "placeholderDomainSearch": { "message": "Search domains" },
 
   "newBox":            { "message": "Add New Box" },
   "boxNameLabel":      { "message": "Box Name" },

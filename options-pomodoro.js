@@ -92,6 +92,7 @@ function renderPomoList(list) {
     li.append(span, del);
     ul.appendChild(li);
   });
+  _applyDomainFilter('pomoList');
 }
 
 const POMO_PRESET_PAGE_SIZE = 4;

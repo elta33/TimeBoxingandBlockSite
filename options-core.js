@@ -177,6 +177,35 @@ function renderList(elementId, items, storageKey, warnId) {
     li.appendChild(delBtn);
     ul.appendChild(li);
   });
+  _applyDomainFilter(elementId);
+}
+
+// ── 공통: 도메인 리스트 검색 ──
+// 리스트 <ul> id → 그 위에 놓인 검색 입력 id. 각 리스트의 render 함수가 다시 그릴 때마다
+// 끝에서 _applyDomainFilter를 호출해, 추가/삭제 후 재렌더링돼도 검색어 필터가 유지되게 한다.
+const DOMAIN_SEARCH_MAP = {
+  permanentList: 'permanentSearchInput',
+  generalList: 'generalSearchInput',
+  stagingCustomList: 'stagingSearchInput',
+  popup_stagingCustomList: 'popup_stagingSearchInput',
+  pomoList: 'pomoSearchInput'
+};
+
+function _applyDomainFilter(listId) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const input = document.getElementById(DOMAIN_SEARCH_MAP[listId]);
+  const q = (input?.value || '').trim().toLowerCase();
+  Array.from(list.children).forEach(li => {
+    const text = (li.querySelector('.domain-text')?.textContent || '').toLowerCase();
+    li.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+}
+
+function _initDomainSearchInputs() {
+  Object.entries(DOMAIN_SEARCH_MAP).forEach(([listId, searchInputId]) => {
+    document.getElementById(searchInputId)?.addEventListener('input', () => _applyDomainFilter(listId));
+  });
 }
 
 // ── 공통: 커스텀 도메인 아이템 UI 팩토리 ──
@@ -662,6 +691,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
       );
       ul.appendChild(li);
     });
+    _applyDomainFilter('popup_stagingCustomList');
   }
 
   // 스테이징 입력 초기화
@@ -984,6 +1014,7 @@ function renderStagingList() {
     );
     ul.appendChild(li);
   });
+  _applyDomainFilter('stagingCustomList');
 }
 
 // ── 스테이징 이벤트 핸들러 ──

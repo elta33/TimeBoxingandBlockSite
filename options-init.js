@@ -2,6 +2,9 @@
 // 옵션 페이지 부트스트랩 (DOMContentLoaded): 메인 탭 전환, 통계 탭 진입, 요일/다크모드/PIN 설정, 내보내기·불러오기 버튼 연결
 // options-core.js·options-stats.js가 정의한 함수(loadSettings, renderStats, initViewTabs, _loadPinStatus 등)에 의존하므로 반드시 그 뒤에 로드할 것
 document.addEventListener('DOMContentLoaded', () => {
+  // 도메인 리스트 검색 입력 연결 (상시/일반/예외/포모도로 차단 리스트)
+  _initDomainSearchInputs();
+
   // 요일 팝업 닫기 버튼
   document.getElementById('dayPopupCloseBtn')?.addEventListener('click', closeDayPopup);
 

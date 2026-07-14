@@ -101,6 +101,14 @@ body {
 .input-row input[type="text"] { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 7px; font-size: 0.92rem; outline: none; transition: border-color 0.15s; }
 .input-row input[type="text"]:focus { border-color: #999; }
 
+/* ── 도메인 검색 입력 (추가 입력행보다 작게, 그 위에 배치) ── */
+.domain-search-row { margin-bottom: 6px; }
+.domain-search-row input[type="text"] {
+  width: 100%; box-sizing: border-box; padding: 5px 9px; border: 1px solid #e2e2e2;
+  border-radius: 6px; font-size: 0.78rem; outline: none; transition: border-color 0.15s;
+}
+.domain-search-row input[type="text"]:focus { border-color: #999; }
+
 /* ── 기본 버튼 ── */
 button { cursor: pointer; font-family: inherit; }
 .btn { padding: 10px 16px; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; background: #111; color: #fff; transition: background 0.15s; }
@@ -1341,6 +1349,9 @@ button { cursor: pointer; font-family: inherit; }
           <button id="clearPermanentBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
         </div>
         <p class="sector-desc"><span data-i18n="permanentBlockDesc">스케줄 무관, 항상 차단됩니다.</span> <span id="permanentWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
+        <div class="domain-search-row">
+          <input type="text" id="permanentSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+        </div>
         <div class="input-row">
           <input type="text" id="permanentDomainInput" data-i18n-placeholder="placeholderNetflix" placeholder="예: netflix.com">
           <button id="addPermanentBtn" class="btn btn-sm" data-i18n="add">추가</button>
@@ -1354,6 +1365,9 @@ button { cursor: pointer; font-family: inherit; }
           <button id="clearGeneralBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
         </div>
         <p class="sector-desc"><span data-i18n="generalBlockDesc">차단 박스가 활성화된 시간대에 적용됩니다.</span> <span id="generalWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
+        <div class="domain-search-row">
+          <input type="text" id="generalSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+        </div>
         <div class="input-row">
           <input type="text" id="generalDomainInput" data-i18n-placeholder="placeholderYoutube" placeholder="예: youtube.com">
           <button id="addGeneralBtn" class="btn btn-sm" data-i18n="add">추가</button>
@@ -1404,6 +1418,9 @@ button { cursor: pointer; font-family: inherit; }
         <hr class="form-divider">
 
         <div class="form-section-title"><span data-i18n="exceptionAddress">차단 예외 주소</span> <span id="customWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></div>
+        <div class="domain-search-row">
+          <input type="text" id="stagingSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+        </div>
         <div class="input-row">
           <input type="text" id="customDomainInput" data-i18n-placeholder="placeholderGithub" placeholder="예: github.com">
           <button id="addCustomStagingBtn" class="btn btn-sm" data-i18n="add">추가</button>
@@ -1559,6 +1576,9 @@ button { cursor: pointer; font-family: inherit; }
         <p class="sector-desc"><span data-i18n="pomoBlockDesc">작업 타이머가 실행 중일 때만 차단됩니다.</span>
           <span id="pomoWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span>
         </p>
+        <div class="domain-search-row">
+          <input type="text" id="pomoSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+        </div>
         <div class="input-row">
           <input type="text" id="pomoDomainInput" data-i18n-placeholder="placeholderTwitter" placeholder="예: twitter.com">
           <button class="btn btn-sm" id="addPomoBtn" data-i18n="add">추가</button>
@@ -1730,6 +1750,9 @@ button { cursor: pointer; font-family: inherit; }
           <hr class="form-divider">
 
           <div class="form-section-title"><span data-i18n="exceptionAddress">차단 예외 주소</span> <span id="popup_customWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></div>
+          <div class="domain-search-row">
+            <input type="text" id="popup_stagingSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+          </div>
           <div class="input-row">
             <input type="text" id="popup_customDomainInput" data-i18n-placeholder="placeholderGithub" placeholder="예: github.com">
             <button id="popup_addCustomStagingBtn" class="btn btn-sm" data-i18n="add">추가</button>
