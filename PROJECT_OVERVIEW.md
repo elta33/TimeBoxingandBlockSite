@@ -9,9 +9,11 @@
 - 포모도로 타이머와 연동하여 작업 시간 중 추가 차단 적용
 - 차단 화면을 사용자 지정 이미지·인용구로 꾸밀 수 있음
 - 집중 시간·차단 횟수·포모도로 완료 사이클 등 활동 통계를 기록·시각화
-- 포모도로 프리셋으로 자주 쓰는 설정을 저장·복원하고, 사이클별 시간을 개별 오버라이드 가능
+- 포모도로 프리셋으로 자주 쓰는 설정을 저장·복원하고, 사이클별 시간·차단 도메인을 개별 오버라이드 가능
 - 설정 페이지 내 플로팅 할일(Todo) 패널로 집중 중 할 일 관리
-- PIN 잠금으로 삭제·초기화 등 파괴적 조작을 보호
+- PIN 잠금으로 박스 수정·삭제·초기화 등 파괴적 조작을 보호
+- 크롬 계정 기반 기기 간 설정 동기화 (`chrome.storage.sync`)
+- 최초 설치 시 온보딩 체크리스트로 초기 설정 유도
 - 라이트/다크 모드 지원 (시스템 설정 자동 감지, 토글로 고정)
 - 한국어/영어 현지화 지원
 
@@ -28,9 +30,9 @@ TimeBoxingandBlockSite/
 ├── popup.html / popup.js  # 툴바 아이콘 클릭 시 나타나는 팝업
 ├── options.html            # 전체 설정 페이지 (5개 탭)
 ├── options-core.js         # PIN 잠금 + 도메인 리스트 유틸 + 타임박스 스케줄러 + 내보내기/불러오기
-├── options-stats.js        # 통계 탭 렌더링 (바 차트/상위 도메인/포모도로 통계/히트맵/스트릭 달력)
-├── options-init.js         # 옵션 페이지 부트스트랩 (DOMContentLoaded — 탭 전환, 다크모드, PIN, 내보내기 버튼 연결)
-├── options-pomodoro.js     # 포모도로 타이머 탭 UI (표시/틱/프리셋/고급 설정)
+├── options-stats.js        # 통계 탭 렌더링 (바 차트/상위 도메인/포모도로 통계/시간대 분포/스트릭 달력)
+├── options-init.js         # 옵션 페이지 부트스트랩 (DOMContentLoaded — 온보딩, 탭 전환, 다크모드, PIN, 동기화 배지)
+├── options-pomodoro.js     # 포모도로 타이머 탭 UI (표시/틱/프리셋/사이클·도메인 고급 설정)
 ├── pomodoro-shared.js      # 사이클별 시간 계산 공용 로직 — background.js(importScripts)/options-pomodoro.js/pomodoro-pip.js 공유
 ├── storage-api.js          # TBBStorage.get/set — sync/local 자동 라우팅 레이어 (전 스크립트 공유)
 ├── storage.js              # 설정 페이지 전역 상태 + CRUD 헬퍼 (TBBStorage 위에 구축)
@@ -71,7 +73,9 @@ TimeBoxingandBlockSite/
 | 커스텀 허용 (`customDomains`) | 활성 타임박스 내 예외 | 50 | — (allow) |
 | 일반 차단 (`generalList`) | 활성 타임박스 시간 내 | 10 | `?domain=…&reason=general` |
 
-> **DNR 제약 우회:** Chrome DNR에서 `allow` 액션은 `block` 액션만 무력화하고 `redirect`는 무력화하지 못한다. 따라서 "커스텀 허용 → 일반 차단 리다이렉트" 충돌은 우선순위 규칙이 아닌 **generalList 규칙 자체를 등록하지 않는** 방식으로 해결한다 (`finalAllowSet`).
+> **DNR 제약 우회:** Chrome DNR에서 `allow` 액션은 `block` 액션만 무력화하고 `redirect`는 무력화하지 못한다. 따라서 "커스텀 허용 → 일반 차단 리다이렉트" 충돌은 우선순위 규칙이 아닌 **차단 규칙 자체를 등록하지 않는** 방식으로 해결한다. 같은 이유로 두 군데에서 같은 패턴을 쓴다 — generalList는 `finalAllowSet`으로, 포모도로 프리셋의 허용 예외는 `pomodoroActiveDomainOverride.allow`로 규칙 생성을 건너뛴다.
+
+규칙은 `updateBlockingRules()`가 생성하며, 실제 차단 판정(SPA 경로)은 `shouldUrlBeBlocked()`가 같은 우선순위 로직을 JS로 재현한다. 도메인 매칭은 정확히 일치하거나 서브도메인(`.example.com`)일 때 성립한다.
 
 ### 3-2. SPA 차단 (History API 후킹)
 
@@ -143,7 +147,18 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 
 **포모도로 프리셋 (`pomodoroPresets`):**
 
-현재 설정(workMins, restMins, cycles, cycleOverrides)을 이름을 붙여 저장하고 한 번 클릭으로 복원할 수 있다.
+현재 설정(workMins, restMins, cycles, cycleOverrides, blockOverrides)을 이름을 붙여 저장하고 한 번 클릭으로 복원할 수 있다. 목록은 4개씩 페이지네이션된다.
+
+**프리셋별 차단 도메인 커스텀 (`blockOverrides` → `pomodoroActiveDomainOverride`):**
+
+프리셋마다 포모도로 차단 목록을 다르게 가져갈 수 있다.
+
+- `allow`: `pomodoroList`에 있지만 이 프리셋에서만 예외로 허용할 도메인
+- `extra`: 이 프리셋에서만 추가로 차단할 도메인
+
+적용 시 `_applyPomoBlockOverride()`가 `extra`를 라이브 `pomodoroList`에 병합하고, 활성 오버라이드를 `pomodoroActiveDomainOverride`에 기록한다. 다른 프리셋으로 전환하면 이전 `extra`를 먼저 롤백해 잔여물이 남지 않는다.
+
+`allow` 도메인은 `pomodoroList`에서 지우지 않고 **DNR 규칙 생성 시에만 건너뛴다** — 프리셋 없이 되돌아오면 다시 차단되어야 하고, `allow` 액션은 `redirect`를 이길 수 없기 때문이다(3-1의 `finalAllowSet`과 같은 이유).
 
 **포모도로 고급 설정 (`pomodoroCycleOverrides`):**
 
@@ -157,7 +172,8 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 [{
   name: "딥워크",
   workMins: 90, restMins: 20, cycles: 3,
-  cycleOverrides: [{ cycle: 2, workMins: 50, restMins: 10 }]
+  cycleOverrides: [{ cycle: 2, workMins: 50, restMins: 10 }],
+  blockOverrides: { allow: ["github.com"], extra: ["reddit.com"] }  // 없으면 일반 프리셋
 }]
 ```
 
@@ -172,6 +188,8 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 | `background.js` (`_statsLogBoxMinute`) | 1분 알람, 활성 타임박스 내 | `day.focusMins += 1` |
 | `background.js` (`_statsLogPomoSession`) | 포모도로 work 페이즈 종료 | `day.pomoSessions.push({ ts, durationMins })` |
 | `block.js` (`logBlockEvent` IIFE) | block.html 로드 시 (`domain` 파라미터 존재) | `day.blocks.push({ domain, reason, ts })` |
+
+세 경로 모두 기록과 동시에 `focusStreak`을 갱신하고(`_statsUpdateStreak` / `block.js`의 `_statsStreak`), 30일이 지난 레코드를 잘라낸다.
 
 `focusEvents` 일별 레코드 구조:
 ```js
@@ -196,7 +214,7 @@ SPA 경로를 통한 리다이렉트에도 `domain` 파라미터가 포함되어
 | 집중 시간 바 차트 | `_renderBlockBarChart` | 일별 focusMins 막대 그래프 (오늘 강조) |
 | 상위 차단 도메인 | `_renderTopDomains` | 기간 내 차단 빈도 상위 도메인 랭킹 |
 | 포모도로 통계 | `_renderPomoStats` | 오늘/7일/30일 완료 사이클·집중 시간 |
-| 차단 시간대 분포 | `_renderHeatmap` | 0~23시 히트맵 |
+| 차단 시간대 분포 | `_renderHeatmap` | 0~23시 차단 횟수 SVG 막대 그래프 (함수명은 히트맵 시절 잔재) |
 | 스트릭 달력 | `_renderStreakCalendar` | 날짜별 활동 유무 달력 |
 
 기간 필터는 오늘 / 7일 / 30일 세 가지이며 탭 클릭 시 `renderStats(period)`를 재호출한다.
@@ -219,10 +237,11 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 
 ### 3-7. PIN 잠금
 
-삭제·초기화·일정 비활성화 등 파괴적 조작을 PIN(4~8자리 숫자)으로 보호한다.
+삭제·수정·초기화 등 파괴적 조작을 PIN(4자 이상, 최대 20자)으로 보호한다.
 
-- PIN은 무작위 salt + SHA-256 해시로 저장 (`lockPin: { hash, salt, enabled }`)
-- 보호 대상 액션: 박스 전체 삭제, 데이터 초기화, 하루 스케줄 토글
+- PIN은 무작위 salt + SHA-256 해시로 저장 (`lockPin: { hash, salt, enabled }`) — 평문은 저장하지 않음
+- 보호 대상 액션: 개별 박스 수정·삭제(주간 뷰 + 도넛 뷰 양쪽), 박스 전체 삭제, 하루 스케줄 비활성화, PIN 해제
+- 잠긴 조작을 시도하면 `_openPinModal()`이 모달을 띄우고, 검증 성공 시에만 콜백 실행 (실패 시 shake 애니메이션)
 - PIN 미설정 시 모든 조작 허용 (기본값)
 - PIN 설정·변경·비활성화 UI는 **설정** 탭에 위치
 
@@ -233,17 +252,45 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 - 최초 진입 시 `prefers-color-scheme` 시스템 설정을 읽어 `darkModeEnabled` 스토리지에 저장
 - 이후에는 저장 값 기준 — 설정 탭 토글로 변경 가능
 - `<html data-theme="dark | light">` 속성으로 CSS 스코프를 제어하며, `styles/tokens.css`의 `:root[data-theme="dark"]` 블록이 색상 변수를 오버라이드
-- `localStorage`에도 캐시하여 chrome.storage 비동기 응답 전 깜빡임(FOUC) 방지
-- **block.html은 이 시스템 제외** — 자체 다크 배경 테마를 사용하며, MV3 CSP로 인해 `<head>` 인라인 스크립트를 쓸 수 없어 `data-theme` 설정이 별도로 처리됨
+- `localStorage`(`tbb-theme`)에도 캐시하여 chrome.storage 비동기 응답 전 깜빡임(FOUC) 방지
+- **block.html은 이 시스템 제외** — 이미 자체 다크 오버레이 테마라 토글과 무관하므로 `theme.js`를 로드하지 않는다
 
-### 3-9. 차단 화면 커스터마이징
+### 3-9. 온보딩 체크리스트
+
+최초 설치 시 차단 관리 탭 상단에 진행형 체크리스트 카드를 띄워 초기 설정을 유도한다.
+
+- `background.js`의 `onInstalled`에서 `onboardingDismissed`가 `undefined`일 때만 노출 대상으로 판정 — 즉 **신규 설치에만** 보이고 기존 사용자에겐 뜨지 않는다
+- 단계: ① 차단할 사이트 추가 ② 타임박스 만들기 (각 단계는 해당 데이터 존재 여부로 자동 체크)
+- 각 단계의 버튼은 해당 탭으로 이동시키며, 닫기 버튼(또는 완료)은 `onboardingDismissed: true`를 저장해 다시 뜨지 않게 한다
+
+### 3-10. 기기 간 동기화 상태 표시
+
+`chrome.storage.sync`는 실패해도 조용해서 "다른 기기에 왜 반영이 안 되지?"에 답할 수단이 없었다. `storage-api.js`가 sync 성공·실패·용량 축소 이력을 `_syncStatus`(local 전용)에 남기고, 설정 탭이 이를 배지로 노출한다.
+
+| 상태 | 표시 |
+|------|------|
+| 성공 | 마지막 동기화 시각 |
+| 실패 | 실패 시각 + "이 기기에만 저장됨" |
+| 기록 없음 | "동기화 기록 없음" |
+| 용량 축소 발생 | "통계 데이터는 최근 14일치만 동기화됨" 추가 표기 |
+
+### 3-11. 도메인 입력 편의 기능
+
+| 기능 | 구현 | 동작 |
+|------|------|------|
+| 리스트 검색 | `_initDomainSearchInputs` / `_applyDomainFilter` | 6개 도메인 리스트(상시·일반·포모도로·박스 커스텀·고급 설정)에 실시간 필터 |
+| 기본 도메인 추천 | `_initDomainSuggestions` | 추가 입력이 비어있을 때 포커스하면 인기 도메인 드롭다운 표시, 클릭 시 즉시 등록 |
+
+추천 드롭다운은 `click`이 아닌 `mousedown` + `preventDefault()`로 처리한다 — `click`은 그 전에 input이 blur되며 드롭다운이 닫혀 클릭이 씹히기 때문이다.
+
+### 3-12. 차단 화면 커스터마이징
 
 `block.html`에서 제공하는 기능:
 
-- 배경 이미지: 파일로 업로드 → `chrome.storage.local`에 Base64로 저장
-- 인용구: 텍스트 입력 → 스토리지 저장
-- 이미지-인용구 링크: 특정 이미지와 인용구를 쌍으로 묶어 함께 표시
-- 미선택 시 기본 인용구 5개 중 랜덤 표시
+- 배경 이미지 (`customBgImages`): 파일 업로드 → Base64로 저장. 기본 제공 이미지 5장은 `{ name, builtin: 'images/…' }` 형태로 경로만 참조하고, 업로드분은 `{ name, data: 'data:image/…' }`로 실 데이터를 담는다
+- 인용구 (`customQuotes`): 텍스트 입력 → 스토리지 저장. 스토리지가 비어 있으면 현지화된 기본 인용구 5개를 최초 1회 시딩
+- 이미지-인용구 링크 (`customLinks`): `{ imgName, quote }` 쌍으로 묶어 함께 표시
+- 링크가 없으면 이미지·인용구를 각각 랜덤 선택
 
 ---
 
@@ -269,6 +316,9 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 | `customQuotes` | sync | `string[]` | 차단 화면 인용구 |
 | `customLinks` | sync | `object[]` | 이미지-인용구 쌍 링크 `[{ imgName, quote }]` (참조하는 이미지가 sync 안 되는 커스텀 업로드면 다른 기기에서 매칭 안 될 수 있음 — graceful degradation) |
 | `pomodoroState` | local | `object` | 포모도로 현재 상태 (활성 타이머 — 기기 간 경합 방지 위해 로컬 고정) |
+| `pomodoroActiveDomainOverride` | local | `object` \| `null` | 현재 적용 중인 프리셋의 도메인 커스텀 `{ allow, extra }` (활성 상태라 로컬) |
+| `onboardingDismissed` | local | `boolean` | 온보딩 카드 닫힘 여부 (신규 설치 판별 겸용 — 기기별 노출이라 로컬) |
+| `_syncStatus` | local | `object` | sync 성공·실패·축소 이력 `{ lastSuccessAt, lastErrorAt, lastError, trimmedFocusEventsAt }` (기기마다 사정이 달라 절대 sync 안 함) |
 | `pipWindowId` | local | `number` | PiP 창 ID (기기별 값) |
 | `pomodoroPipPos` | local | `object` | PiP 창 위치 `{ left, top }` (기기별 값) |
 | `customBgImages` | local | `object[]` | 차단 화면 배경 이미지 `[{ name, builtin?, data? }]` (Base64 — sync 용량 초과 확정이라 로컬 고정) |
@@ -283,11 +333,11 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 
 | 탭 | 기능 |
 |----|------|
-| **차단 관리** | 상시 차단 / 일반 차단 도메인 추가·삭제 |
-| **타임박스 스케줄러** | 박스 추가 폼 + 하루(도넛) / 주간(세로 타임테이블) 뷰 |
-| **포모도로 타이머** | 타이머 설정, 시작/일시정지/중지, PiP(Always on Top 옵션), 프리셋 저장·적용, 사이클별 고급 설정, 포모도로 전용 차단 목록 |
-| **통계** | 집중 시간·차단 횟수·스트릭·포모도로·히트맵 시각화 (오늘/7일/30일 필터) |
-| **설정** | 전체 데이터 JSON 내보내기 / 불러오기 |
+| **차단 관리** | 온보딩 체크리스트(신규 설치 시) + 상시 차단 / 일반 차단 도메인 추가·삭제·검색 |
+| **타임박스 스케줄러** | 박스 추가·수정 폼 + 하루(도넛) / 주간(세로 타임테이블) 뷰 |
+| **포모도로 타이머** | 타이머 설정, 시작/일시정지/중지, PiP(Always on Top 옵션), 프리셋 저장·적용, 사이클별·도메인별 고급 설정, 포모도로 전용 차단 목록 |
+| **통계** | 집중 시간·차단 횟수·스트릭·포모도로·시간대 분포 시각화 (오늘/7일/30일 필터) |
+| **설정** | 전체 데이터 JSON 내보내기 / 불러오기, PIN 잠금, 다크모드 토글, 동기화 상태 배지 |
 
 ### 타임테이블 뷰
 
@@ -303,6 +353,7 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 1. **현재 페이지** 도메인 표시 + 상시/일반 차단 여부 배지, 없으면 빠른 추가 버튼
 2. **하루 스케줄 토글** — 비활성화 시 generalList 차단 전체 중단
 3. **현재 활성 박스** + **다음 예정 박스** (최대 2개)
+4. **포모도로 상태** — 타이머가 돌고 있을 때만 노출. 남은 시간을 1초 tick으로 표시하고, PiP 창을 열거나(없으면 생성) 기존 창에 포커스하는 버튼 제공
 
 ---
 
@@ -335,4 +386,5 @@ HTML에서는 `data-i18n`, `data-i18n-placeholder`, `data-i18n-title`, `data-i18
 - **SPA 차단 폴백**: content.js는 초기 로드 시에도 `requestBlockCheck(location.href)`를 호출해 DNR 리다이렉트 실패를 보완한다.
 - **포모도로 경쟁 조건**: background alarms와 UI tick이 동시에 페이즈 전환을 시도할 수 있어 `advancedAt` 필드로 10초 이내 중복 전환을 가드한다.
 - **Base64 이미지 저장**: `chrome.storage.local` 용량 한도(10MB)에 유의가 필요하다.
-- **다크모드 FOUC 방지**: MV3 CSP는 `<head>` 내 인라인 `<script>`를 차단하므로, 비동기 chrome.storage 응답 전 깜빡임은 `localStorage` 캐시(`tbb-theme`)로 우회한다. block.html은 다크 배경을 기본으로 쓰므로 `theme.js`를 로드하지 않는다.
+- **다크모드 FOUC**: MV3 CSP가 `<head>` 인라인 `<script>`를 차단해 테마를 동기적으로 확정할 수 없다. `theme.js`는 외부 스크립트로 로드되며, chrome.storage 응답 전 깜빡임은 `localStorage` 캐시(`tbb-theme`)를 먼저 읽어 완화한다.
+- **sync 용량 한도**: `chrome.storage.sync`는 아이템당 8KB다. `storage-api.js`가 7500B 안전선을 두고 초과 시 `focusEvents`를 14일치로 자동 축소하며, sync 쓰기 실패 시 local에 폴백 저장한다(`_tbbGet`이 폴백분을 보완해 읽음).
