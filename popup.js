@@ -164,7 +164,9 @@ function buildUpcomingRow(box) {
 }
 
 // ── DOM refs ──
-const settingsBtn     = document.getElementById('settingsBtn');
+const settingsBtn      = document.getElementById('settingsBtn');
+const emptyStateSect   = document.getElementById('emptyStateSection');
+const emptyStateOpenBtn = document.getElementById('emptyStateOpenBtn');
 const currentPageSect = document.getElementById('currentPageSection');
 const currentDomainEl = document.getElementById('currentDomain');
 const domainStatusEl  = document.getElementById('domainStatus');
@@ -186,6 +188,7 @@ let storageData = {};
 let _pomoTickInterval = null;
 
 settingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
+emptyStateOpenBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
 
 // ── 토글 시각 ──
 function setToggleVisual(disabled) {
@@ -218,6 +221,11 @@ function renderAll() {
     dailyScheduleEnabled
   } = storageData;
   const scheduleEnabled = dailyScheduleEnabled !== false;
+
+  // 빈 상태 안내: 차단 리스트·스케줄이 전부 비어있는 최초 사용자에게만 노출
+  const isEmptyState = permanentList.length === 0 && generalList.length === 0
+    && dailyBoxes.length === 0 && weeklyBoxes.length === 0;
+  emptyStateSect.style.display = isEmptyState ? 'flex' : 'none';
 
   setToggleVisual(!scheduleEnabled);
 

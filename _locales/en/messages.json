@@ -79,6 +79,18 @@
   "onboardingOptional": { "message": "Optional" },
   "onboardingGo":       { "message": "Go" },
 
+  "tabIntroScheduler": { "message": "Create block boxes by day and time to plan a daily or weekly schedule. While a box is active, sites in the \"General Block\" list are blocked." },
+  "tabIntroPomodoro":  { "message": "A Pomodoro timer that repeats work and rest cycles. Want different times for a specific cycle? Use \"⚙ Advanced Settings\"." },
+  "tabIntroStats":     { "message": "See your block and focus activity history over different time periods." },
+  "tabIntroSettings":  { "message": "Manage app-wide settings: data backup/restore, dark mode, and lock PIN." },
+
+  "infoTipAriaLabel":    { "message": "Help" },
+  "tipGeneralBlock":      { "message": "Only blocked while a block box is active in the Timebox Scheduler." },
+  "tipExceptionAddress":  { "message": "While this box is active, addresses registered here are allowed even if they're on the \"General Block\" list." },
+  "tipPomoAdvanced":      { "message": "Set different work/rest times per cycle, and block/allow addresses that only apply to this Pomodoro session." },
+  "tipDailyScheduleDisable": { "message": "Disable the day schedule without deleting any boxes." },
+  "tipPomoAdvancedDomainList": { "message": "Added/allowed addresses only apply to this Pomodoro preset (the general Pomodoro list stays unchanged)." },
+
   "permanentBlockTitle": { "message": "Always Block Domains" },
   "generalBlockTitle":   { "message": "General Block Domains" },
   "permanentBlockDesc":  { "message": "Always blocked, regardless of schedule." },
@@ -236,6 +248,7 @@
   "popupPomoLabel":        { "message": "Pomodoro" },
   "popupPomoRemaining":    { "message": "$1 left", "placeholders": { "1": { "content": "$1" } } },
   "popupPomoPipTitle":     { "message": "Open PiP window" },
+  "popupEmptyStateHint":   { "message": "Add a site to block from settings" },
 
   "pipTitle":        { "message": "Pomodoro Timer" },
   "pipWorkLabel":    { "message": "Work" },

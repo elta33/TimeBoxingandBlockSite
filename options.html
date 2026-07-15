@@ -135,6 +135,32 @@ button { cursor: pointer; font-family: inherit; }
 .onboarding-step-btn { padding: 5px 12px; font-size: 0.82rem; font-weight: 600; border-radius: 6px; border: 1px solid var(--blue-border); background: #fff; color: var(--blue-dark); transition: background 0.12s; flex-shrink: 0; }
 .onboarding-step-btn:hover { background: var(--blue-pale); }
 
+/* ── 탭 요약 배너 (스케줄러/포모도로/통계/설정 탭, 최초 진입 시에만 노출) ── */
+.tab-intro-banner { display: flex; align-items: flex-start; gap: 10px; background: var(--blue-pale); border: 1px solid var(--blue-border); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; }
+.tab-intro-banner-text { flex: 1; font-size: 0.88rem; line-height: 1.55; color: #333; }
+.tab-intro-close-btn { background: none; border: none; cursor: pointer; font-size: 1.3rem; line-height: 1; color: #888; padding: 2px 7px; border-radius: 4px; font-family: inherit; flex-shrink: 0; }
+.tab-intro-close-btn:hover { background: rgba(0,0,0,0.06); color: #333; }
+
+/* ── ? 툴팁 (호버/포커스 시 팝오버로 짧은 설명) ── */
+.info-tip { position: relative; display: inline-flex; align-items: center; margin-left: 5px; vertical-align: middle; }
+.info-tip-icon {
+  width: 18px; height: 18px; border-radius: 50%; border: none; background: #e0e0e0; color: #666;
+  font-size: 11.5px; font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center;
+  cursor: help; flex-shrink: 0; padding: 0; font-family: inherit;
+}
+.info-tip-icon:hover, .info-tip-icon:focus-visible { background: var(--blue-border); color: var(--blue-dark); outline: none; }
+.info-tip-popover {
+  position: absolute; bottom: calc(100% + 8px); left: 0;
+  width: max-content; max-width: 240px; background: #222; color: #fff; font-size: 0.82rem; font-weight: 400;
+  line-height: 1.45; padding: 8px 10px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  opacity: 0; visibility: hidden; transition: opacity 0.12s, visibility 0.12s; z-index: 60; pointer-events: none;
+}
+.info-tip-popover::after {
+  content: ''; position: absolute; top: 100%; left: 6px;
+  border: 5px solid transparent; border-top-color: #222;
+}
+.info-tip:hover .info-tip-popover, .info-tip-icon:focus-visible ~ .info-tip-popover { opacity: 1; visibility: visible; }
+
 /* 쓰레기통 삭제 아이콘 버튼 — 배경/테두리 없이 아이콘만
    (도메인 리스트 / 포모도로 프리셋 / 타임박스 주간뷰 박스 삭제가 공유).
    색은 --trash-icon(라이트=붉은 톤의 hue 반전 사이언, 다크=어두운 흰색). */
@@ -1176,6 +1202,11 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .onboarding-step-btn { background: #232323; color: var(--blue-dark); border-color: var(--blue-border); }
 :root[data-theme="dark"] .onboarding-step-btn:hover { background: #2c2c2c; }
 
+:root[data-theme="dark"] .tab-intro-banner-text { color: #ddd; }
+:root[data-theme="dark"] .tab-intro-close-btn:hover { background: rgba(255,255,255,0.08); color: #ddd; }
+:root[data-theme="dark"] .info-tip-icon { background: #333; color: #aaa; }
+:root[data-theme="dark"] .info-tip-icon:hover, :root[data-theme="dark"] .info-tip-icon:focus-visible { background: var(--blue-border); color: #121212; }
+
 :root[data-theme="dark"] .warn-text { color: var(--tomato); }
 
 :root[data-theme="dark"] .toggle-group label { border-color: #3a3a3a; background: #242424; color: #aaa; }
@@ -1460,7 +1491,7 @@ button { cursor: pointer; font-family: inherit; }
         </div>
         <p class="sector-desc"><span data-i18n="permanentBlockDesc">스케줄 무관, 항상 차단됩니다.</span> <span id="permanentWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
         <div class="domain-search-row">
-          <input type="text" id="permanentSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+          <input type="text" id="permanentSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
         </div>
         <div class="input-row">
           <input type="text" id="permanentDomainInput" data-i18n-placeholder="placeholderNetflix" placeholder="예: netflix.com">
@@ -1471,12 +1502,12 @@ button { cursor: pointer; font-family: inherit; }
 
       <div class="sector">
         <div class="sector-title">
-          <span data-i18n="generalBlockTitle">일반 차단 도메인</span>
+          <span><span data-i18n="generalBlockTitle">일반 차단 도메인</span><span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipGeneralBlock">타임박스 스케줄러의 차단 박스 활성화 시간대에만 차단됩니다.</span></span></span>
           <button id="clearGeneralBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
         </div>
         <p class="sector-desc"><span data-i18n="generalBlockDesc">차단 박스가 활성화된 시간대에 적용됩니다.</span> <span id="generalWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
         <div class="domain-search-row">
-          <input type="text" id="generalSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+          <input type="text" id="generalSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
         </div>
         <div class="input-row">
           <input type="text" id="generalDomainInput" data-i18n-placeholder="placeholderYoutube" placeholder="예: youtube.com">
@@ -1489,6 +1520,10 @@ button { cursor: pointer; font-family: inherit; }
   </div>
 
   <div class="tab-panel" id="tab-scheduler">
+    <div class="tab-intro-banner" id="tabIntroScheduler" data-tab-key="scheduler" style="display:none;">
+      <span class="tab-intro-banner-text" data-i18n="tabIntroScheduler">요일과 시간대별로 차단 박스를 만들어 하루 또는 일주일 스케줄을 짤 수 있어요. 박스가 활성화된 시간에는 '일반 차단' 목록의 사이트가 막혀요.</span>
+      <button class="tab-intro-close-btn" data-i18n-aria-label="close" aria-label="닫기">&times;</button>
+    </div>
     <div class="scheduler-grid">
 
       <div class="sector">
@@ -1527,9 +1562,9 @@ button { cursor: pointer; font-family: inherit; }
 
         <hr class="form-divider">
 
-        <div class="form-section-title"><span data-i18n="exceptionAddress">차단 예외 주소</span> <span id="customWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></div>
+        <div class="form-section-title"><span data-i18n="exceptionAddress">차단 예외 주소</span><span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipExceptionAddress">이 박스가 활성화된 시간엔 '일반 차단' 목록에 있어도 여기에 등록되면 허용됩니다.</span></span> <span id="customWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></div>
         <div class="domain-search-row">
-          <input type="text" id="stagingSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+          <input type="text" id="stagingSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
         </div>
         <div class="input-row">
           <input type="text" id="customDomainInput" data-i18n-placeholder="placeholderGithub" placeholder="예: github.com">
@@ -1569,6 +1604,7 @@ button { cursor: pointer; font-family: inherit; }
             <span class="switch-track"><span class="switch-thumb"></span></span>
             <span id="schedLockIcon" style="display:none;">🔒 </span><span data-i18n="dailyScheduleDisable">하루 스케줄 비활성화</span>
           </label>
+          <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipDailyScheduleDisable">박스를 삭제하지 않고 하루 스케줄을 비활성화 할 수 있습니다.</span></span>
         </div>
         <div id="timetableWrap"></div>
         <div id="weekDetailPanel"></div>
@@ -1578,6 +1614,10 @@ button { cursor: pointer; font-family: inherit; }
   </div>
 
   <div class="tab-panel" id="tab-pomodoro">
+    <div class="tab-intro-banner" id="tabIntroPomodoro" data-tab-key="pomodoro" style="display:none;">
+      <span class="tab-intro-banner-text" data-i18n="tabIntroPomodoro">작업과 휴식을 반복하는 뽀모도로 타이머예요. 회차마다 다른 시간을 주고 싶다면 '⚙ 고급 설정'을 사용하세요.</span>
+      <button class="tab-intro-close-btn" data-i18n-aria-label="close" aria-label="닫기">&times;</button>
+    </div>
     <div class="block-grid">
 
       <div class="sector">
@@ -1630,6 +1670,7 @@ button { cursor: pointer; font-family: inherit; }
             <span data-i18n="pomoTimes">회</span>
           </div>
           <button class="btn-ghost btn-sm pomo-advanced-btn" id="pomoAdvancedBtn" data-i18n="pomoAdvancedBtn">⚙ 고급 설정</button>
+          <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipPomoAdvanced">회차별로 다르게 휴식/작업 시간 설정이 가능하고, 차단 리스트도 해당 포모도로에만 적용되게 차단/추가 할 수 있습니다.</span></span>
         </div>
 
         <p class="pomo-advanced-summary" id="pomoAdvancedSummary" style="display:none;"></p>
@@ -1687,7 +1728,7 @@ button { cursor: pointer; font-family: inherit; }
           <span id="pomoWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span>
         </p>
         <div class="domain-search-row">
-          <input type="text" id="pomoSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+          <input type="text" id="pomoSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
         </div>
         <div class="input-row">
           <input type="text" id="pomoDomainInput" data-i18n-placeholder="placeholderTwitter" placeholder="예: twitter.com">
@@ -1700,6 +1741,10 @@ button { cursor: pointer; font-family: inherit; }
   </div>
 
   <div class="tab-panel" id="tab-stats">
+    <div class="tab-intro-banner" id="tabIntroStats" data-tab-key="stats" style="display:none;">
+      <span class="tab-intro-banner-text" data-i18n="tabIntroStats">차단·집중 활동 기록을 기간별로 확인할 수 있는 곳이에요.</span>
+      <button class="tab-intro-close-btn" data-i18n-aria-label="close" aria-label="닫기">&times;</button>
+    </div>
     <div class="stats-period-row">
       <span class="stats-heading" data-i18n="statsTitle">집중 통계</span>
       <div class="stats-period-tabs">
@@ -1760,6 +1805,10 @@ button { cursor: pointer; font-family: inherit; }
   </div>
 
   <div class="tab-panel" id="tab-settings">
+    <div class="tab-intro-banner" id="tabIntroSettings" data-tab-key="settings" style="display:none;">
+      <span class="tab-intro-banner-text" data-i18n="tabIntroSettings">데이터 백업/복원, 다크 모드, 잠금 PIN 등 앱 전반 설정을 관리해요.</span>
+      <button class="tab-intro-close-btn" data-i18n-aria-label="close" aria-label="닫기">&times;</button>
+    </div>
     <div class="block-grid" style="align-items:start;">
 
       <div class="settings-col">
@@ -1859,9 +1908,9 @@ button { cursor: pointer; font-family: inherit; }
 
           <hr class="form-divider">
 
-          <div class="form-section-title"><span data-i18n="exceptionAddress">차단 예외 주소</span> <span id="popup_customWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></div>
+          <div class="form-section-title"><span data-i18n="exceptionAddress">차단 예외 주소</span><span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipExceptionAddress">이 박스가 활성화된 시간엔 '일반 차단' 목록에 있어도 여기에 등록되면 허용됩니다.</span></span> <span id="popup_customWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></div>
           <div class="domain-search-row">
-            <input type="text" id="popup_stagingSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="도메인 검색">
+            <input type="text" id="popup_stagingSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
           </div>
           <div class="input-row">
             <input type="text" id="popup_customDomainInput" data-i18n-placeholder="placeholderGithub" placeholder="예: github.com">
@@ -1950,6 +1999,9 @@ button { cursor: pointer; font-family: inherit; }
       </div>
 
       <div class="pomo-advanced-tab-panel" id="advTabDomainPanel" style="display:none;">
+        <div style="margin-bottom:8px;">
+          <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipPomoAdvancedDomainList">추가/허용된 주소는 이 포모도로에만 적용됩니다.(일반 포모도로에선 이전 리스트 유지)</span></span>
+        </div>
         <div class="pomo-advanced-domain-addrow">
           <input type="text" id="advDomainAddInput" maxlength="100" data-i18n-placeholder="pomoAdvancedDomainAddPlaceholder" placeholder="이 프리셋 전용으로 추가 (예: reddit.com)">
           <button class="btn btn-sm" id="advDomainAddBtn" data-i18n="add">추가</button>

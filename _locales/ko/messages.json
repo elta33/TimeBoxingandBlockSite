@@ -79,13 +79,25 @@
   "onboardingOptional": { "message": "선택" },
   "onboardingGo":       { "message": "바로가기" },
 
+  "tabIntroScheduler": { "message": "요일과 시간대별로 차단 박스를 만들어 하루 또는 일주일 스케줄을 짤 수 있어요. 박스가 활성화된 시간에는 '일반 차단' 목록의 사이트가 막혀요." },
+  "tabIntroPomodoro":  { "message": "작업과 휴식을 반복하는 뽀모도로 타이머예요. 회차마다 다른 시간을 주고 싶다면 '⚙ 고급 설정'을 사용하세요." },
+  "tabIntroStats":     { "message": "차단·집중 활동 기록을 기간별로 확인할 수 있는 곳이에요." },
+  "tabIntroSettings":  { "message": "데이터 백업/복원, 다크 모드, 잠금 PIN 등 앱 전반 설정을 관리해요." },
+
+  "infoTipAriaLabel":    { "message": "도움말" },
+  "tipGeneralBlock":      { "message": "타임박스 스케줄러의 차단 박스 활성화 시간대에만 차단됩니다." },
+  "tipExceptionAddress":  { "message": "이 박스가 활성화된 시간엔 '일반 차단' 목록에 있어도 여기에 등록되면 허용됩니다." },
+  "tipPomoAdvanced":      { "message": "회차별로 다르게 휴식/작업 시간 설정이 가능하고, 차단 리스트도 해당 포모도로에만 적용되게 차단/추가 할 수 있습니다." },
+  "tipDailyScheduleDisable": { "message": "박스를 삭제하지 않고 하루 스케줄을 비활성화 할 수 있습니다." },
+  "tipPomoAdvancedDomainList": { "message": "추가/허용된 주소는 이 포모도로에만 적용됩니다.(일반 포모도로에선 이전 리스트 유지)" },
+
   "permanentBlockTitle": { "message": "상시 차단 도메인" },
   "generalBlockTitle":   { "message": "일반 차단 도메인" },
   "permanentBlockDesc":  { "message": "스케줄 무관, 항상 차단됩니다." },
   "generalBlockDesc":    { "message": "차단 박스가 활성화된 시간대에 적용됩니다." },
   "placeholderNetflix":  { "message": "예: netflix.com" },
   "placeholderYoutube":  { "message": "예: youtube.com" },
-  "placeholderDomainSearch": { "message": "도메인 검색" },
+  "placeholderDomainSearch": { "message": "등록된 도메인 검색" },
 
   "newBox":            { "message": "새 박스 추가" },
   "boxNameLabel":      { "message": "박스 이름" },
@@ -236,6 +248,7 @@
   "popupPomoLabel":        { "message": "포모도로" },
   "popupPomoRemaining":    { "message": "$1 남음", "placeholders": { "1": { "content": "$1" } } },
   "popupPomoPipTitle":     { "message": "PiP 창 열기" },
+  "popupEmptyStateHint":   { "message": "설정에서 차단할 사이트를 추가해보세요" },
 
   "pipTitle":        { "message": "포모도로 타이머" },
   "pipWorkLabel":    { "message": "작업" },

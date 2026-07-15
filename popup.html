@@ -124,6 +124,16 @@
     .p-empty { font-size: 16px; color: #ccc; text-align: center; padding: 10px 0; }
     .p-upcoming-label { margin-top: 10px; }
 
+    /* ── 빈 상태 안내(온보딩): 차단 리스트·스케줄이 전부 비어있을 때만 노출 ── */
+    .p-empty-state { display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; padding: 16px 14px; }
+    .p-empty-state-text { font-size: 15px; color: #999; line-height: 1.4; }
+    .p-empty-state-btn {
+      font-size: 14px; font-weight: 600; padding: 7px 16px; border-radius: 6px;
+      border: none; background: var(--tomato); color: #fff; cursor: pointer;
+      transition: background 0.12s; font-family: inherit;
+    }
+    .p-empty-state-btn:hover { background: var(--tomato-hover); }
+
     /* ── 포모도로 상태 ── */
     /* scheduleSection과 마찬가지로 표시될 때 팝업 맨 아래 섹션이 되므로 하단 테두리 제거 */
     #pomoSection { border-bottom: none; }
@@ -157,6 +167,7 @@
     :root[data-theme="dark"] .p-badge-daily { background: #10233a; color: #6cb8ff; }
     :root[data-theme="dark"] .p-badge-weekly { background: #241a33; color: #b98ff0; }
     :root[data-theme="dark"] .p-empty { color: #555; }
+    :root[data-theme="dark"] .p-empty-state-text { color: #7a7a7a; }
   </style>
 </head>
 <body>
@@ -175,6 +186,12 @@
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
     </button>
+  </div>
+
+  <!-- 빈 상태 안내: 차단 리스트·스케줄이 전부 비어있는 최초 사용자용 -->
+  <div id="emptyStateSection" class="p-section p-empty-state" style="display:none;">
+    <div class="p-empty-state-text" data-i18n="popupEmptyStateHint">설정에서 차단할 사이트를 추가해보세요</div>
+    <button id="emptyStateOpenBtn" class="p-empty-state-btn" data-i18n="popupSettingsTitle">설정 열기</button>
   </div>
 
   <!-- 현재 페이지 -->

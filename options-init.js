@@ -49,6 +49,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 탭 요약 배너 (스케줄러/포모도로/통계/설정 탭 최초 진입 시 안내, 탭별로 독립적으로 닫힘)
+  const tabIntroBanners = document.querySelectorAll('.tab-intro-banner[data-tab-key]');
+  if (tabIntroBanners.length) {
+    chrome.storage.local.get(['tabIntroDismissed'], result => {
+      const dismissed = result.tabIntroDismissed || {};
+      tabIntroBanners.forEach(banner => {
+        banner.style.display = dismissed[banner.dataset.tabKey] ? 'none' : 'flex';
+      });
+    });
+    tabIntroBanners.forEach(banner => {
+      banner.querySelector('.tab-intro-close-btn')?.addEventListener('click', () => {
+        banner.style.display = 'none';
+        chrome.storage.local.get(['tabIntroDismissed'], result => {
+          const dismissed = result.tabIntroDismissed || {};
+          dismissed[banner.dataset.tabKey] = true;
+          chrome.storage.local.set({ tabIntroDismissed: dismissed });
+        });
+      });
+    });
+  }
+
   // 도메인 리스트 검색 입력 연결 (상시/일반/예외/포모도로 차단 리스트)
   _initDomainSearchInputs();
 
