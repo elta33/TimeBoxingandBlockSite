@@ -72,6 +72,13 @@
   "tabPomodoro":  { "message": "포모도로 타이머" },
   "tabSettings":  { "message": "설정" },
 
+  "onboardingTitle":    { "message": "시작하기" },
+  "onboardingStep1":    { "message": "차단할 사이트 추가하기" },
+  "onboardingStep2":    { "message": "타임박스 스케줄 만들기" },
+  "onboardingStep3":    { "message": "포모도로 타이머 사용해보기" },
+  "onboardingOptional": { "message": "선택" },
+  "onboardingGo":       { "message": "바로가기" },
+
   "permanentBlockTitle": { "message": "상시 차단 도메인" },
   "generalBlockTitle":   { "message": "일반 차단 도메인" },
   "permanentBlockDesc":  { "message": "스케줄 무관, 항상 차단됩니다." },
@@ -131,6 +138,7 @@
   "boxUpdate":        { "message": "수정 완료" },
   "cancelEdit":       { "message": "취소" },
   "donutNoCustom":    { "message": "커스텀 주소 없음" },
+  "weekNoCustom":     { "message": "차단 예외 주소 없음" },
   "donutNoBoxes":     { "message": "등록된 타임박스가 없습니다." },
 
   "settingsBackupTitle": { "message": "데이터 백업 / 복원" },

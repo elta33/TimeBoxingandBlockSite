@@ -72,6 +72,13 @@
   "tabPomodoro":  { "message": "Pomodoro Timer" },
   "tabSettings":  { "message": "Settings" },
 
+  "onboardingTitle":    { "message": "Get Started" },
+  "onboardingStep1":    { "message": "Add sites to block" },
+  "onboardingStep2":    { "message": "Create a timebox schedule" },
+  "onboardingStep3":    { "message": "Try the Pomodoro timer" },
+  "onboardingOptional": { "message": "Optional" },
+  "onboardingGo":       { "message": "Go" },
+
   "permanentBlockTitle": { "message": "Always Block Domains" },
   "generalBlockTitle":   { "message": "General Block Domains" },
   "permanentBlockDesc":  { "message": "Always blocked, regardless of schedule." },
@@ -131,6 +138,7 @@
   "boxUpdate":        { "message": "Update Box" },
   "cancelEdit":       { "message": "Cancel" },
   "donutNoCustom":    { "message": "No custom addresses" },
+  "weekNoCustom":     { "message": "No block exceptions" },
   "donutNoBoxes":     { "message": "No timeboxes registered." },
 
   "settingsBackupTitle": { "message": "Data Backup / Restore" },

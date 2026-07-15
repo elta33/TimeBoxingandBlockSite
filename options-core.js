@@ -494,11 +494,14 @@ function renderWeekDetailPanel(box, boxIndex) {
   const wAddPopupWrap = document.createElement('div');
   wAddPopupWrap.style.cssText = 'position:relative;display:inline-block;';
 
+  // position:fixed — #weekDetailPanel은 overflow:hidden(빈 상태 하단 모서리를
+  // 둥글게 잘라내는 용도)이라, 팝업을 그 안에서 position:absolute로 띄우면
+  // 패널 아래로 튀어나온 부분이 잘려 보인다. 뷰포트 기준으로 좌표를 직접
+  // 계산해 띄우면(openWAddPopup 참고) 조상의 overflow와 무관하게 온전히 보인다.
   const wAddDomainPopup = document.createElement('div');
   wAddDomainPopup.style.cssText = [
-    'display:none;position:absolute;z-index:200;',
-    'top:calc(100% + 6px);left:0;',
-    'background:#fff;border:1px solid #ddd;border-radius:8px;',
+    'display:none;position:fixed;z-index:200;',
+    'background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;',
     'box-shadow:0 4px 16px rgba(0,0,0,0.13);',
     'padding:10px 12px;min-width:260px;'
   ].join('');
@@ -506,7 +509,7 @@ function renderWeekDetailPanel(box, boxIndex) {
   const wPopupInput = document.createElement('input');
   wPopupInput.type = 'text';
   wPopupInput.placeholder = T('placeholderGithub');
-  wPopupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
+  wPopupInput.style.cssText = 'flex:1;padding:7px 10px;border:1px solid var(--panel-border);border-radius:6px;font-size:0.88rem;font-family:inherit;outline:none;min-width:0;';
 
   const wPopupConfirmBtn = document.createElement('button');
   wPopupConfirmBtn.className = 'btn btn-sm';
@@ -526,6 +529,9 @@ function renderWeekDetailPanel(box, boxIndex) {
 
   let _wPopupOutsideHandler = null;
   function openWAddPopup() {
+    const btnRect = wAddDomainInPanelBtn.getBoundingClientRect();
+    wAddDomainPopup.style.top = (btnRect.bottom + 6) + 'px';
+    wAddDomainPopup.style.left = btnRect.left + 'px';
     wAddDomainPopup.style.display = 'block';
     wPopupInput.value = ''; wPopupWarn.style.display = 'none';
     setTimeout(() => wPopupInput.focus(), 50);
@@ -597,7 +603,7 @@ function renderWeekDetailPanel(box, boxIndex) {
 
     const empty = document.createElement('p');
     empty.className = 'detail-empty';
-    empty.textContent = T('donutNoCustom');
+    empty.textContent = T('weekNoCustom');
     panel.appendChild(empty);
   }
 

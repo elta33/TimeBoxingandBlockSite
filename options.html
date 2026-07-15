@@ -119,6 +119,22 @@ button { cursor: pointer; font-family: inherit; }
 .btn-ghost { background: none; border: 1px solid #ddd; color: #555; border-radius: 5px; padding: 4px 10px; font-size: 0.78rem; transition: background 0.15s; }
 .btn-ghost:hover { background: #f5f5f5; }
 
+/* ── 온보딩 체크리스트 카드 (차단 관리 탭, 최초 진입 시에만 노출) ── */
+.onboarding-card { background: var(--blue-pale); border: 1px solid var(--blue-border); border-radius: 12px; padding: 18px 22px; margin-bottom: 20px; }
+.onboarding-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.onboarding-card-title { font-size: 1.05rem; font-weight: 700; color: var(--blue-dark); }
+.onboarding-close-btn { background: none; border: none; cursor: pointer; font-size: 1.3rem; line-height: 1; color: #888; padding: 2px 7px; border-radius: 4px; font-family: inherit; }
+.onboarding-close-btn:hover { background: rgba(0,0,0,0.06); color: #333; }
+.onboarding-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.onboarding-step { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #fff; border-radius: 8px; }
+.onboarding-step-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; color: transparent; flex-shrink: 0; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.onboarding-step.done .onboarding-step-check { background: var(--green); border-color: var(--green); color: #fff; }
+.onboarding-step-text { flex: 1; font-size: 0.92rem; color: #333; }
+.onboarding-step.done .onboarding-step-text { color: #999; text-decoration: line-through; }
+.onboarding-step-optional-tag { font-size: 0.74rem; color: #888; background: #f0f0f0; border-radius: 4px; padding: 2px 7px; flex-shrink: 0; }
+.onboarding-step-btn { padding: 5px 12px; font-size: 0.82rem; font-weight: 600; border-radius: 6px; border: 1px solid var(--blue-border); background: #fff; color: var(--blue-dark); transition: background 0.12s; flex-shrink: 0; }
+.onboarding-step-btn:hover { background: var(--blue-pale); }
+
 /* 쓰레기통 삭제 아이콘 버튼 — 배경/테두리 없이 아이콘만
    (도메인 리스트 / 포모도로 프리셋 / 타임박스 주간뷰 박스 삭제가 공유).
    색은 --trash-icon(라이트=붉은 톤의 hue 반전 사이언, 다크=어두운 흰색). */
@@ -1151,6 +1167,15 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .btn-ghost { border-color: #3a3a3a; color: #aaa; }
 :root[data-theme="dark"] .btn-ghost:hover { background: #262626; }
 
+:root[data-theme="dark"] .onboarding-card-title { color: var(--blue-dark); }
+:root[data-theme="dark"] .onboarding-close-btn:hover { background: rgba(255,255,255,0.08); color: #ddd; }
+:root[data-theme="dark"] .onboarding-step { background: #232323; }
+:root[data-theme="dark"] .onboarding-step-text { color: #ddd; }
+:root[data-theme="dark"] .onboarding-step.done .onboarding-step-text { color: #777; }
+:root[data-theme="dark"] .onboarding-step-optional-tag { background: #2a2a2a; color: #999; }
+:root[data-theme="dark"] .onboarding-step-btn { background: #232323; color: var(--blue-dark); border-color: var(--blue-border); }
+:root[data-theme="dark"] .onboarding-step-btn:hover { background: #2c2c2c; }
+
 :root[data-theme="dark"] .warn-text { color: var(--tomato); }
 
 :root[data-theme="dark"] .toggle-group label { border-color: #3a3a3a; background: #242424; color: #aaa; }
@@ -1403,6 +1428,29 @@ button { cursor: pointer; font-family: inherit; }
   </header>
 
   <div class="tab-panel active" id="tab-block">
+    <div class="onboarding-card" id="onboardingCard" style="display:none;">
+      <div class="onboarding-card-header">
+        <span class="onboarding-card-title" data-i18n="onboardingTitle">시작하기</span>
+        <button class="onboarding-close-btn" id="onboardingCloseBtn" data-i18n-aria-label="close" aria-label="닫기">&times;</button>
+      </div>
+      <ul class="onboarding-steps">
+        <li class="onboarding-step" id="onboardingStep1">
+          <span class="onboarding-step-check">&#10003;</span>
+          <span class="onboarding-step-text" data-i18n="onboardingStep1">차단할 사이트 추가하기</span>
+          <button class="onboarding-step-btn" data-goto="block" data-i18n="onboardingGo">바로가기</button>
+        </li>
+        <li class="onboarding-step" id="onboardingStep2">
+          <span class="onboarding-step-check">&#10003;</span>
+          <span class="onboarding-step-text" data-i18n="onboardingStep2">타임박스 스케줄 만들기</span>
+          <button class="onboarding-step-btn" data-goto="scheduler" data-i18n="onboardingGo">바로가기</button>
+        </li>
+        <li class="onboarding-step" id="onboardingStep3">
+          <span class="onboarding-step-optional-tag" data-i18n="onboardingOptional">선택</span>
+          <span class="onboarding-step-text" data-i18n="onboardingStep3">포모도로 타이머 사용해보기</span>
+          <button class="onboarding-step-btn" data-goto="pomodoro" data-i18n="onboardingGo">바로가기</button>
+        </li>
+      </ul>
+    </div>
     <div class="block-grid">
 
       <div class="sector">

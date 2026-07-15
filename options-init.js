@@ -1,7 +1,54 @@
 // options-init.js
 // 옵션 페이지 부트스트랩 (DOMContentLoaded): 메인 탭 전환, 통계 탭 진입, 요일/다크모드/PIN 설정, 내보내기·불러오기 버튼 연결
 // options-core.js·options-stats.js가 정의한 함수(loadSettings, renderStats, initViewTabs, _loadPinStatus 등)에 의존하므로 반드시 그 뒤에 로드할 것
+
+// ── 온보딩 체크리스트 (차단 관리 탭) ──
+// 완료 여부는 별도 플래그 없이 실제 storage 상태(리스트/박스 존재 여부)로 매번 판정한다.
+// storage.js의 loadSettings()가 호출될 때마다(추가/삭제 등 모든 변경 후) 같이 갱신됨.
+function _renderOnboardingChecklist() {
+  const card = document.getElementById('onboardingCard');
+  if (!card || card.dataset.dismissed === '1') return;
+  TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes'], result => {
+    const hasSites = (result.generalList?.length > 0) || (result.permanentList?.length > 0);
+    const hasBoxes = (result.dailyBoxes?.length > 0) || (result.weeklyBoxes?.length > 0);
+    document.getElementById('onboardingStep1')?.classList.toggle('done', hasSites);
+    document.getElementById('onboardingStep2')?.classList.toggle('done', hasBoxes);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  // 온보딩 체크리스트 카드 표시 여부 / 이벤트 연결
+  const onboardingCard = document.getElementById('onboardingCard');
+  if (onboardingCard) {
+    chrome.storage.local.get(['onboardingDismissed'], result => {
+      if (result.onboardingDismissed) {
+        onboardingCard.dataset.dismissed = '1';
+        return;
+      }
+      onboardingCard.style.display = '';
+      _renderOnboardingChecklist();
+    });
+    document.getElementById('onboardingCloseBtn')?.addEventListener('click', () => {
+      onboardingCard.dataset.dismissed = '1';
+      onboardingCard.style.display = 'none';
+      chrome.storage.local.set({ onboardingDismissed: true });
+    });
+    onboardingCard.querySelectorAll('.onboarding-step-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const goto = btn.dataset.goto;
+        if (goto === 'block') { document.getElementById('generalDomainInput')?.focus(); return; }
+        document.querySelector(`.main-tab[data-tab="${goto}"]`)?.click();
+      });
+    });
+    // 박스 저장 경로가 여러 곳(메인 폼/요일 팝업 등)에 흩어져 있어 개별 호출부마다
+    // 체크리스트 갱신을 넣는 대신, storage 변경 자체를 구독해 어디서 저장하든 반영되게 함.
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes.generalList || changes.permanentList || changes.dailyBoxes || changes.weeklyBoxes) {
+        _renderOnboardingChecklist();
+      }
+    });
+  }
+
   // 도메인 리스트 검색 입력 연결 (상시/일반/예외/포모도로 차단 리스트)
   _initDomainSearchInputs();
 

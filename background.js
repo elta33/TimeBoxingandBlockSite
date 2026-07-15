@@ -329,10 +329,22 @@ chrome.alarms.onAlarm.addListener(async alarm => {
   }
 });
 chrome.runtime.onStartup.addListener(updateBlockingRules);
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   await _migrateToSync();
   await _migrateToSyncV2();
   updateBlockingRules();
+
+  if (details.reason === 'install') {
+    // 신규 설치: 옵션 페이지를 자동으로 열어 온보딩 체크리스트(options-init.js)를 바로 보여준다.
+    chrome.runtime.openOptionsPage();
+  } else if (details.reason === 'update') {
+    // 기존 사용자는 온보딩 체크리스트 기능 자체를 처음 접하는 것이므로,
+    // 신규 사용자용 UI가 갑자기 나타나지 않도록 최초 1회 자동으로 닫아둔다.
+    const { onboardingDismissed } = await chrome.storage.local.get(['onboardingDismissed']);
+    if (onboardingDismissed === undefined) {
+      chrome.storage.local.set({ onboardingDismissed: true });
+    }
+  }
 });
 
 // PiP 창이 닫히면 저장된 ID 제거
