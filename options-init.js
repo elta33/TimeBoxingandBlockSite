@@ -72,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 도메인 리스트 검색 입력 연결 (상시/일반/예외/포모도로 차단 리스트)
   _initDomainSearchInputs();
+  // 상시/일반/포모도로 추가 입력의 기본 도메인 드롭다운
+  _initDomainSuggestions();
 
   // 요일 팝업 닫기 버튼
   document.getElementById('dayPopupCloseBtn')?.addEventListener('click', closeDayPopup);

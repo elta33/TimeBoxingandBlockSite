@@ -209,6 +209,45 @@ function _initDomainSearchInputs() {
   });
 }
 
+// ── 공통: 도메인 추가 입력의 기본 도메인 드롭다운(인기 검색어 스타일) ──
+// 상시/일반/포모도로 차단 "추가" 입력에 커서가 가면(포커스) 비어있을 때 기본 도메인을
+// 보여주고, 클릭하면 그 도메인이 바로 등록된다. 입력 중이면(글자가 들어오면) 드롭다운을 치운다.
+const DOMAIN_SUGGEST_DEFAULTS = ['youtube.com', 'youtube.com/shorts', 'instagram.com', 'x.com'];
+const DOMAIN_SUGGEST_MAP = [
+  { inputId: 'permanentDomainInput', addBtnId: 'addPermanentBtn', dropdownId: 'permanentDomainSuggest' },
+  { inputId: 'generalDomainInput',   addBtnId: 'addGeneralBtn',   dropdownId: 'generalDomainSuggest' },
+  { inputId: 'pomoDomainInput',      addBtnId: 'addPomoBtn',      dropdownId: 'pomoDomainSuggest' }
+];
+
+function _initDomainSuggestions() {
+  DOMAIN_SUGGEST_MAP.forEach(({ inputId, addBtnId, dropdownId }) => {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    if (!input || !dropdown) return;
+
+    DOMAIN_SUGGEST_DEFAULTS.forEach(domain => {
+      const item = document.createElement('div');
+      item.className = 'domain-suggest-item';
+      item.textContent = domain;
+      // click이 아니라 mousedown + preventDefault: click을 쓰면 그 전에 input이 blur되어
+      // 드롭다운이 먼저 닫혀버려 클릭이 씹힌다. mousedown에서 기본 동작(blur)을 막는다.
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        input.value = domain;
+        dropdown.classList.remove('open');
+        document.getElementById(addBtnId)?.click();
+      });
+      dropdown.appendChild(item);
+    });
+
+    input.addEventListener('focus', () => {
+      if (!input.value.trim()) dropdown.classList.add('open');
+    });
+    input.addEventListener('input', () => dropdown.classList.remove('open'));
+    input.addEventListener('blur', () => dropdown.classList.remove('open'));
+  });
+}
+
 // ── 공통: 커스텀 도메인 아이템 UI 팩토리 ──
 function createCustomDomainItemUI(domain, mode, idPrefix, elType, onDelete) {
   const item = document.createElement(elType);

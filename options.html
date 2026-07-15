@@ -109,6 +109,18 @@ body {
 }
 .domain-search-row input[type="text"]:focus { border-color: #999; }
 
+/* ── 도메인 추가 입력의 기본 도메인 드롭다운 (인기 검색어 스타일) ── */
+.domain-input-wrap { position: relative; flex: 1; min-width: 0; }
+.domain-input-wrap input[type="text"] { width: 100%; box-sizing: border-box; }
+.domain-suggest-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
+  background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+}
+.domain-suggest-dropdown.open { display: block; }
+.domain-suggest-item { padding: 8px 12px; font-size: 0.85rem; color: #333; cursor: pointer; transition: background 0.1s; }
+.domain-suggest-item:hover { background: #f5f5f5; }
+
 /* ── 기본 버튼 ── */
 button { cursor: pointer; font-family: inherit; }
 .btn { padding: 10px 16px; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; background: #111; color: #fff; transition: background 0.15s; }
@@ -1219,6 +1231,9 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .pomo-domain-tag { background: #1c1c1c; }
 :root[data-theme="dark"] .domain-list { scrollbar-color: #3a3a3a transparent; }
 :root[data-theme="dark"] .domain-list::-webkit-scrollbar-thumb { background: #3a3a3a; }
+:root[data-theme="dark"] .domain-suggest-dropdown { background: #242424; border-color: #3a3a3a; box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+:root[data-theme="dark"] .domain-suggest-item { color: #e0e0e0; }
+:root[data-theme="dark"] .domain-suggest-item:hover { background: #333; }
 
 :root[data-theme="dark"] .form-label { color: #9a9a9a; }
 :root[data-theme="dark"] .form-row select,
@@ -1494,7 +1509,10 @@ button { cursor: pointer; font-family: inherit; }
           <input type="text" id="permanentSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
         </div>
         <div class="input-row">
-          <input type="text" id="permanentDomainInput" data-i18n-placeholder="placeholderNetflix" placeholder="예: netflix.com">
+          <div class="domain-input-wrap">
+            <input type="text" id="permanentDomainInput" data-i18n-placeholder="placeholderNetflix" placeholder="예: netflix.com">
+            <div class="domain-suggest-dropdown" id="permanentDomainSuggest"></div>
+          </div>
           <button id="addPermanentBtn" class="btn btn-sm" data-i18n="add">추가</button>
         </div>
         <ul id="permanentList" class="domain-list"></ul>
@@ -1510,7 +1528,10 @@ button { cursor: pointer; font-family: inherit; }
           <input type="text" id="generalSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
         </div>
         <div class="input-row">
-          <input type="text" id="generalDomainInput" data-i18n-placeholder="placeholderYoutube" placeholder="예: youtube.com">
+          <div class="domain-input-wrap">
+            <input type="text" id="generalDomainInput" data-i18n-placeholder="placeholderYoutube" placeholder="예: youtube.com">
+            <div class="domain-suggest-dropdown" id="generalDomainSuggest"></div>
+          </div>
           <button id="addGeneralBtn" class="btn btn-sm" data-i18n="add">추가</button>
         </div>
         <ul id="generalList" class="domain-list"></ul>
@@ -1731,7 +1752,10 @@ button { cursor: pointer; font-family: inherit; }
           <input type="text" id="pomoSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
         </div>
         <div class="input-row">
-          <input type="text" id="pomoDomainInput" data-i18n-placeholder="placeholderTwitter" placeholder="예: twitter.com">
+          <div class="domain-input-wrap">
+            <input type="text" id="pomoDomainInput" data-i18n-placeholder="placeholderTwitter" placeholder="예: twitter.com">
+            <div class="domain-suggest-dropdown" id="pomoDomainSuggest"></div>
+          </div>
           <button class="btn btn-sm" id="addPomoBtn" data-i18n="add">추가</button>
         </div>
         <ul id="pomoList" class="domain-list"></ul>
