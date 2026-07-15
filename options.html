@@ -849,9 +849,57 @@ button { cursor: pointer; font-family: inherit; }
 .pomo-advanced-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; padding-top: 14px; border-top: 1px solid #eee; }
 .pomo-advanced-clear-btn { border: none; background: var(--tomato); color: #fff; font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
 .pomo-advanced-clear-btn:hover { background: var(--tomato-hover); }
+.pomo-advanced-tab-panel .pomo-advanced-clear-btn { display: block; margin: 6px 0 0 auto; }
 .pomo-advanced-footer-actions { display: flex; gap: 8px; align-items: center; }
 .pomo-advanced-save-wrap { position: relative; }
 .pomo-advanced-save-wrap .pomo-preset-popover { top: auto; bottom: calc(100% + 6px); }
+
+/* ── 고급 설정 모달: 회차별 시간 / 차단 리스트 탭 (스케줄러 하루·일주일 뷰 탭과 동일 패턴) ── */
+.pomo-advanced-tabs { display: flex; border: 1px solid #ddd; border-radius: 7px; overflow: hidden; margin-bottom: 14px; }
+.pomo-advanced-tab { flex: 1; padding: 8px 0; border: none; background: #fff; color: #666; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s; }
+.pomo-advanced-tab + .pomo-advanced-tab { border-left: 1px solid #ddd; }
+.pomo-advanced-tab.active { background: #111; color: #fff; }
+
+/* ── 고급 설정 모달: 프리셋 전용 차단 리스트(허용 예외 체크 + 전용 추가) ── */
+.pomo-advanced-domain-addrow { display: flex; gap: 6px; margin-bottom: 10px; }
+.pomo-advanced-domain-addrow input[type="text"] { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 7px; font-size: 0.85rem; outline: none; transition: border-color 0.15s; }
+.pomo-advanced-domain-addrow input[type="text"]:focus { border-color: #999; }
+.pomo-advanced-domain-extralist {
+  list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px;
+  max-height: 260px; overflow-y: auto; overflow-x: hidden;
+}
+.pomo-advanced-domain-extra-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--blue-pale); border: 1px solid var(--blue-border); border-radius: 8px; padding: 3px 10px;
+}
+.pomo-advanced-domain-extra-item .domain-text { color: var(--blue-dark); font-weight: 600; }
+.pomo-advanced-domain-tag {
+  font-size: 0.66rem; font-weight: 700; color: var(--blue-dark); background: #fff; border: 1px solid var(--blue-border);
+  padding: 1px 6px; border-radius: 10px; flex-shrink: 0; margin-right: 6px; white-space: nowrap;
+}
+.pomo-advanced-domain-search {
+  width: 100%; box-sizing: border-box; padding: 6px 10px; border: 1px solid #e2e2e2; border-radius: 6px;
+  font-size: 0.8rem; outline: none; transition: border-color 0.15s; margin-bottom: 6px;
+}
+.pomo-advanced-domain-search:focus { border-color: #999; }
+.pomo-advanced-domain-list { list-style: none; margin: 0 0 4px; padding: 0; max-height: 220px; overflow-y: auto; }
+.pomo-advanced-domain-item { border-radius: 6px; margin-bottom: 2px; }
+.pomo-advanced-domain-item:hover { background: #f5f5f5; }
+.pomo-advanced-domain-item label { display: flex; align-items: center; gap: 8px; padding: 7px 8px; width: 100%; box-sizing: border-box; cursor: pointer; }
+.pomo-advanced-domain-item input[type="checkbox"] { flex-shrink: 0; width: 15px; height: 15px; accent-color: var(--blue); margin: 0; cursor: pointer; }
+.pomo-advanced-domain-item.allowed { background: var(--blue-pale); border: 1px solid var(--blue-border); }
+.pomo-advanced-domain-item.allowed:hover { background: var(--blue-pale); }
+.pomo-advanced-domain-item.allowed .domain-text { color: var(--blue-dark); font-weight: 600; }
+.pomo-advanced-domain-empty { font-size: 0.82rem; color: #bbb; text-align: center; margin: 10px 0; }
+
+/* ── 포모도로 차단 리스트: 고급 설정 도메인 예외/추가 강조(파란색) ── */
+.custom-domain-item.pomo-domain-override { background: var(--blue-pale); border: 1px solid var(--blue-border); }
+.custom-domain-item.pomo-domain-override .domain-text { color: var(--blue-dark); font-weight: 600; }
+.pomo-domain-tag {
+  font-size: 0.66rem; font-weight: 700; color: var(--blue-dark); background: #fff; border: 1px solid var(--blue-border);
+  padding: 1px 6px; border-radius: 10px; flex-shrink: 0; margin-right: 6px; white-space: nowrap;
+}
+.pomo-preset-override-summary + .pomo-preset-override-summary { margin-top: 2px; }
 
 /* ── 동기화 상태 인디케이터 ── */
 .sync-status-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
@@ -1111,6 +1159,8 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .mini-toggle input[type="radio"]:checked + label { background: #3a3a3a; color: #ececec; border-color: #3a3a3a; }
 
 :root[data-theme="dark"] .custom-domain-item { background: #242424; }
+:root[data-theme="dark"] .custom-domain-item.pomo-domain-override { background: var(--blue-pale); border-color: var(--blue-border); }
+:root[data-theme="dark"] .pomo-domain-tag { background: #1c1c1c; }
 :root[data-theme="dark"] .domain-list { scrollbar-color: #3a3a3a transparent; }
 :root[data-theme="dark"] .domain-list::-webkit-scrollbar-thumb { background: #3a3a3a; }
 
@@ -1279,6 +1329,18 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .pomo-cycle-picker-item:hover { background: #2e2e2e; }
 :root[data-theme="dark"] .pomo-cycle-picker-empty { color: #5e5e5e; }
 :root[data-theme="dark"] .pomo-advanced-footer { border-top-color: #2a2a2a; }
+
+:root[data-theme="dark"] .pomo-advanced-tabs { border-color: #3a3a3a; }
+:root[data-theme="dark"] .pomo-advanced-tab { background: #242424; color: #9a9a9a; }
+:root[data-theme="dark"] .pomo-advanced-tab + .pomo-advanced-tab { border-left-color: #3a3a3a; }
+:root[data-theme="dark"] .pomo-advanced-tab.active { background: #3a3a3a; color: #ececec; }
+
+:root[data-theme="dark"] .pomo-advanced-domain-extra-item { border-color: var(--blue-border); }
+:root[data-theme="dark"] .pomo-advanced-domain-tag { background: #1c1c1c; }
+:root[data-theme="dark"] .pomo-advanced-domain-item:hover { background: #2c2c2c; }
+:root[data-theme="dark"] .pomo-advanced-domain-item.allowed { border-color: var(--blue-border); }
+:root[data-theme="dark"] .pomo-advanced-domain-item.allowed:hover { background: var(--blue-pale); }
+:root[data-theme="dark"] .pomo-advanced-domain-empty { color: #5e5e5e; }
 
 :root[data-theme="dark"] .pin-section-label { color: #a0a0a0; }
 :root[data-theme="dark"] .pin-input-group input[type="password"] { border-color: #3a3a3a; }
@@ -1784,7 +1846,7 @@ button { cursor: pointer; font-family: inherit; }
   <div id="pomoAdvancedOverlay" class="pin-modal-overlay" style="display:none;">
     <div class="pomo-advanced-modal">
       <div class="pomo-advanced-modal-head">
-        <span class="pomo-advanced-modal-title" data-i18n="pomoAdvancedModalTitle">회차별 시간 설정</span>
+        <span class="pomo-advanced-modal-title" data-i18n="pomoAdvancedModalTitle">고급 설정</span>
         <button id="pomoAdvancedCloseBtn" class="pomo-advanced-close-btn" aria-label="close">&times;</button>
       </div>
 
@@ -1820,19 +1882,43 @@ button { cursor: pointer; font-family: inherit; }
 
       <p class="pomo-advanced-basetext" id="pomoAdvancedBaseText"></p>
 
-      <ul class="pomo-advanced-list" id="pomoAdvancedList"></ul>
-      <p class="pomo-advanced-empty" id="pomoAdvancedEmpty" data-i18n="pomoAdvancedEmpty">추가된 예외가 없습니다.</p>
+      <div class="pomo-advanced-tabs">
+        <button class="pomo-advanced-tab active" id="advTabCycleBtn" data-tab="cycle" data-i18n="pomoAdvancedTabCycle">회차별 시간</button>
+        <button class="pomo-advanced-tab" id="advTabDomainBtn" data-tab="domain" data-i18n="pomoAdvancedTabDomain">차단 리스트</button>
+      </div>
 
-      <div class="pomo-advanced-add-wrap">
-        <button class="pomo-advanced-add-btn" id="pomoAdvancedAddBtn" data-i18n="pomoAdvancedAddBtn">+ 회차 예외 추가</button>
-        <div class="pomo-cycle-picker" id="pomoCyclePicker">
-          <div class="pomo-cycle-picker-grid" id="pomoCyclePickerGrid"></div>
+      <div class="pomo-advanced-tab-panel" id="advTabCyclePanel">
+        <ul class="pomo-advanced-list" id="pomoAdvancedList"></ul>
+        <p class="pomo-advanced-empty" id="pomoAdvancedEmpty" data-i18n="pomoAdvancedEmpty">추가된 예외가 없습니다.</p>
+
+        <div class="pomo-advanced-add-wrap">
+          <button class="pomo-advanced-add-btn" id="pomoAdvancedAddBtn" data-i18n="pomoAdvancedAddBtn">+ 회차 예외 추가</button>
+          <div class="pomo-cycle-picker" id="pomoCyclePicker">
+            <div class="pomo-cycle-picker-grid" id="pomoCyclePickerGrid"></div>
+          </div>
         </div>
+
+        <button class="pomo-advanced-clear-btn" id="pomoAdvancedClearBtn" data-i18n="pomoAdvancedClearBtn">예외 모두 제거</button>
+      </div>
+
+      <div class="pomo-advanced-tab-panel" id="advTabDomainPanel" style="display:none;">
+        <div class="pomo-advanced-domain-addrow">
+          <input type="text" id="advDomainAddInput" maxlength="100" data-i18n-placeholder="pomoAdvancedDomainAddPlaceholder" placeholder="이 프리셋 전용으로 추가 (예: reddit.com)">
+          <button class="btn btn-sm" id="advDomainAddBtn" data-i18n="add">추가</button>
+        </div>
+        <span id="advDomainWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span>
+
+        <ul class="pomo-advanced-domain-extralist" id="advDomainExtraList"></ul>
+
+        <input type="text" id="advDomainSearchInput" class="pomo-advanced-domain-search" data-i18n-placeholder="pomoAdvancedDomainSearchPlaceholder" placeholder="차단 목록에서 검색">
+        <ul class="pomo-advanced-domain-list" id="advDomainList"></ul>
+        <p class="pomo-advanced-domain-empty" id="advDomainEmpty" style="display:none;" data-i18n="pomoAdvancedDomainEmpty">등록된 포모도로 차단 도메인이 없습니다.</p>
+
+        <button class="pomo-advanced-clear-btn" id="advDomainClearBtn" data-i18n="pomoAdvancedDomainClearBtn">예외/추가 모두 초기화</button>
       </div>
 
       <div class="pomo-advanced-footer">
-        <button class="pomo-advanced-clear-btn" id="pomoAdvancedClearBtn" data-i18n="pomoAdvancedClearBtn">예외 모두 제거</button>
-        <div class="pomo-advanced-footer-actions">
+        <div class="pomo-advanced-footer-actions" style="margin-left:auto;">
           <button class="btn-ghost btn-sm" id="pomoAdvancedApplyBtn" data-i18n="pomoAdvancedApply">적용</button>
           <div class="pomo-advanced-save-wrap">
             <button class="btn btn-sm" id="pomoAdvancedSaveBtn" data-i18n="pomoPresetSaveConfirm">저장</button>

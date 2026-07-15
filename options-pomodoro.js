@@ -73,13 +73,31 @@ function _updateAdvancedFeedback(settings, overrides) {
   }
 }
 
-function renderPomoList(list) {
+// override: 현재 적용된 도메인 커스텀 프리셋의 { allow, extra } (없으면 null).
+// 예외(allow)/전용 추가(extra) 도메인을 상단에 정렬하고 고급 설정 색(파랑)으로 강조 표시한다.
+function renderPomoList(list, override) {
   const ul = document.getElementById('pomoList');
   if (!ul) return;
+  const allowSet = new Set(override?.allow || []);
+  const extraSet = new Set(override?.extra || []);
+  const rank = domain => extraSet.has(domain) ? 0 : allowSet.has(domain) ? 1 : 2;
+  const ordered = list
+    .map((domain, i) => ({ domain, i }))
+    .sort((a, b) => rank(a.domain) - rank(b.domain) || a.i - b.i);
+
   ul.innerHTML = '';
-  list.forEach((domain, i) => {
-    const li   = document.createElement('li');
+  ordered.forEach(({ domain, i }) => {
+    const li = document.createElement('li');
     li.className = 'custom-domain-item';
+    const isExtra = extraSet.has(domain);
+    const isAllow = allowSet.has(domain);
+    if (isExtra || isAllow) li.classList.add('pomo-domain-override');
+    if (isExtra || isAllow) {
+      const tag = document.createElement('span');
+      tag.className = 'pomo-domain-tag';
+      tag.textContent = isExtra ? T('pomoAdvancedDomainExtraTag') : T('pomoAdvancedDomainAllowTag');
+      li.appendChild(tag);
+    }
     const span = document.createElement('span');
     span.textContent = domain; span.title = domain; span.className = 'domain-text';
     const del = _makeTrashButton(T('delete'), () => {
@@ -103,6 +121,33 @@ let _pomoPresetEditing = false;
 function _applyPomoPreset(preset) {
   _savePomoSettings({ workMins: preset.workMins, restMins: preset.restMins, cycles: preset.cycles }, null);
   TBBStorage.set({ pomodoroCycleOverrides: (preset.cycleOverrides || []).map(o => ({ ...o })) });
+  _applyPomoBlockOverride(preset.blockOverrides || null);
+}
+
+// 프리셋의 도메인 커스텀(허용 예외/전용 추가)을 라이브 pomodoroList에 반영한다.
+// 이전에 활성화돼 있던 오버라이드가 있으면 먼저 그 전용 추가 도메인을 되돌린 뒤 새로 적용해서,
+// 도메인 커스텀 프리셋 사이를 오갈 때 이전 프리셋의 추가분이 남지 않게 한다.
+// blockOverrides가 없거나 allow/extra가 모두 비어있으면(=일반 프리셋) 롤백만 하고 오버라이드를 해제한다.
+function _applyPomoBlockOverride(blockOverrides) {
+  TBBStorage.get(['pomodoroList', 'pomodoroActiveDomainOverride'], d => {
+    let list = (d.pomodoroList || []).slice();
+    const prevOv = d.pomodoroActiveDomainOverride;
+    if (prevOv && prevOv.extra && prevOv.extra.length) {
+      const prevExtraSet = new Set(prevOv.extra);
+      list = list.filter(dm => !prevExtraSet.has(dm));
+    }
+    const allow = (blockOverrides && blockOverrides.allow) || [];
+    const extra = (blockOverrides && blockOverrides.extra) || [];
+    const hasOverride = allow.length > 0 || extra.length > 0;
+    if (hasOverride) {
+      const existing = new Set(list);
+      extra.forEach(dm => { if (!existing.has(dm)) { list.push(dm); existing.add(dm); } });
+    }
+    TBBStorage.set({
+      pomodoroList: list,
+      pomodoroActiveDomainOverride: hasOverride ? { allow: [...allow], extra: [...extra] } : null,
+    });
+  });
 }
 
 function renderPomoPresets(presets) {
@@ -163,6 +208,13 @@ function renderPomoPresets(presets) {
       summary.textContent = `${diffs.length}${T('pomoAdvancedDiffCountSuffix')}`;
       li.appendChild(summary);
     }
+    const blockCount = ((preset.blockOverrides?.allow || []).length) + ((preset.blockOverrides?.extra || []).length);
+    if (blockCount) {
+      const domainSummary = document.createElement('span');
+      domainSummary.className = 'pomo-preset-override-summary';
+      domainSummary.textContent = `${blockCount}${T('pomoPresetDomainDiffSuffix')}`;
+      li.appendChild(domainSummary);
+    }
     ul.appendChild(li);
   });
 }
@@ -173,6 +225,11 @@ function renderPomoPresets(presets) {
 
 let _advDraftSettings  = { workMins: 25, restMins: 5, cycles: 2 };
 let _advDraftOverrides = []; // [{ cycle, name, workMins, restMins }]
+
+// ── 고급 설정: 프리셋 전용 차단 리스트(허용 예외 / 전용 추가) ──
+let _advDraftBlockAllow  = []; // string[] — 마스터 pomodoroList 중 이 프리셋에서 허용(예외)할 도메인
+let _advDraftBlockExtra  = []; // string[] — 이 프리셋 전용으로만 차단 추가할 도메인
+let _advMasterDomainList = []; // 체크리스트 렌더링용 스냅샷(전용 추가 도메인은 제외한 마스터 리스트)
 
 function _advCycleLabel(n) {
   return `${n}${T('pomoAdvancedCycleSuffix')}`;
@@ -309,6 +366,87 @@ function _renderAdvancedList() {
   });
 }
 
+// ul 안에서 .domain-text가 domain과 정확히 일치하는 <li>를 찾는다 (겹침 시 scrollAndBounce 대상 탐색용).
+function _findDomainListItem(ul, domain) {
+  if (!ul) return null;
+  return Array.from(ul.children).find(li => li.querySelector('.domain-text')?.textContent === domain) || null;
+}
+
+// 전용 추가 목록(_advDraftBlockExtra) + 마스터 리스트 허용 체크리스트(_advMasterDomainList)를 그린다.
+function _renderAdvancedDomainPanel() {
+  const extraUl    = document.getElementById('advDomainExtraList');
+  const checklistUl = document.getElementById('advDomainList');
+  const emptyMsg   = document.getElementById('advDomainEmpty');
+  if (!extraUl || !checklistUl) return;
+
+  extraUl.innerHTML = '';
+  _advDraftBlockExtra.forEach((domain, idx) => {
+    const li = document.createElement('li');
+    li.className = 'pomo-advanced-domain-extra-item';
+
+    const left = document.createElement('span');
+    left.style.display = 'flex';
+    left.style.alignItems = 'center';
+    left.style.minWidth = '0';
+    const tag = document.createElement('span');
+    tag.className = 'pomo-advanced-domain-tag';
+    tag.textContent = T('pomoAdvancedDomainExtraTag');
+    const span = document.createElement('span');
+    span.className = 'domain-text';
+    span.textContent = domain; span.title = domain;
+    left.append(tag, span);
+
+    const del = _makeTrashButton(T('delete'), () => {
+      _advDraftBlockExtra.splice(idx, 1);
+      _renderAdvancedDomainPanel();
+    });
+
+    li.append(left, del);
+    extraUl.appendChild(li);
+  });
+
+  // 허용(예외) 체크된 도메인을 전용 추가 목록 바로 밑으로 정렬 — 그룹 내 상대 순서는 유지(안정 정렬).
+  checklistUl.innerHTML = '';
+  if (emptyMsg) emptyMsg.style.display = _advMasterDomainList.length ? 'none' : '';
+  const orderedMaster = [..._advMasterDomainList].sort((a, b) => {
+    const aAllowed = _advDraftBlockAllow.includes(a);
+    const bAllowed = _advDraftBlockAllow.includes(b);
+    return aAllowed === bAllowed ? 0 : (aAllowed ? -1 : 1);
+  });
+  orderedMaster.forEach(domain => {
+    const li = document.createElement('li');
+    li.className = 'pomo-advanced-domain-item';
+    const isAllowed = _advDraftBlockAllow.includes(domain);
+    if (isAllowed) li.classList.add('allowed');
+
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = isAllowed;
+    checkbox.addEventListener('change', () => {
+      _advDraftBlockAllow = checkbox.checked
+        ? [..._advDraftBlockAllow.filter(d => d !== domain), domain]
+        : _advDraftBlockAllow.filter(d => d !== domain);
+      _renderAdvancedDomainPanel();
+    });
+    label.appendChild(checkbox);
+    if (isAllowed) {
+      const tag = document.createElement('span');
+      tag.className = 'pomo-advanced-domain-tag';
+      tag.textContent = T('pomoAdvancedDomainAllowTag');
+      label.appendChild(tag);
+    }
+    const span = document.createElement('span');
+    span.className = 'domain-text';
+    span.textContent = domain; span.title = domain;
+    label.appendChild(span);
+
+    li.appendChild(label);
+    checklistUl.appendChild(li);
+  });
+  _applyDomainFilter('advDomainList');
+}
+
 const ADV_BASE_INPUT_IDS = { workMins: 'advWorkVal', restMins: 'advRestVal', cycles: 'advCyclesVal' };
 
 function _advSetBase(key, newVal) {
@@ -327,14 +465,28 @@ function _advSetBase(key, newVal) {
   _renderCyclePicker();
 }
 
+function _switchAdvancedTab(tab) {
+  document.getElementById('advTabCycleBtn')?.classList.toggle('active', tab === 'cycle');
+  document.getElementById('advTabDomainBtn')?.classList.toggle('active', tab === 'domain');
+  const cyclePanel = document.getElementById('advTabCyclePanel');
+  const domainPanel = document.getElementById('advTabDomainPanel');
+  if (cyclePanel) cyclePanel.style.display = tab === 'cycle' ? '' : 'none';
+  if (domainPanel) domainPanel.style.display = tab === 'domain' ? '' : 'none';
+}
+
 function _openAdvancedModal() {
-  TBBStorage.get(['pomodoroSettings', 'pomodoroCycleOverrides'], data => {
+  TBBStorage.get(['pomodoroSettings', 'pomodoroCycleOverrides', 'pomodoroList', 'pomodoroActiveDomainOverride'], data => {
     const settings = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
     _advDraftSettings  = { workMins: settings.workMins, restMins: settings.restMins, cycles: settings.cycles };
     _advDraftOverrides = (data.pomodoroCycleOverrides || []).map(o => ({
       ...o,
       name: o.name === _advCycleLabel(o.cycle) ? '' : o.name,
     }));
+
+    const activeOv = data.pomodoroActiveDomainOverride;
+    _advDraftBlockAllow  = [...(activeOv?.allow || [])];
+    _advDraftBlockExtra  = [...(activeOv?.extra || [])];
+    _advMasterDomainList = (data.pomodoroList || []).filter(d => !_advDraftBlockExtra.includes(d));
 
     const wEl = document.getElementById('advWorkVal');
     const rEl = document.getElementById('advRestVal');
@@ -346,6 +498,8 @@ function _openAdvancedModal() {
     _renderAdvancedBaseText();
     _renderAdvancedList();
     _renderCyclePicker();
+    _renderAdvancedDomainPanel();
+    _switchAdvancedTab('cycle');
 
     const overlay = document.getElementById('pomoAdvancedOverlay');
     if (overlay) overlay.style.display = 'flex';
@@ -481,12 +635,13 @@ function _pomoTick() {
 }
 
 function loadPomoData() {
-  TBBStorage.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState', 'pomodoroPresets', 'pomodoroCycleOverrides'], data => {
-    const settings  = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
-    const list      = data.pomodoroList     || [];
-    const state     = data.pomodoroState    || { active: false, phase: 'idle' };
-    const presets   = data.pomodoroPresets  || [];
-    const overrides = data.pomodoroCycleOverrides || [];
+  TBBStorage.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState', 'pomodoroPresets', 'pomodoroCycleOverrides', 'pomodoroActiveDomainOverride'], data => {
+    const settings     = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
+    const list         = data.pomodoroList     || [];
+    const state        = data.pomodoroState    || { active: false, phase: 'idle' };
+    const presets      = data.pomodoroPresets  || [];
+    const overrides    = data.pomodoroCycleOverrides || [];
+    const blockOverride = data.pomodoroActiveDomainOverride || null;
 
     const wEl = document.getElementById('pomoWorkVal');
     const rEl = document.getElementById('pomoRestVal');
@@ -495,7 +650,7 @@ function loadPomoData() {
     if (rEl) rEl.value = settings.restMins;
     if (cEl) cEl.value = settings.cycles;
 
-    renderPomoList(list);
+    renderPomoList(list, blockOverride);
     renderPomoPresets(presets);
     updatePomoDisplay(state, settings, overrides);
     _updateAdvancedFeedback(settings, overrides);
@@ -780,12 +935,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPomoPresets(_pomoPresetsCache);
   });
 
-  // ── 고급 설정(회차별 시간) 모달 ──
+  // ── 고급 설정 모달 ──
   document.getElementById('pomoAdvancedBtn')?.addEventListener('click', _openAdvancedModal);
   document.getElementById('pomoAdvancedCloseBtn')?.addEventListener('click', _closeAdvancedModal);
   document.getElementById('pomoAdvancedOverlay')?.addEventListener('click', e => {
     if (e.target.id === 'pomoAdvancedOverlay') _closeAdvancedModal();
   });
+
+  // ── 고급 설정: 회차별 시간 / 차단 리스트 탭 전환 ──
+  document.getElementById('advTabCycleBtn')?.addEventListener('click', () => _switchAdvancedTab('cycle'));
+  document.getElementById('advTabDomainBtn')?.addEventListener('click', () => _switchAdvancedTab('domain'));
 
   [
     { decr: 'advWorkDecrBtn',   incr: 'advWorkIncrBtn',   key: 'workMins', min: 1, max: 60 },
@@ -835,9 +994,42 @@ document.addEventListener('DOMContentLoaded', () => {
     _renderCyclePicker();
   });
 
+  // ── 고급 설정: 차단 리스트 탭(전용 추가 도메인 입력 / 검색은 DOMAIN_SEARCH_MAP이 처리) ──
+  function doAddAdvDomain() {
+    const input  = document.getElementById('advDomainAddInput');
+    const domain = cleanDomain((input?.value || '').trim());
+    if (!domain) return;
+    if (_advDraftBlockExtra.includes(domain)) {
+      const ul = document.getElementById('advDomainExtraList');
+      scrollAndBounce(ul, _findDomainListItem(ul, domain), 'advDomainWarn', T('alreadySameAddress'));
+      return;
+    }
+    if (_advMasterDomainList.includes(domain)) {
+      const ul = document.getElementById('advDomainList');
+      scrollAndBounce(ul, _findDomainListItem(ul, domain), 'advDomainWarn', T('alreadySameAddress'));
+      return;
+    }
+    _advDraftBlockExtra.push(domain);
+    if (input) input.value = '';
+    hideWarn('advDomainWarn');
+    _renderAdvancedDomainPanel();
+  }
+  document.getElementById('advDomainAddBtn')?.addEventListener('click', doAddAdvDomain);
+  document.getElementById('advDomainAddInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') doAddAdvDomain(); });
+  document.getElementById('advDomainAddInput')?.addEventListener('input', () => hideWarn('advDomainWarn'));
+
+  document.getElementById('advDomainClearBtn')?.addEventListener('click', () => {
+    if (!_advDraftBlockAllow.length && !_advDraftBlockExtra.length) return;
+    if (!confirm(T('pomoAdvancedDomainClearConfirm'))) return;
+    _advDraftBlockAllow = [];
+    _advDraftBlockExtra = [];
+    _renderAdvancedDomainPanel();
+  });
+
   document.getElementById('pomoAdvancedApplyBtn')?.addEventListener('click', () => {
     _savePomoSettings({ ..._advDraftSettings }, null);
     TBBStorage.set({ pomodoroCycleOverrides: _advDraftOverrides.map(o => ({ ...o, name: _advEffectiveName(o) })) });
+    _applyPomoBlockOverride({ allow: [..._advDraftBlockAllow], extra: [..._advDraftBlockExtra] });
     _closeAdvancedModal();
   });
 
@@ -854,13 +1046,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!name) { advSaveNameInput?.focus(); return; }
     TBBStorage.get(['pomodoroPresets'], d => {
       const arr = d.pomodoroPresets || [];
-      arr.push({
+      const preset = {
         name,
         workMins: _advDraftSettings.workMins,
         restMins: _advDraftSettings.restMins,
         cycles: _advDraftSettings.cycles,
         cycleOverrides: _advDraftOverrides.map(o => ({ ...o, name: _advEffectiveName(o) })),
-      });
+      };
+      if (_advDraftBlockAllow.length || _advDraftBlockExtra.length) {
+        preset.blockOverrides = { allow: [..._advDraftBlockAllow], extra: [..._advDraftBlockExtra] };
+      }
+      arr.push(preset);
       TBBStorage.set({ pomodoroPresets: arr }, () => {
         if (advSaveNameInput) advSaveNameInput.value = '';
         advSavePopover?.classList.remove('open');
@@ -925,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 스토리지 변경 시 UI 동기화 ──
   chrome.storage.onChanged.addListener(changes => {
-    if (changes.pomodoroState || changes.pomodoroSettings || changes.pomodoroList || changes.pomodoroPresets || changes.pomodoroCycleOverrides) {
+    if (changes.pomodoroState || changes.pomodoroSettings || changes.pomodoroList || changes.pomodoroPresets || changes.pomodoroCycleOverrides || changes.pomodoroActiveDomainOverride) {
       loadPomoData();
     }
   });

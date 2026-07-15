@@ -40,7 +40,7 @@ function cleanDomain(d) {
 }
 
 async function updateBlockingRules() {
-  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride']);
   const generalList = data.generalList || [];
   const permanentList = data.permanentList || [];
   // dailyBoxes: 요일 무관 오늘만 / weeklyBoxes: 요일 필터 적용
@@ -117,10 +117,17 @@ async function updateBlockingRules() {
   }
 
   // 포모도로 차단 (작업 페이즈 중에만 활성화, 계급 30)
+  // 도메인 커스텀 프리셋의 허용(예외) 도메인은 pomodoroList엔 그대로 남겨두고(프리셋 없이 되돌아오면
+  // 다시 차단되도록) 규칙 생성 시에만 건너뛴다 — allow 액션은 redirect를 못 이겨서(위 finalAllowSet
+  // 주석 참고) 규칙 자체를 안 만드는 방식으로 처리.
   const pomodoroState = data.pomodoroState || { active: false };
   const pomodoroList  = data.pomodoroList  || [];
+  const pomoAllowSet  = new Set((data.pomodoroActiveDomainOverride?.allow || []).map(cleanDomain));
   if (pomodoroState.active && pomodoroState.phase === 'work') {
-    pomodoroList.forEach(d => addDnrRule(cleanDomain(d), 30, false, 'pomodoro'));
+    pomodoroList.forEach(d => {
+      const clean = cleanDomain(d);
+      if (!pomoAllowSet.has(clean)) addDnrRule(clean, 30, false, 'pomodoro');
+    });
   }
 
   // 크롬 엔진 덮어쓰기
@@ -361,15 +368,16 @@ async function shouldUrlBeBlocked(url) {
     return hostname === clean || hostname.endsWith('.' + clean);
   }
 
-  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList']);
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride']);
   const permanentList = data.permanentList || [];
   const permBlocked = permanentList.find(d => matches(d));
   if (permBlocked) return { blocked: true, reason: 'permanent', domain: cleanDomain(permBlocked) };
 
   const pomodoroState = data.pomodoroState || { active: false };
   const pomodoroList  = data.pomodoroList  || [];
+  const pomoAllowSet  = new Set((data.pomodoroActiveDomainOverride?.allow || []).map(cleanDomain));
   if (pomodoroState.active && pomodoroState.phase === 'work') {
-    const pomoBlocked = pomodoroList.find(d => matches(d));
+    const pomoBlocked = pomodoroList.find(d => !pomoAllowSet.has(cleanDomain(d)) && matches(d));
     if (pomoBlocked) return { blocked: true, reason: 'pomodoro', domain: cleanDomain(pomoBlocked) };
   }
 

@@ -188,7 +188,8 @@ const DOMAIN_SEARCH_MAP = {
   generalList: 'generalSearchInput',
   stagingCustomList: 'stagingSearchInput',
   popup_stagingCustomList: 'popup_stagingSearchInput',
-  pomoList: 'pomoSearchInput'
+  pomoList: 'pomoSearchInput',
+  advDomainList: 'advDomainSearchInput'
 };
 
 function _applyDomainFilter(listId) {

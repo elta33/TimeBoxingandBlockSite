@@ -184,9 +184,12 @@
   "pomoPresetNamePlaceholder": { "message": "Preset name" },
   "pomoPresetEmpty":         { "message": "No saved presets." },
   "pomoPresetEditBtn":       { "message": "✎ Edit" },
+  "pomoPresetDomainDiffSuffix": { "message": " domain overrides" },
 
   "pomoAdvancedBtn":         { "message": "⚙ Advanced" },
-  "pomoAdvancedModalTitle":  { "message": "Per-cycle time settings" },
+  "pomoAdvancedModalTitle":  { "message": "Advanced Settings" },
+  "pomoAdvancedTabCycle":    { "message": "Per-cycle Time" },
+  "pomoAdvancedTabDomain":   { "message": "Block List" },
   "pomoAdvancedAddBtn":      { "message": "+ Add cycle exception" },
   "pomoAdvancedEmpty":       { "message": "No exceptions added." },
   "pomoAdvancedClearBtn":    { "message": "Remove all exceptions" },
@@ -201,6 +204,14 @@
   "pomoAdvancedDiffLineSuffix":  { "message": " cycles have different times" },
   "pomoAdvancedDiffCountSuffix": { "message": " cycles differ" },
   "pomoCustomBadge":             { "message": "Customized" },
+
+  "pomoAdvancedDomainAddPlaceholder":    { "message": "Add just for this preset (e.g. reddit.com)" },
+  "pomoAdvancedDomainSearchPlaceholder": { "message": "Search block list" },
+  "pomoAdvancedDomainEmpty":       { "message": "No Pomodoro block domains yet." },
+  "pomoAdvancedDomainClearBtn":    { "message": "Reset overrides/additions" },
+  "pomoAdvancedDomainClearConfirm": { "message": "Reset all domain overrides/additions for this preset?" },
+  "pomoAdvancedDomainExtraTag":    { "message": "Added" },
+  "pomoAdvancedDomainAllowTag":    { "message": "Exempt" },
 
   "popupSettingsTitle":    { "message": "Open Settings" },
   "popupCurrentPage":      { "message": "Current Page" },
