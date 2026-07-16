@@ -1,0 +1,42 @@
+/* strong-block-selectors.css
+   기능별 토글이 켜졌을 때 chrome.scripting.registerContentScripts로 등록되는
+   코스메틱(화면에서만 숨기는) 선택자 모음. 사이트별로 섹션을 나눠 관리하고,
+   하나의 등록 항목(matches)에 여러 사이트를 넣거나 사이트별로 registerContentScripts를
+   따로 호출해도 이 파일 하나를 공용으로 재사용할 수 있다 — 선택자는 해당 사이트 DOM에만
+   존재하므로 다른 사이트에 얹혀도 매칭될 게 없어 안전하다. 새 기능(예: 릴스 차단) 추가 시
+   이 파일에 섹션만 이어 붙이면 된다.
+*/
+
+/* ── 유튜브 쇼츠 (shortsBlockEnabled) ──
+   href는 로케일에 안 흔들리는 유일한 안정적 값이라 exact-match보다 접두사(^=) 매칭으로
+   느슨하게 잡는다 — 실사용 확인 결과 홈 피드 선반(ytd-rich-shelf-renderer[is-shorts])만
+   숨겨지고 사이드바/검색 결과 선반은 계속 보이는 문제가 있어, 두 군데는 알려진 변형을
+   최대한 겹쳐서 커버함(유튜브가 버전마다 마크업을 바꿔서 하나만으로는 불안정).
+*/
+ytd-guide-entry-renderer:has(a[href^="/shorts"]),
+ytd-mini-guide-entry-renderer:has(a[href^="/shorts"]),
+ytd-guide-entry-renderer:has(a[title="Shorts"]),
+ytd-mini-guide-entry-renderer:has(a[title="Shorts"]),
+ytd-guide-entry-renderer:has(a[title="쇼츠"]),
+ytd-mini-guide-entry-renderer:has(a[title="쇼츠"]),
+ytd-mini-guide-entry-renderer[aria-label="Shorts"],
+ytd-mini-guide-entry-renderer[aria-label="쇼츠"],
+
+ytd-rich-shelf-renderer[is-shorts],
+ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]),
+ytd-reel-shelf-renderer,
+ytd-item-section-renderer:has(ytd-reel-shelf-renderer),
+ytd-search ytd-reel-shelf-renderer,
+ytd-shorts-lockup-view-model,
+grid-shelf-view-model,
+
+tp-yt-paper-tab:has(a[href*="/shorts"]),
+ytm-pivot-bar-item-renderer:has(a[href^="/shorts"]),
+.pivot-shorts,
+
+/* 검색 결과 상단 "Shorts" 필터 칩 눌렀을 때 나오는 쇼츠 그리드 항목(레거시 태그 후보).
+   칩 자체는 실제 검사 결과 href/title/aria-label 없이 순수 텍스트(<div>Shorts</div>)로만
+   구분 가능해 CSS로는 못 잡음 — strong-block-selectors.js가 텍스트 매칭으로 처리. */
+ytd-reel-item-renderer {
+  display: none !important;
+}

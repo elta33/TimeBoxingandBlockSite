@@ -160,6 +160,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // 유튜브 쇼츠 강력 차단 토글
+  const shortsBlockToggle = document.getElementById('shortsBlockToggle');
+  TBBStorage.get(['shortsBlockEnabled'], result => {
+    if (shortsBlockToggle) shortsBlockToggle.checked = !!result.shortsBlockEnabled;
+  });
+  shortsBlockToggle?.addEventListener('change', e => {
+    TBBStorage.set({ shortsBlockEnabled: e.target.checked });
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (changes.shortsBlockEnabled && shortsBlockToggle) {
+      shortsBlockToggle.checked = !!changes.shortsBlockEnabled.newValue;
+    }
+  });
+
   // 동기화 상태 인디케이터 — storage-api.js가 sync 성공/실패·용량 축소 시 기록하는
   // _syncStatus(local 전용)를 읽어 "다른 기기에 왜 반영이 안 되지?"에 답할 정보를 보여준다.
   function _fmtSyncTime(ts) {

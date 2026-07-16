@@ -14,6 +14,7 @@ const TBB_SYNC_KEYS = new Set([
   'weeklyBoxes',
   'dailyScheduleEnabled',
   'weekStartMonday',
+  'shortsBlockEnabled',
   'focusEvents',
   'focusStreak',
   'todoItems',

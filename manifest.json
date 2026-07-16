@@ -15,7 +15,9 @@
     "declarativeNetRequestWithHostAccess",
     "alarms",
     "activeTab",
-    "windows"
+    "windows",
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"

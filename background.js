@@ -40,7 +40,7 @@ function cleanDomain(d) {
 }
 
 async function updateBlockingRules() {
-  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride']);
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled']);
   const generalList = data.generalList || [];
   const permanentList = data.permanentList || [];
   // dailyBoxes: 요일 무관 오늘만 / weeklyBoxes: 요일 필터 적용
@@ -130,6 +130,22 @@ async function updateBlockingRules() {
     });
   }
 
+  // 유튜브 쇼츠 강력 차단 (계급 5): 상시 차단(100)·포모도로(30)·일반 차단(10)이 유튜브 전체를
+  // 걸어뒀으면 그쪽 우선순위가 더 높아 그대로 이기고(block.html 표시), 그 외엔 쇼츠 주소만
+  // block.html 없이 유튜브 홈으로 조용히 리다이렉트한다. SPA 내부 이동은 DNR이 못 잡으므로
+  // shouldUrlBeBlocked()의 폴백 경로에서 같은 조건을 한 번 더 처리한다.
+  if (data.shortsBlockEnabled) {
+    newRules.push({
+      id: ruleIdCounter++,
+      priority: 5,
+      action: { type: "redirect", redirect: { url: "https://www.youtube.com/" } },
+      condition: {
+        urlFilter: "||youtube.com/shorts",
+        resourceTypes: ["main_frame"]
+      }
+    });
+  }
+
   // 크롬 엔진 덮어쓰기
   const oldRules = await chrome.declarativeNetRequest.getDynamicRules();
   const oldRuleIds = oldRules.map(rule => rule.id);
@@ -140,6 +156,39 @@ async function updateBlockingRules() {
   });
   
   console.log("우선순위 규칙 업데이트 성공! 생성된 규칙 수:", newRules.length);
+}
+
+// ── 유튜브 쇼츠 코스메틱 숨김 (strong-block-selectors.css/js) ──
+// registerContentScripts는 매니페스트 정적 content_scripts와 동일하게 document_start 시점에
+// 동기 주입되어(페이지 깜빡임 없음) 페이지 CSP도 우회한다 — insertCSS를 webNavigation 이벤트에
+// 맞춰 매번 호출하는 방식보다 타이밍이 안전해서 이쪽을 택함.
+// css는 속성/구조 기반 선택자만 가능해서, 검색 결과 필터 칩처럼 순수 텍스트로만 구분되는
+// 요소는 js(strong-block-selectors.js)가 같은 등록 항목으로 함께 담당한다.
+const SHORTS_CSS_SCRIPT_ID = 'tbb-strong-block-selectors';
+
+async function updateShortsCosmetic() {
+  const { shortsBlockEnabled } = await TBBStorage.get(['shortsBlockEnabled']);
+  const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [SHORTS_CSS_SCRIPT_ID] });
+  if (shortsBlockEnabled && registered.length === 0) {
+    await chrome.scripting.registerContentScripts([{
+      id: SHORTS_CSS_SCRIPT_ID,
+      matches: ["*://*.youtube.com/*"],
+      css: ["strong-block-selectors.css"],
+      js: ["strong-block-selectors.js"],
+      runAt: "document_start"
+    }]);
+  } else if (!shortsBlockEnabled && registered.length > 0) {
+    await chrome.scripting.unregisterContentScripts({ ids: [SHORTS_CSS_SCRIPT_ID] });
+  }
+}
+
+// 쇼츠 차단 토글이 바뀌는 순간, 이미 열려 있던 유튜브 탭들은 content.js가 토글 변경 이전
+// 상태로 실행 중이라 새로고침 전까지 리다이렉트/코스메틱 숨김이 적용(또는 해제)되지
+// 않는다 — on/off 어느 쪽으로 바뀌든 열린 유튜브 탭을 자동 새로고침.
+function _reloadOpenYoutubeTabs() {
+  chrome.tabs.query({ url: ["*://*.youtube.com/*"] }, tabs => {
+    tabs.forEach(tab => { if (tab.id !== undefined) chrome.tabs.reload(tab.id); });
+  });
 }
 
 // ── 통계 로깅 헬퍼 ──
@@ -319,7 +368,15 @@ async function _migrateToSyncV2() {
 }
 
 // 데이터 변경 및 타이머 연동
-chrome.storage.onChanged.addListener(updateBlockingRules);
+chrome.storage.onChanged.addListener((changes) => {
+  updateBlockingRules();
+  updateShortsCosmetic();
+  // on↔off 어느 방향이든 토글이 바뀌면 새로고침 (켤 때: 숨김/리다이렉트 즉시 적용,
+  // 끌 때: 옛 content.js가 붙잡고 있던 상태 없이 깨끗하게 원복)
+  if (changes.shortsBlockEnabled) {
+    _reloadOpenYoutubeTabs();
+  }
+});
 chrome.alarms.create("timeboxTicker", { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(async alarm => {
   if (alarm.name === "timeboxTicker") {
@@ -328,11 +385,15 @@ chrome.alarms.onAlarm.addListener(async alarm => {
     updateBlockingRules();
   }
 });
-chrome.runtime.onStartup.addListener(updateBlockingRules);
+chrome.runtime.onStartup.addListener(() => {
+  updateBlockingRules();
+  updateShortsCosmetic();
+});
 chrome.runtime.onInstalled.addListener(async (details) => {
   await _migrateToSync();
   await _migrateToSyncV2();
   updateBlockingRules();
+  updateShortsCosmetic();
 
   if (details.reason === 'install') {
     // 신규 설치: 옵션 페이지를 자동으로 열어 온보딩 체크리스트(options-init.js)를 바로 보여준다.
@@ -380,7 +441,7 @@ async function shouldUrlBeBlocked(url) {
     return hostname === clean || hostname.endsWith('.' + clean);
   }
 
-  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride']);
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled']);
   const permanentList = data.permanentList || [];
   const permBlocked = permanentList.find(d => matches(d));
   if (permBlocked) return { blocked: true, reason: 'permanent', domain: cleanDomain(permBlocked) };
@@ -402,15 +463,24 @@ async function shouldUrlBeBlocked(url) {
     if (days.length > 0 && !days.includes(todayDow)) return false;
     return isTimeInBox(box.startTime, box.endTime);
   });
-  if (!activeBox) return { blocked: false };
+  if (activeBox) {
+    const allowSet = new Set(
+      (activeBox.customDomains || []).map(cd => cleanDomain(cd.domain))
+    );
 
-  const allowSet = new Set(
-    (activeBox.customDomains || []).map(cd => cleanDomain(cd.domain))
-  );
+    const generalList = data.generalList || [];
+    for (const d of generalList) {
+      if (!allowSet.has(cleanDomain(d)) && matches(d)) return { blocked: true, reason: 'general', domain: cleanDomain(d) };
+    }
+  }
 
-  const generalList = data.generalList || [];
-  for (const d of generalList) {
-    if (!allowSet.has(cleanDomain(d)) && matches(d)) return { blocked: true, reason: 'general', domain: cleanDomain(d) };
+  // 유튜브 쇼츠 강력 차단 (permanent/pomodoro/general 다음 순위 폴백):
+  // SPA 내부 이동(홈 피드에서 쇼츠 썸네일 클릭 등)은 DNR이 못 잡으므로 여기서 한 번 더 처리.
+  // reason: 'shorts'는 block.html이 아니라 content.js가 유튜브 홈으로 직접 리다이렉트한다.
+  if (data.shortsBlockEnabled && (hostname === 'youtube.com' || hostname.endsWith('.youtube.com'))) {
+    if (urlObj.pathname === '/shorts' || urlObj.pathname.startsWith('/shorts/')) {
+      return { blocked: true, reason: 'shorts' };
+    }
   }
 
   return { blocked: false };
