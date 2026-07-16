@@ -168,9 +168,22 @@ document.addEventListener('DOMContentLoaded', () => {
   shortsBlockToggle?.addEventListener('change', e => {
     TBBStorage.set({ shortsBlockEnabled: e.target.checked });
   });
+
+  // 인스타그램 릴스·탐색 강력 차단 토글
+  const instaBlockToggle = document.getElementById('instaBlockToggle');
+  TBBStorage.get(['instaBlockEnabled'], result => {
+    if (instaBlockToggle) instaBlockToggle.checked = !!result.instaBlockEnabled;
+  });
+  instaBlockToggle?.addEventListener('change', e => {
+    TBBStorage.set({ instaBlockEnabled: e.target.checked });
+  });
+
   chrome.storage.onChanged.addListener((changes, area) => {
     if (changes.shortsBlockEnabled && shortsBlockToggle) {
       shortsBlockToggle.checked = !!changes.shortsBlockEnabled.newValue;
+    }
+    if (changes.instaBlockEnabled && instaBlockToggle) {
+      instaBlockToggle.checked = !!changes.instaBlockEnabled.newValue;
     }
   });
 

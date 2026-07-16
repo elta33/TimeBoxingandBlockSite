@@ -40,3 +40,53 @@ ytm-pivot-bar-item-renderer:has(a[href^="/shorts"]),
 ytd-reel-item-renderer {
   display: none !important;
 }
+
+/* ── 인스타그램 릴스/탐색/알림/만들기/Threads (instaBlockEnabled) ──
+   사이드바 항목은 전부 익명 wrapper(<a class="..._a6hd">)를 공유해 href/class로는
+   구분이 안 되고, 유일하게 구분 가능한 값이 내부 <svg aria-label="...">뿐이라
+   :has()로 아이콘을 식별한다. 사용자가 실제 DevTools로 확인해 준 한국어 라벨 값에,
+   로케일이 영어일 때를 대비한 추정 영문 라벨을 겹쳐 둠(실사용 확인 전까지는 추정치).
+   탐색/릴스는 실제 URL 이동(redirect는 background.js가 담당)이라 여기선 숨김만 하고,
+   알림/만들기/Threads는 URL 이동이 없는 패널·모달이라 숨김이 유일한 차단 수단이다.
+   홈/프로필/더보기/DM/스토리는 그대로 유지 — 이 선택자에 포함하지 않음. */
+a:has(svg[aria-label="릴스"]),
+a:has(svg[aria-label="Reels"]),
+a:has(svg[aria-label="검색"]),
+a:has(svg[aria-label="Search"]),
+a:has(svg[aria-label="알림"]),
+a:has(svg[aria-label="Notifications"]),
+a:has(svg[aria-label="새로운 게시물"]),
+a:has(svg[aria-label="New post"]),
+a:has(svg[aria-label="만들기"]),
+a:has(svg[aria-label="Create"]),
+a:has(svg[aria-label="Meta의 다른 앱"]),
+a:has(svg[aria-label="Meta"]),
+a:has(svg[aria-label="Threads"]) {
+  display: none !important;
+}
+
+/* 게시물 자체 숨김 (instaBlockEnabled): 처음엔 "추천 게시물" 라벨 텍스트로 걸러서 추천
+   게시물만 숨기려 했으나 실사용 확인 결과 라벨 매칭이 안 먹혀서, 방향을 바꿔 피드에 노출되는
+   게시물 <article>을 추천/팔로우 구분 없이 전부 숨기는 쪽으로 단순화함(텍스트 매칭 로직은
+   strong-block-selectors.js에서 제거). 처음엔 article[data-interactable]로 좁혀 잡았으나
+   실사용 확인 결과 팔로우 게시물은 안 숨겨지고 추천 게시물/릴스는 로딩 후 잠깐 보였다 사라지는
+   플리커링이 발생함 — data-interactable이 하이드레이션 이후 뒤늦게 붙는 속성이라 최초 렌더
+   시점엔 매칭이 안 걸리는 것으로 추정(팔로우 게시물 유형은 애초에 이 속성이 안 붙을 가능성도
+   있음). <article> 태그 자체는 최초 렌더 시점부터 존재하므로 속성 조건 없이 태그만으로 잡아
+   타이밍 의존성을 제거함 — 홈 피드뿐 아니라 프로필 게시물 그리드 등 article로 렌더링되는
+   모든 목록에 적용된다(사이트 전역). 부작용 가능성: 댓글 등 article 태그를 쓰는 다른 컴포넌트가
+   있다면 같이 숨겨질 수 있음(미확인, 실사용 중 이상 있으면 보고 필요). */
+article {
+  display: none !important;
+}
+
+/* "모두 확인했습니다"(팔로우 피드 끝 안내) 카드 숨김 (instaBlockEnabled): 원래
+   strong-block-selectors.js가 이미지 경로로 찾아 JS로 숨겼으나, MutationObserver
+   스로틀(300ms) 때문에 삽입 후 최대 300ms간 화면에 보였다 사라지는 플리커링이 있었음.
+   실제 마크업 기준 이미지가 "카드 div > 콘텐츠 행 div > 이미지 wrapper div > img" 3단
+   고정 깊이로 중첩돼 있는 걸 확인했으므로, 자식 결합자(>)로 그 깊이를 그대로 CSS 선택자에
+   옮겨 JS 없이 document_start 시점부터 즉시 적용되게 함(스로틀 지연이 없어 플리커링 원천
+   차단). 마크업 깊이가 바뀌면 이 선택자도 같이 깨지는 게 알려진 한계. */
+div:has(> div > div > img[src*="illo-confirm-refresh-light"]) {
+  display: none !important;
+}

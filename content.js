@@ -6,9 +6,13 @@ function requestBlockCheck(url) {
   chrome.runtime.sendMessage({ type: 'checkBlock', url }, (res) => {
     if (chrome.runtime.lastError) return;
     if (res?.blocked) {
-      // 쇼츠 강력 차단은 "차단됨" 화면 대신 유튜브 홈으로 조용히 되돌린다.
+      // 쇼츠/인스타 강력 차단은 "차단됨" 화면 대신 해당 사이트 홈으로 조용히 되돌린다.
       if (res.reason === 'shorts') {
         location.replace('https://www.youtube.com/');
+        return;
+      }
+      if (res.reason === 'insta') {
+        location.replace('https://www.instagram.com/');
         return;
       }
       let blockUrl = chrome.runtime.getURL('block.html') + '?reason=' + (res.reason || 'general');

@@ -99,6 +99,8 @@
   "strongBlockDesc":     { "message": "Turn on stronger, per-site blocking methods beyond simple domain blocking." },
   "shortsBlockToggleLabel": { "message": "Strongly block YouTube Shorts" },
   "tipShortsBlock":      { "message": "Hides the Shorts menu on YouTube's home/sidebar, and redirects Shorts URLs back to the YouTube homepage." },
+  "instaBlockToggleLabel": { "message": "Strongly block Instagram Reels/Explore" },
+  "tipInstaBlock":       { "message": "Hides the Explore/Reels menu and redirects those pages (including post detail pages, /p) back to the Instagram homepage; also hides Notifications/Create/Threads and every post shown in a feed (suggested or not, including profile grids). Home and Profile screens themselves, More, DMs, and Stories stay untouched." },
   "placeholderNetflix":  { "message": "e.g. netflix.com" },
   "placeholderYoutube":  { "message": "e.g. youtube.com" },
   "placeholderDomainSearch": { "message": "Search domains" },

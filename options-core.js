@@ -1268,7 +1268,7 @@ function clearDaySelection() {
 }
 
 function exportSettings() {
-  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides'];
+  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'instaBlockEnabled', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides'];
   TBBStorage.get(KEYS, data => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1286,7 +1286,7 @@ function importSettings(file) {
     let data;
     try { data = JSON.parse(e.target.result); }
     catch { alert(T('invalidJson')); return; }
-    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides']);
+    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'instaBlockEnabled', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides']);
     const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
     if (Object.keys(safe).length === 0) { alert(T('noDataToRestore')); return; }
     TBBStorage.set(safe, () => {

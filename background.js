@@ -40,7 +40,7 @@ function cleanDomain(d) {
 }
 
 async function updateBlockingRules() {
-  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled']);
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled', 'instaBlockEnabled']);
   const generalList = data.generalList || [];
   const permanentList = data.permanentList || [];
   // dailyBoxes: 요일 무관 오늘만 / weeklyBoxes: 요일 필터 적용
@@ -146,6 +146,28 @@ async function updateBlockingRules() {
     });
   }
 
+  // 인스타그램 릴스/탐색/게시물 강력 차단 (계급 5, 쇼츠와 동일 최하위 폴백): 검색 아이콘도
+  // 실제로는 /explore/로 이동하므로 탐색과 같은 경로 하나로 커버된다. /p는 DM 공유·프로필
+  // 게시물 메뉴로 들어가는 릴스/게시물 상세 열람 우회로를 막기 위해 추가(부작용: 팔로우 중인
+  // 계정의 일반 게시물 상세도 함께 막힘 — /p가 콘텐츠 종류를 구분 안 하는 공용 경로라 불가피).
+  // 알림/만들기/Threads는 URL 이동이 없는 패널·모달이라 리다이렉트 대상이 없고 코스메틱
+  // 숨김(updateInstaCosmetic)만 담당한다.
+  // 경로 뒤에 "^"(DNR 구분자 와일드카드: 문자/숫자/_-.% 가 아닌 문자 또는 URL 끝)를 붙여
+  // /people, /reelsguy 같은 다른 경로·사용자명 접두사 오매칭을 방지한다.
+  if (data.instaBlockEnabled) {
+    ["explore", "reels", "p"].forEach(path => {
+      newRules.push({
+        id: ruleIdCounter++,
+        priority: 5,
+        action: { type: "redirect", redirect: { url: "https://www.instagram.com/" } },
+        condition: {
+          urlFilter: `||instagram.com/${path}^`,
+          resourceTypes: ["main_frame"]
+        }
+      });
+    });
+  }
+
   // 크롬 엔진 덮어쓰기
   const oldRules = await chrome.declarativeNetRequest.getDynamicRules();
   const oldRuleIds = oldRules.map(rule => rule.id);
@@ -165,6 +187,7 @@ async function updateBlockingRules() {
 // css는 속성/구조 기반 선택자만 가능해서, 검색 결과 필터 칩처럼 순수 텍스트로만 구분되는
 // 요소는 js(strong-block-selectors.js)가 같은 등록 항목으로 함께 담당한다.
 const SHORTS_CSS_SCRIPT_ID = 'tbb-strong-block-selectors';
+const INSTA_CSS_SCRIPT_ID = 'tbb-strong-block-selectors-instagram';
 
 async function updateShortsCosmetic() {
   const { shortsBlockEnabled } = await TBBStorage.get(['shortsBlockEnabled']);
@@ -182,11 +205,33 @@ async function updateShortsCosmetic() {
   }
 }
 
-// 쇼츠 차단 토글이 바뀌는 순간, 이미 열려 있던 유튜브 탭들은 content.js가 토글 변경 이전
+async function updateInstaCosmetic() {
+  const { instaBlockEnabled } = await TBBStorage.get(['instaBlockEnabled']);
+  const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [INSTA_CSS_SCRIPT_ID] });
+  if (instaBlockEnabled && registered.length === 0) {
+    await chrome.scripting.registerContentScripts([{
+      id: INSTA_CSS_SCRIPT_ID,
+      matches: ["*://*.instagram.com/*"],
+      css: ["strong-block-selectors.css"],
+      js: ["strong-block-selectors.js"],
+      runAt: "document_start"
+    }]);
+  } else if (!instaBlockEnabled && registered.length > 0) {
+    await chrome.scripting.unregisterContentScripts({ ids: [INSTA_CSS_SCRIPT_ID] });
+  }
+}
+
+// 쇼츠/인스타 차단 토글이 바뀌는 순간, 이미 열려 있던 탭들은 content.js가 토글 변경 이전
 // 상태로 실행 중이라 새로고침 전까지 리다이렉트/코스메틱 숨김이 적용(또는 해제)되지
-// 않는다 — on/off 어느 쪽으로 바뀌든 열린 유튜브 탭을 자동 새로고침.
+// 않는다 — on/off 어느 쪽으로 바뀌든 열린 탭을 자동 새로고침.
 function _reloadOpenYoutubeTabs() {
   chrome.tabs.query({ url: ["*://*.youtube.com/*"] }, tabs => {
+    tabs.forEach(tab => { if (tab.id !== undefined) chrome.tabs.reload(tab.id); });
+  });
+}
+
+function _reloadOpenInstagramTabs() {
+  chrome.tabs.query({ url: ["*://*.instagram.com/*"] }, tabs => {
     tabs.forEach(tab => { if (tab.id !== undefined) chrome.tabs.reload(tab.id); });
   });
 }
@@ -371,10 +416,14 @@ async function _migrateToSyncV2() {
 chrome.storage.onChanged.addListener((changes) => {
   updateBlockingRules();
   updateShortsCosmetic();
+  updateInstaCosmetic();
   // on↔off 어느 방향이든 토글이 바뀌면 새로고침 (켤 때: 숨김/리다이렉트 즉시 적용,
   // 끌 때: 옛 content.js가 붙잡고 있던 상태 없이 깨끗하게 원복)
   if (changes.shortsBlockEnabled) {
     _reloadOpenYoutubeTabs();
+  }
+  if (changes.instaBlockEnabled) {
+    _reloadOpenInstagramTabs();
   }
 });
 chrome.alarms.create("timeboxTicker", { periodInMinutes: 1 });
@@ -388,12 +437,14 @@ chrome.alarms.onAlarm.addListener(async alarm => {
 chrome.runtime.onStartup.addListener(() => {
   updateBlockingRules();
   updateShortsCosmetic();
+  updateInstaCosmetic();
 });
 chrome.runtime.onInstalled.addListener(async (details) => {
   await _migrateToSync();
   await _migrateToSyncV2();
   updateBlockingRules();
   updateShortsCosmetic();
+  updateInstaCosmetic();
 
   if (details.reason === 'install') {
     // 신규 설치: 옵션 페이지를 자동으로 열어 온보딩 체크리스트(options-init.js)를 바로 보여준다.
@@ -441,7 +492,7 @@ async function shouldUrlBeBlocked(url) {
     return hostname === clean || hostname.endsWith('.' + clean);
   }
 
-  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled']);
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled', 'instaBlockEnabled']);
   const permanentList = data.permanentList || [];
   const permBlocked = permanentList.find(d => matches(d));
   if (permBlocked) return { blocked: true, reason: 'permanent', domain: cleanDomain(permBlocked) };
@@ -480,6 +531,19 @@ async function shouldUrlBeBlocked(url) {
   if (data.shortsBlockEnabled && (hostname === 'youtube.com' || hostname.endsWith('.youtube.com'))) {
     if (urlObj.pathname === '/shorts' || urlObj.pathname.startsWith('/shorts/')) {
       return { blocked: true, reason: 'shorts' };
+    }
+  }
+
+  // 인스타그램 릴스/탐색/게시물 강력 차단 (permanent/pomodoro/general 다음 순위 폴백): 사이드바
+  // 탐색·릴스·검색 아이콘 클릭이나 홈 피드 게시물 클릭으로 SPA 내부 이동하는 경우 DNR이 못
+  // 잡으므로 여기서 한 번 더 처리. reason: 'insta'도 shorts와 동일하게 block.html 없이
+  // 인스타그램 홈으로 직접 리다이렉트한다.
+  if (data.instaBlockEnabled && (hostname === 'instagram.com' || hostname.endsWith('.instagram.com'))) {
+    // startsWith만 쓰면 /reelsguy 같은 사용자명 프로필까지 오매칭되므로, 경로가 정확히
+    // 일치하거나 그 뒤에 '/'가 와야만(하위 경로) 차단 대상으로 인정한다.
+    const pathUnderInsta = base => urlObj.pathname === base || urlObj.pathname.startsWith(base + '/');
+    if (['/explore', '/reels', '/p'].some(pathUnderInsta)) {
+      return { blocked: true, reason: 'insta' };
     }
   }
 
