@@ -89,6 +89,9 @@ body {
 
 /* ── 레이아웃 그리드 ── */
 .block-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+/* 차단 관리 탭 전용: 강력 차단 기능을 왼쪽 세로 사이드바로 빼고, 상시/일반 차단 도메인
+   두 섹터는 원래 폭(가운데 정렬된 2열)을 그대로 유지한다. */
+.block-grid.strong-block-sidebar-grid { grid-template-columns: 280px minmax(0, 1fr) minmax(0, 1fr); }
 /* 설정 탭: 왼쪽 칸(백업/복원 + 기타 설정)을 하나의 grid item으로 묶어 세로로
    쌓음 — 옆 칸(잠금 PIN)이 훨씬 길어도 grid row 높이에 안 끌려가고 두 섹터가
    붙어서 나온다(예전엔 grid auto-flow로 다음 행에 배치돼 PIN 섹터 높이만큼
@@ -458,6 +461,20 @@ button { cursor: pointer; font-family: inherit; }
 #darkModeToggle:checked + .switch-track { background: #111; }
 .switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 0.2s; }
 .switch-label input[type="checkbox"]:checked + .switch-track .switch-thumb { left: 20px; }
+
+/* ── 강력 차단 토글 행 (도메인 주소 박스와 같은 톤으로 통일) ── */
+.strong-block-toggle-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+  background: #f5f5f5; padding: 12px 16px; border-radius: 8px; margin-top: 10px;
+}
+.strong-block-toggle-label { display: flex; align-items: center; font-size: 1.05rem; font-weight: 600; color: #222; }
+.strong-block-checkbox-label {
+  display: flex; align-items: center; gap: 6px; font-size: 0.95rem; font-weight: 500; color: #333;
+  cursor: pointer; user-select: none; flex-shrink: 0;
+}
+.strong-block-checkbox-label input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--tomato); cursor: pointer; margin: 0; }
+.strong-block-checkbox-label input[type="checkbox"]:disabled { cursor: not-allowed; }
+.strong-block-checkbox-label:has(input:disabled) { opacity: 0.45; cursor: not-allowed; }
 #timetableWrap.daily-disabled .donut-container { filter: saturate(0.15) brightness(0.85); transition: filter 0.3s; }
 
 /* ── 통계 탭 ── */
@@ -1288,6 +1305,9 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .sync-status-row-label { color: #a0a0a0; }
 :root[data-theme="dark"] .switch-track { background: #3a3a3a; }
 :root[data-theme="dark"] #darkModeToggle:checked + .switch-track { background: #4a4a4a; }
+:root[data-theme="dark"] .strong-block-toggle-row { background: #242424; }
+:root[data-theme="dark"] .strong-block-toggle-label { color: #f2f2f2; }
+:root[data-theme="dark"] .strong-block-checkbox-label { color: #d0d0d0; }
 
 :root[data-theme="dark"] .stats-heading { color: #f2f2f2; }
 :root[data-theme="dark"] .stats-period-tabs { border-color: #333; }
@@ -1497,7 +1517,39 @@ button { cursor: pointer; font-family: inherit; }
         </li>
       </ul>
     </div>
-    <div class="block-grid">
+    <div class="block-grid strong-block-sidebar-grid">
+
+      <div class="sector">
+        <div class="sector-title">
+          <span data-i18n="strongBlockTitle">강력 차단 기능</span>
+        </div>
+        <p class="sector-desc"><span data-i18n="strongBlockDesc">단순 도메인 차단보다 강력한 차단 방식을 사이트별로 켜고 끌 수 있습니다.</span></p>
+        <div class="strong-block-toggle-row">
+          <span class="strong-block-toggle-label">
+            <span data-i18n="shortsBlockToggleLabel">유튜브 쇼츠 강력 차단</span>
+            <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipShortsBlock">유튜브 홈/사이드바에서 쇼츠 메뉴를 숨기고, 쇼츠 주소로 접근해도 유튜브 홈으로 돌려보냅니다.</span></span>
+          </span>
+          <label class="switch-label">
+            <input type="checkbox" id="shortsBlockToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+        <div class="strong-block-toggle-row">
+          <span class="strong-block-toggle-label">
+            <span data-i18n="instaBlockToggleLabel">인스타그램 강력 차단</span>
+            <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipInstaBlock">탐색/릴스 메뉴는 숨기고, 게시물 상세(/p)를 포함해 해당 주소로 접근해도 인스타그램 홈으로 돌려보냅니다. 알림/만들기/Threads 메뉴와 피드에 노출되는 게시물 전체(추천 여부 무관, 프로필 게시물 그리드 포함)도 숨깁니다. 홈·프로필 화면 자체·더보기·DM·스토리는 그대로 유지됩니다.</span></span>
+          </span>
+          <label class="switch-label">
+            <input type="checkbox" id="instaBlockToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+          <label class="strong-block-checkbox-label">
+            <input type="checkbox" id="instaShowFollowedToggle">
+            <span data-i18n="instaShowFollowedToggleLabel">팔로우한 계정 게시물 표시</span>
+            <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipInstaShowFollowed">추천 게시물/릴스는 계속 숨기되, 팔로우한 계정의 게시물만 홈 피드에 다시 표시합니다. 인스타그램 강력 차단이 켜져 있어야 동작합니다.</span></span>
+          </label>
+        </div>
+      </div>
 
       <div class="sector">
         <div class="sector-title">
@@ -1535,29 +1587,6 @@ button { cursor: pointer; font-family: inherit; }
           <button id="addGeneralBtn" class="btn btn-sm" data-i18n="add">추가</button>
         </div>
         <ul id="generalList" class="domain-list"></ul>
-      </div>
-
-      <div class="sector" style="grid-column: 1 / -1;">
-        <div class="sector-title">
-          <span data-i18n="strongBlockTitle">강력 차단 기능</span>
-        </div>
-        <p class="sector-desc"><span data-i18n="strongBlockDesc">단순 도메인 차단보다 강력한 차단 방식을 사이트별로 켜고 끌 수 있습니다.</span></p>
-        <div class="schedule-toggle-row" style="margin-bottom:0;">
-          <label class="switch-label">
-            <input type="checkbox" id="shortsBlockToggle">
-            <span class="switch-track"><span class="switch-thumb"></span></span>
-            <span data-i18n="shortsBlockToggleLabel">유튜브 쇼츠 강력 차단</span>
-          </label>
-          <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipShortsBlock">유튜브 홈/사이드바에서 쇼츠 메뉴를 숨기고, 쇼츠 주소로 접근해도 유튜브 홈으로 돌려보냅니다.</span></span>
-        </div>
-        <div class="schedule-toggle-row" style="margin-bottom:0;">
-          <label class="switch-label">
-            <input type="checkbox" id="instaBlockToggle">
-            <span class="switch-track"><span class="switch-thumb"></span></span>
-            <span data-i18n="instaBlockToggleLabel">인스타그램 릴스·탐색 강력 차단</span>
-          </label>
-          <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipInstaBlock">탐색/릴스 메뉴는 숨기고, 게시물 상세(/p)를 포함해 해당 주소로 접근해도 인스타그램 홈으로 돌려보냅니다. 알림/만들기/Threads 메뉴와 피드에 노출되는 게시물 전체(추천 여부 무관, 프로필 게시물 그리드 포함)도 숨깁니다. 홈·프로필 화면 자체·더보기·DM·스토리는 그대로 유지됩니다.</span></span>
-        </div>
       </div>
 
     </div>

@@ -206,18 +206,33 @@ async function updateShortsCosmetic() {
 }
 
 async function updateInstaCosmetic() {
-  const { instaBlockEnabled } = await TBBStorage.get(['instaBlockEnabled']);
+  const { instaBlockEnabled, instaShowFollowedPosts } = await TBBStorage.get(['instaBlockEnabled', 'instaShowFollowedPosts']);
   const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [INSTA_CSS_SCRIPT_ID] });
-  if (instaBlockEnabled && registered.length === 0) {
+
+  if (!instaBlockEnabled) {
+    if (registered.length > 0) await chrome.scripting.unregisterContentScripts({ ids: [INSTA_CSS_SCRIPT_ID] });
+    return;
+  }
+
+  // instaShowFollowedPosts(팔로우한 계정 게시물은 홈에 표시)가 켜져 있으면 "모두 확인했습니다"
+  // 카드를 숨기지 않도록 그 규칙만 담은 css 파일을 등록 목록에서 뺀다. JS로 조건부 처리하면
+  // MutationObserver 지연에 따른 플리커링이 재발하므로, 파일 자체를 넣고 빼는 방식으로 순수
+  // CSS의 무지연 이점을 유지한다.
+  const desiredCss = ['strong-block-selectors.css'];
+  if (!instaShowFollowedPosts) desiredCss.push('strong-block-insta-caughtup.css');
+
+  const currentCss = registered[0]?.css || [];
+  const cssChanged = currentCss.length !== desiredCss.length || !desiredCss.every(f => currentCss.includes(f));
+
+  if (registered.length === 0 || cssChanged) {
+    if (registered.length > 0) await chrome.scripting.unregisterContentScripts({ ids: [INSTA_CSS_SCRIPT_ID] });
     await chrome.scripting.registerContentScripts([{
       id: INSTA_CSS_SCRIPT_ID,
       matches: ["*://*.instagram.com/*"],
-      css: ["strong-block-selectors.css"],
+      css: desiredCss,
       js: ["strong-block-selectors.js"],
       runAt: "document_start"
     }]);
-  } else if (!instaBlockEnabled && registered.length > 0) {
-    await chrome.scripting.unregisterContentScripts({ ids: [INSTA_CSS_SCRIPT_ID] });
   }
 }
 
@@ -422,7 +437,7 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.shortsBlockEnabled) {
     _reloadOpenYoutubeTabs();
   }
-  if (changes.instaBlockEnabled) {
+  if (changes.instaBlockEnabled || changes.instaShowFollowedPosts) {
     _reloadOpenInstagramTabs();
   }
 });

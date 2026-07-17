@@ -80,13 +80,9 @@ article {
   display: none !important;
 }
 
-/* "모두 확인했습니다"(팔로우 피드 끝 안내) 카드 숨김 (instaBlockEnabled): 원래
-   strong-block-selectors.js가 이미지 경로로 찾아 JS로 숨겼으나, MutationObserver
-   스로틀(300ms) 때문에 삽입 후 최대 300ms간 화면에 보였다 사라지는 플리커링이 있었음.
-   실제 마크업 기준 이미지가 "카드 div > 콘텐츠 행 div > 이미지 wrapper div > img" 3단
-   고정 깊이로 중첩돼 있는 걸 확인했으므로, 자식 결합자(>)로 그 깊이를 그대로 CSS 선택자에
-   옮겨 JS 없이 document_start 시점부터 즉시 적용되게 함(스로틀 지연이 없어 플리커링 원천
-   차단). 마크업 깊이가 바뀌면 이 선택자도 같이 깨지는 게 알려진 한계. */
-div:has(> div > div > img[src*="illo-confirm-refresh-light"]) {
-  display: none !important;
-}
+/* "모두 확인했습니다" 카드 + "추천 게시물" 헤더 숨김은 strong-block-insta-caughtup.css로
+   분리됨 — instaShowFollowedPosts(팔로우한 계정 게시물은 홈에 표시) 옵션이 켜져 있을 때는
+   그 파일을 registerContentScripts에서 빼서 "모두 확인했습니다" 카드를 그대로 보여준다
+   (background.js의 updateInstaCosmetic() 참고). "추천 게시물" 헤더는 그 경우에도
+   strong-block-selectors.js의 hideFeedSectionMarkers()가 계속 숨긴다(사용자가 요청한
+   범위는 "모두 확인했습니다"만 보이게 하는 것이라 "추천 게시물"은 그대로 숨김 유지). */

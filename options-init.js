@@ -169,13 +169,32 @@ document.addEventListener('DOMContentLoaded', () => {
     TBBStorage.set({ shortsBlockEnabled: e.target.checked });
   });
 
-  // 인스타그램 릴스·탐색 강력 차단 토글
+  // 팔로우한 계정 게시물 표시 (인스타 강력 차단의 하위 옵션) — instaBlockToggle 핸들러가
+  // 참조하므로 먼저 선언.
+  const instaShowFollowedToggle = document.getElementById('instaShowFollowedToggle');
+  TBBStorage.get(['instaShowFollowedPosts'], result => {
+    if (instaShowFollowedToggle) instaShowFollowedToggle.checked = !!result.instaShowFollowedPosts;
+  });
+  instaShowFollowedToggle?.addEventListener('change', e => {
+    TBBStorage.set({ instaShowFollowedPosts: e.target.checked });
+  });
+
+  // 인스타그램 강력 차단 토글
   const instaBlockToggle = document.getElementById('instaBlockToggle');
   TBBStorage.get(['instaBlockEnabled'], result => {
     if (instaBlockToggle) instaBlockToggle.checked = !!result.instaBlockEnabled;
+    if (instaShowFollowedToggle) instaShowFollowedToggle.disabled = !result.instaBlockEnabled;
   });
   instaBlockToggle?.addEventListener('change', e => {
-    TBBStorage.set({ instaBlockEnabled: e.target.checked });
+    const enabled = e.target.checked;
+    const updates = { instaBlockEnabled: enabled };
+    // 꺼질 때만 하위 옵션을 강제 해제(켤 때는 자동 체크 안 함 — 사용자가 직접 선택해야 함).
+    if (!enabled && instaShowFollowedToggle) {
+      instaShowFollowedToggle.checked = false;
+      updates.instaShowFollowedPosts = false;
+    }
+    if (instaShowFollowedToggle) instaShowFollowedToggle.disabled = !enabled;
+    TBBStorage.set(updates);
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -184,6 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (changes.instaBlockEnabled && instaBlockToggle) {
       instaBlockToggle.checked = !!changes.instaBlockEnabled.newValue;
+      if (instaShowFollowedToggle) instaShowFollowedToggle.disabled = !changes.instaBlockEnabled.newValue;
+    }
+    if (changes.instaShowFollowedPosts && instaShowFollowedToggle) {
+      instaShowFollowedToggle.checked = !!changes.instaShowFollowedPosts.newValue;
     }
   });
 

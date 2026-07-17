@@ -1,0 +1,27 @@
+/* strong-block-insta-caughtup.css
+   "모두 확인했습니다"(팔로우 피드 끝 안내) 카드 + 뒤따르는 "추천 게시물" 헤더까지 함께
+   숨김. strong-block-selectors.css와 분리된 별도 파일인 이유: instaShowFollowedPosts
+   (팔로우한 계정 게시물은 홈에 표시) 옵션이 켜져 있을 땐 이 두 요소를 숨기지 않고 그대로
+   보여주고 싶어서 — background.js의 updateInstaCosmetic()가 instaShowFollowedPosts가
+   꺼져 있을 때만 이 파일을 registerContentScripts의 css 배열에 포함시킨다. JS로 조건부
+   처리하면 다시 MutationObserver 지연에 따른 플리커링이 생기므로, 파일 자체를 등록할지
+   말지로 조건을 나눠 순수 CSS의 무지연 이점을 유지한다.
+
+   원래 strong-block-selectors.js가 이미지 경로로 찾아 JS로 숨겼으나, MutationObserver
+   스로틀(300ms) 때문에 삽입 후 최대 300ms간 화면에 보였다 사라지는 플리커링이 있었음.
+   실제 마크업 기준 이미지가 "카드 div > 콘텐츠 행 div > 이미지 wrapper div > img" 3단
+   고정 깊이로 중첩돼 있는 걸 확인했으므로, 자식 결합자(>)로 그 깊이를 그대로 CSS 선택자에
+   옮겨 JS 없이 document_start 시점부터 즉시 적용되게 함(스로틀 지연이 없어 플리커링 원천
+   차단).
+   추가로, "모두 확인했습니다" 카드와 "추천 게시물" 헤더가 공통 부모 div 아래 형제로
+   나란히 있는 구조를 확인해서, 자식 결합자를 한 단계 더 바깥(4단)으로 넓혀 그 공통
+   부모까지 통째로 잡음 — "추천 게시물"은 순수 텍스트라 원래 CSS로 못 잡는 요소인데,
+   이미지가 있는 형제와 부모를 공유한다는 구조적 사실 덕분에 텍스트 매칭 없이도 같이
+   숨길 수 있게 됨(타이밍 지연 없음). 이 구조가 항상 성립한다는 보장은 없어서("모두
+   확인했습니다" 없이 "추천 게시물"만 단독으로 나타나는 경우 등) strong-block-selectors.js의
+   텍스트 매칭 로직(hideFeedSectionMarkers, instaShowFollowedPosts와 무관하게 항상 동작)은
+   안전망으로 별도 유지함. 마크업 깊이가 바뀌면 두 선택자 다 같이 깨지는 게 알려진 한계. */
+div:has(> div > div > div > img[src*="illo-confirm-refresh-light"]),
+div:has(> div > div > img[src*="illo-confirm-refresh-light"]) {
+  display: none !important;
+}
