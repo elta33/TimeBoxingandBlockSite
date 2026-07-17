@@ -51,7 +51,7 @@ body {
   color: #222;
   margin: 0;
   padding: 0;
-  min-width: 900px;
+  min-width: 480px;
 }
 
 /* ── 최상단 앱 헤더 ── */
@@ -1501,6 +1501,31 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .todo-del { color: #555; }
 :root[data-theme="dark"] .todo-del:hover { background: rgba(255,99,71,0.18); }
 :root[data-theme="dark"] .pomo-advanced-btn.pomo-advanced-btn-active:hover { background: #163a54; }
+
+/* ── 반응형 그리드 ──
+   탭 콘텐츠는 420px/320px 같은 고정 px 컬럼을 쓰는 2열 그리드가 많아, 창 폭이
+   좁아지면(작은 디스플레이, 창 분할 등) 옆 칸이 찌그러지거나 가로 스크롤이
+   생겼다. 900px 미만부터는 각 그리드를 1열로 세로 쌓아 폭을 그대로 쓰게 한다
+   (DOM 순서상 폼/입력 요소가 먼저, 결과/시각화가 아래에 오는 순서 유지).
+   body의 min-width도 900px→480px로 낮춰서 이 전환이 실제로 일어나게 했다
+   (기존 900px 고정폭에서는 창이 좁아져도 그리드가 안 바뀌고 그냥 페이지
+   전체에 가로 스크롤바만 생겼었음). */
+@media (max-width: 900px) {
+  .app-header { overflow-x: auto; }
+  .tab-panel { padding: 20px 16px; }
+  .block-grid,
+  .strong-block-banner-grid,
+  .scheduler-grid,
+  .stats-group-grid,
+  .stats-top-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .day-popup-body { grid-template-columns: 1fr; }
+  .day-popup-modal { padding: 20px 16px 16px; }
+}
   </style>
 </head>
 <body>
