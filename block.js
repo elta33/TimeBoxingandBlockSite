@@ -134,13 +134,17 @@ function _statsStreak(streak, dateStr) {
 
 function setSubtitleWithKeyword(el, preKey, keywordKey, postKey) {
   el.textContent = '';
-  const preText = T(preKey);
+  // pre/post는 로케일에 따라 의도적으로 빈 문자열일 수 있다(ko의 permanent/pomodoro는 접두사 없음).
+  // T()는 메시지가 없을 때 키 이름으로 폴백하는데, chrome.i18n.getMessage가 "존재하지만 빈 값"과
+  // "키 자체가 없음"을 구분 안 해줘서 T()를 쓰면 의도된 빈 문자열도 키 이름으로 잘못 대체된다.
+  // 그래서 여기서는 폴백 없이 원본 값을 그대로 쓰고, 비어 있으면 아예 붙이지 않는다.
+  const preText = chrome.i18n.getMessage(preKey);
   if (preText) el.appendChild(document.createTextNode(preText));
   const span = document.createElement('span');
   span.className = 'reason-keyword';
   span.textContent = T(keywordKey);
   el.appendChild(span);
-  const postText = T(postKey);
+  const postText = chrome.i18n.getMessage(postKey);
   if (postText) el.appendChild(document.createTextNode(postText));
 }
 
