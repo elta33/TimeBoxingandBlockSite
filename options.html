@@ -89,9 +89,11 @@ body {
 
 /* ── 레이아웃 그리드 ── */
 .block-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-/* 차단 관리 탭 전용: 강력 차단 기능을 왼쪽 세로 사이드바로 빼고, 상시/일반 차단 도메인
-   두 섹터는 원래 폭(가운데 정렬된 2열)을 그대로 유지한다. */
-.block-grid.strong-block-sidebar-grid { grid-template-columns: 280px minmax(0, 1fr) minmax(0, 1fr); }
+/* 차단 관리 탭 전용: 강력 차단 기능은 상단에 가로로 펼친 카드(좌 유튜브/우 인스타
+   2열)로 두고, 그 아래 상시/일반 차단 도메인 두 섹터를 동일 폭 2열로 배치한다. */
+.strong-block-banner { margin-bottom: 20px; }
+.strong-block-banner-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
+.strong-block-banner-grid .strong-block-toggle-row { height: 100%; }
 /* 설정 탭: 왼쪽 칸(백업/복원 + 기타 설정)을 하나의 grid item으로 묶어 세로로
    쌓음 — 옆 칸(잠금 PIN)이 훨씬 길어도 grid row 높이에 안 끌려가고 두 섹터가
    붙어서 나온다(예전엔 grid auto-flow로 다음 행에 배치돼 PIN 섹터 높이만큼
@@ -771,6 +773,12 @@ button { cursor: pointer; font-family: inherit; }
 }
 
 /* ── 포모도로 타이머 ── */
+/* 설정 영역(프리셋/작업·휴식·반복 입력/고급설정) — 타이머 실행 중엔 접어서
+   실행 상태(디스플레이+컨트롤)에 집중하게 한다. 내부 콘텐츠 높이를 몰라도
+   되는 grid-template-rows 1fr↔0fr 트릭으로 부드럽게 접고 편다. */
+.pomo-config-area { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.25s ease, opacity 0.2s ease; opacity: 1; }
+.pomo-config-area.collapsed { grid-template-rows: 0fr; opacity: 0; }
+.pomo-config-inner { overflow: hidden; min-height: 0; }
 .pomo-settings-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
 .pomo-setting { display: flex; align-items: center; gap: 3px; color: #555; font-size: 0.9rem; }
 .pomo-setting label { font-size: 0.76rem; font-weight: 600; color: #444; white-space: nowrap; }
@@ -1517,13 +1525,12 @@ button { cursor: pointer; font-family: inherit; }
         </li>
       </ul>
     </div>
-    <div class="block-grid strong-block-sidebar-grid">
-
-      <div class="sector">
-        <div class="sector-title">
-          <span data-i18n="strongBlockTitle">강력 차단 기능</span>
-        </div>
-        <p class="sector-desc"><span data-i18n="strongBlockDesc">단순 도메인 차단보다 강력한 차단 방식을 사이트별로 켜고 끌 수 있습니다.</span></p>
+    <div class="sector strong-block-banner">
+      <div class="sector-title">
+        <span data-i18n="strongBlockTitle">강력 차단 기능</span>
+      </div>
+      <p class="sector-desc"><span data-i18n="strongBlockDesc">단순 도메인 차단보다 강력한 차단 방식을 사이트별로 켜고 끌 수 있습니다.</span></p>
+      <div class="strong-block-banner-grid">
         <div class="strong-block-toggle-row">
           <span class="strong-block-toggle-label">
             <span data-i18n="shortsBlockToggleLabel">유튜브 쇼츠 강력 차단</span>
@@ -1550,6 +1557,9 @@ button { cursor: pointer; font-family: inherit; }
           </label>
         </div>
       </div>
+    </div>
+
+    <div class="block-grid">
 
       <div class="sector">
         <div class="sector-title">
@@ -1696,6 +1706,9 @@ button { cursor: pointer; font-family: inherit; }
       <div class="sector">
         <div class="sector-title" data-i18n="pomoTimerSettings">타이머 설정</div>
 
+        <div class="pomo-config-area" id="pomoConfigArea">
+        <div class="pomo-config-inner">
+
         <div class="pomo-preset-strip-wrap" id="pomoPresetStripWrap">
           <div class="pomo-preset-strip-head">
             <span class="pomo-preset-strip-label" data-i18n="pomoPresets">프리셋</span>
@@ -1747,6 +1760,9 @@ button { cursor: pointer; font-family: inherit; }
         </div>
 
         <p class="pomo-advanced-summary" id="pomoAdvancedSummary" style="display:none;"></p>
+
+        </div>
+        </div>
 
         <div class="pomo-display" id="pomoDisplay">
           <div class="pomo-preset-save-row pomo-display-save-row" id="pomoPresetSaveRow">

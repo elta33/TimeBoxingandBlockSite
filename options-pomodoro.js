@@ -581,6 +581,8 @@ function updatePomoDisplay(state, settings, overrides) {
   const settingsBtns = ['workDecrBtn','workIncrBtn','restDecrBtn','restIncrBtn','cyclesDecrBtn','cyclesIncrBtn','pomoWorkVal','pomoRestVal','pomoCyclesVal','pomoSavePresetBtn','pomoAdvancedBtn','pomoPresetEditBtn'];
   settingsBtns.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isActive; });
   document.getElementById('pomoPresetList')?.classList.toggle('pomo-preset-list-disabled', isActive);
+
+  document.getElementById('pomoConfigArea')?.classList.toggle('collapsed', isActive);
 }
 
 function _previewPomoDisplay(previewPhase, secs, cycles) {
