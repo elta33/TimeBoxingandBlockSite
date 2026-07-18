@@ -1952,6 +1952,10 @@ button { cursor: pointer; font-family: inherit; }
             <button id="importBtn" class="btn" data-i18n="importBtn">불러오기 (Import)</button>
             <input type="file" id="importFile" accept=".json" style="display:none;">
           </div>
+          <label style="display:flex; align-items:center; gap:7px; font-size:0.84rem; color:#888; margin-bottom:10px; cursor:pointer;">
+            <input type="checkbox" id="exportIncludeImages" style="margin:0; cursor:pointer;">
+            <span data-i18n="exportIncludeImages">차단 화면 배경 이미지 포함 (파일 크기가 커질 수 있음)</span>
+          </label>
           <p style="font-size:0.82rem; color:#bbb; margin:0;" data-i18n="importOverwriteNote">불러오기는 기존 데이터를 완전히 덮어씁니다.</p>
         </div>
 

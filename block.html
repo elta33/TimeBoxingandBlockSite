@@ -270,11 +270,27 @@
       border-color: rgba(255,255,255,0.3);
     }
 
+    /* 그리드 트랙(0fr→1fr)을 트랜지션시켜 auto 높이까지 부드럽게 펼쳐지도록 한다 —
+       display:none/block 토글은 애니메이션이 불가능해서 이 방식으로 바꿈.
+       min-height:0인 내부 래퍼(.cust-quote-input-inner) 하나만 자식으로 둬야
+       grid-template-rows가 그 한 트랙에 정확히 대응해 접힌다. */
     .cust-quote-input-area {
-      margin-top: 10px;
-      display: none;
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.28s ease;
     }
-    .cust-quote-input-area.open { display: block; }
+    .cust-quote-input-area.open { grid-template-rows: 1fr; }
+    .cust-quote-input-inner {
+      overflow: hidden;
+      min-height: 0;
+      padding-top: 10px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .cust-quote-input-area.open .cust-quote-input-inner {
+      opacity: 1;
+      transition: opacity 0.25s ease 0.06s;
+    }
     .cust-quote-input-area textarea {
       width: 100%;
       min-height: 72px;
@@ -391,11 +407,6 @@
       justify-content: space-between;
       gap: 10px;
     }
-    #customize-popup.selecting-mode .sel-confirm-bar { display: flex; }
-    #customize-popup.selecting-mode #addLinkBtn {
-      border-color: rgba(255,160,80,0.45);
-      color: rgba(255,185,110,0.9);
-    }
     .sel-status {
       font-size: 0.79rem;
       color: rgba(255,255,255,0.52);
@@ -417,9 +428,56 @@
     .sel-complete-btn:hover:not(:disabled) { background: rgba(99,179,237,0.32); }
     .sel-complete-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-    /* ──────────────── 선택 모드 ──────────────── */
-    #customize-popup.selecting-mode.img-selected   #imageList .cust-item:not(.sel-selected):not(.sel-disabled) { opacity: 0.4; }
-    #customize-popup.selecting-mode.quote-selected #quoteList .cust-item:not(.sel-selected):not(.sel-disabled) { opacity: 0.4; }
+    /* ──────────────── 링크용 이미지·인용구 선택 모달 ──────────────── */
+    /* 커스텀 팝업(#customize-backdrop, z-index 200) 위에 겹쳐 뜨는 별도 모달.
+       구조/톤은 #customize-popup과 동일하게 맞추고 z-index만 더 높였다. */
+    #link-select-backdrop {
+      position: fixed; inset: 0; z-index: 220;
+      background: rgba(0,0,0,0.78);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    #link-select-backdrop.open { opacity: 1; pointer-events: auto; }
+    #link-select-popup {
+      position: relative;
+      background: #1e1e2e;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 28px 28px 24px;
+      width: min(680px, 92vw);
+      max-height: 85vh;
+      overflow-y: auto;
+      color: #fff;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.65);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+    }
+    #link-select-popup::-webkit-scrollbar { width: 6px; }
+    #link-select-popup::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+    #link-select-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 28px; height: 28px;
+      background: rgba(255,255,255,0.1);
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 1rem; line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    #link-select-close:hover { background: rgba(255,255,255,0.22); }
+    #link-select-popup h2 {
+      margin: 0 0 20px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      padding-right: 36px;
+    }
+    #link-select-popup .sel-confirm-bar { display: flex; margin-top: 16px; }
+
+    /* ──────────────── 선택 강조 ──────────────── */
+    #link-select-popup.img-selected   #linkSelectImageList .cust-item:not(.sel-selected):not(.sel-disabled) { opacity: 0.4; }
+    #link-select-popup.quote-selected #linkSelectQuoteList .cust-item:not(.sel-selected):not(.sel-disabled) { opacity: 0.4; }
     .cust-item.sel-disabled  { opacity: 0.2 !important; cursor: not-allowed !important; }
     .cust-item.sel-selected  { outline: 2px solid rgba(99,179,237,0.85); background: rgba(99,179,237,0.1); opacity: 1 !important; }
 
@@ -538,10 +596,6 @@
         </div>
         <div class="cust-list" id="linkList"></div>
         <button class="cust-add-btn" id="addLinkBtn" data-i18n="custAddLink">+ 링크 추가</button>
-        <div class="sel-confirm-bar">
-          <span class="sel-status" id="selStatus"></span>
-          <button class="sel-complete-btn" id="selCompleteBtn" disabled data-i18n="custSelComplete">선택 완료</button>
-        </div>
       </div>
 
       <hr class="cust-divider">
@@ -568,11 +622,41 @@
           <div class="cust-list" id="quoteList"></div>
           <button class="cust-add-btn" id="addQuoteBtn" data-i18n="custAddQuote">+ 문구 추가</button>
           <div class="cust-quote-input-area" id="quoteInputArea">
-            <textarea id="quoteInput" data-i18n-placeholder="custQuotePlaceholder" placeholder="문구를 입력하세요… (Enter로 추가)"></textarea>
-            <button class="cust-quote-confirm" id="quoteConfirm" data-i18n="custQuoteConfirm">추가</button>
+            <div class="cust-quote-input-inner">
+              <textarea id="quoteInput" data-i18n-placeholder="custQuotePlaceholder" placeholder="문구를 입력하세요… (Enter로 추가)"></textarea>
+              <button class="cust-quote-confirm" id="quoteConfirm" data-i18n="custQuoteConfirm">추가</button>
+            </div>
           </div>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- 링크용 이미지·인용구 선택 모달 -->
+  <div id="link-select-backdrop">
+    <div id="link-select-popup">
+      <button id="link-select-close" data-i18n-title="close">×</button>
+      <h2 data-i18n="custLinkSelectTitle">이미지 · 인용구 선택</h2>
+
+      <div class="cust-grid">
+        <div class="cust-col">
+          <div class="cust-col-header">
+            <span data-i18n="custBgImages">배경 이미지</span>
+          </div>
+          <div class="cust-list" id="linkSelectImageList"></div>
+        </div>
+        <div class="cust-col">
+          <div class="cust-col-header">
+            <span data-i18n="custQuotes">인용구</span>
+          </div>
+          <div class="cust-list" id="linkSelectQuoteList"></div>
+        </div>
+      </div>
+
+      <div class="sel-confirm-bar">
+        <span class="sel-status" id="selStatus"></span>
+        <button class="sel-complete-btn" id="selCompleteBtn" disabled data-i18n="custSelComplete">선택 완료</button>
       </div>
     </div>
   </div>

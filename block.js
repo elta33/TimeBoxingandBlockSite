@@ -309,10 +309,89 @@ function renderLinkList() {
 }
 
 // ─────────────────────────────────────────────
-// 렌더링: 이미지 목록
+// 렌더링: 이미지 목록 (관리용 — 커스텀 팝업의 배경 이미지 칸)
 // ─────────────────────────────────────────────
 function renderImageList() {
   const list = document.getElementById('imageList');
+  list.innerHTML = '';
+
+  if (!_imgs.length) {
+    const empty = document.createElement('div');
+    empty.className = 'cust-list-empty';
+    empty.textContent = T('custNoImages');
+    list.appendChild(empty);
+    return;
+  }
+
+  _imgs.forEach((img, i) => {
+    const src = getImgSrc(img);
+
+    const item = document.createElement('div');
+    item.className = 'cust-item clickable';
+
+    const thumb = document.createElement('img');
+    thumb.className = 'cust-thumb';
+    thumb.src = src || '';
+    thumb.alt = img.name;
+
+    const name = document.createElement('span');
+    name.className = 'cust-item-name';
+    name.title = img.name;
+    name.textContent = img.name;
+
+    const del = document.createElement('button');
+    del.className = 'cust-del';
+    del.textContent = '×';
+    del.title = T('delete');
+    del.addEventListener('click', e => { e.stopPropagation(); deleteImage(i); });
+
+    item.append(thumb, name, del);
+    item.addEventListener('click', () => { if (src) openImagePreview(src); });
+
+    list.appendChild(item);
+  });
+}
+
+// ─────────────────────────────────────────────
+// 렌더링: 인용구 목록 (관리용 — 커스텀 팝업의 인용구 칸)
+// ─────────────────────────────────────────────
+function renderQuoteList() {
+  const list = document.getElementById('quoteList');
+  list.innerHTML = '';
+
+  if (!_quotes.length) {
+    const empty = document.createElement('div');
+    empty.className = 'cust-list-empty';
+    empty.textContent = T('custNoQuotes');
+    list.appendChild(empty);
+    return;
+  }
+
+  _quotes.forEach((q, i) => {
+    const item = document.createElement('div');
+    item.className = 'cust-item';
+
+    const text = document.createElement('span');
+    text.className = 'cust-item-name';
+    text.title = q;
+    text.textContent = q;
+
+    const del = document.createElement('button');
+    del.className = 'cust-del';
+    del.textContent = '×';
+    del.title = T('delete');
+    del.addEventListener('click', e => { e.stopPropagation(); deleteQuote(i); });
+
+    item.append(text, del);
+    list.appendChild(item);
+  });
+}
+
+// ─────────────────────────────────────────────
+// 렌더링: 링크 선택 모달의 이미지/인용구 목록 (선택 전용 — 삭제·미리보기 없음)
+// ─────────────────────────────────────────────
+function renderLinkSelectImageList() {
+  const list = document.getElementById('linkSelectImageList');
   list.innerHTML = '';
 
   if (!_imgs.length) {
@@ -333,7 +412,7 @@ function renderImageList() {
     const item = document.createElement('div');
     item.className = 'cust-item clickable'
       + (isSelected ? ' sel-selected' : '')
-      + (isLinked && _selectingMode ? ' sel-disabled' : '');
+      + (isLinked ? ' sel-disabled' : '');
 
     const thumb = document.createElement('img');
     thumb.className = 'cust-thumb';
@@ -345,33 +424,20 @@ function renderImageList() {
     name.title = img.name;
     name.textContent = img.name;
 
-    const del = document.createElement('button');
-    del.className = 'cust-del';
-    del.textContent = '×';
-    del.title = T('delete');
-    del.addEventListener('click', e => { e.stopPropagation(); deleteImage(i); });
-
-    item.append(thumb, name, del);
+    item.append(thumb, name);
     item.addEventListener('click', () => {
-      if (_selectingMode) {
-        if (isLinked) return;
-        _selImg = (_selImg === i) ? null : i;
-        updateSelStatus();
-        renderImageList();
-      } else {
-        if (src) openImagePreview(src);
-      }
+      if (isLinked) return;
+      _selImg = (_selImg === i) ? null : i;
+      updateSelStatus();
+      renderLinkSelectImageList();
     });
 
     list.appendChild(item);
   });
 }
 
-// ─────────────────────────────────────────────
-// 렌더링: 인용구 목록
-// ─────────────────────────────────────────────
-function renderQuoteList() {
-  const list = document.getElementById('quoteList');
+function renderLinkSelectQuoteList() {
+  const list = document.getElementById('linkSelectQuoteList');
   list.innerHTML = '';
 
   if (!_quotes.length) {
@@ -389,32 +455,22 @@ function renderQuoteList() {
     const isSelected = _selQuote === i;
 
     const item = document.createElement('div');
-    item.className = 'cust-item'
-      + (_selectingMode ? ' clickable' : '')
+    item.className = 'cust-item clickable'
       + (isSelected ? ' sel-selected' : '')
-      + (isLinked && _selectingMode ? ' sel-disabled' : '');
+      + (isLinked ? ' sel-disabled' : '');
 
     const text = document.createElement('span');
     text.className = 'cust-item-name';
     text.title = q;
     text.textContent = q;
 
-    const del = document.createElement('button');
-    del.className = 'cust-del';
-    del.textContent = '×';
-    del.title = T('delete');
-    del.addEventListener('click', e => { e.stopPropagation(); deleteQuote(i); });
-
-    item.append(text, del);
-
-    if (_selectingMode) {
-      item.addEventListener('click', () => {
-        if (isLinked) return;
-        _selQuote = (_selQuote === i) ? null : i;
-        updateSelStatus();
-        renderQuoteList();
-      });
-    }
+    item.appendChild(text);
+    item.addEventListener('click', () => {
+      if (isLinked) return;
+      _selQuote = (_selQuote === i) ? null : i;
+      updateSelStatus();
+      renderLinkSelectQuoteList();
+    });
 
     list.appendChild(item);
   });
@@ -486,7 +542,7 @@ document.getElementById('img-preview-backdrop').addEventListener('click', () => 
 // 선택 모드
 // ─────────────────────────────────────────────
 function updateSelStatus() {
-  const popup = document.getElementById('customize-popup');
+  const popup = document.getElementById('link-select-popup');
   popup.classList.toggle('img-selected',   _selImg   !== null);
   popup.classList.toggle('quote-selected', _selQuote !== null);
 
@@ -499,31 +555,31 @@ function updateSelStatus() {
   status.textContent = T('custSelStatus', [imgLabel, quoteLabel]);
 }
 
+// 링크 선택은 커스텀 팝업 위에 겹쳐 뜨는 별도 모달(#link-select-backdrop)에서 이뤄진다 —
+// 기존엔 같은 팝업 안에서 이미지/인용구 목록을 흐리게 하는 방식이었으나, 그 선택 로직
+// (강조/비활성화/선택 완료 판정)은 그대로 두고 렌더 대상만 모달 전용 목록으로 옮겼다.
 function enterSelectionMode() {
   _selectingMode = true;
   _selImg   = null;
   _selQuote = null;
-  document.getElementById('customize-popup').classList.add('selecting-mode');
-  document.getElementById('addLinkBtn').textContent = T('custCancelLink');
   updateSelStatus();
-  renderImageList();
-  renderQuoteList();
+  renderLinkSelectImageList();
+  renderLinkSelectQuoteList();
+  document.getElementById('link-select-backdrop').classList.add('open');
 }
 
 function exitSelectionMode() {
   _selectingMode = false;
   _selImg   = null;
   _selQuote = null;
-  const popup = document.getElementById('customize-popup');
-  popup.classList.remove('selecting-mode', 'img-selected', 'quote-selected');
-  document.getElementById('addLinkBtn').textContent = T('custAddLink');
-  renderImageList();
-  renderQuoteList();
+  document.getElementById('link-select-backdrop').classList.remove('open');
+  document.getElementById('link-select-popup').classList.remove('img-selected', 'quote-selected');
 }
 
-document.getElementById('addLinkBtn').addEventListener('click', () => {
-  if (_selectingMode) exitSelectionMode();
-  else                enterSelectionMode();
+document.getElementById('addLinkBtn').addEventListener('click', enterSelectionMode);
+document.getElementById('link-select-close').addEventListener('click', exitSelectionMode);
+document.getElementById('link-select-backdrop').addEventListener('click', e => {
+  if (e.target === e.currentTarget) exitSelectionMode();
 });
 
 document.getElementById('selCompleteBtn').addEventListener('click', () => {
