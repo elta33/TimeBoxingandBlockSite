@@ -88,7 +88,7 @@ function _todoUpdateHeader() {
   const badge = document.getElementById('todoBadge');
   if (badge) {
     const done  = _todos.filter(t => t.done).length;
-    badge.textContent = `완료 ${done}/${_todos.length}`;
+    badge.textContent = T('todoBadge', [String(done), String(_todos.length)]);
   }
   const count = document.getElementById('todoTriggerCount');
   if (count) {
@@ -106,7 +106,7 @@ function _todoRender() {
   if (!undone.length) {
     const e = document.createElement('div');
     e.className = 'todo-empty';
-    e.textContent = '할 일이 없습니다.';
+    e.textContent = T('todoEmpty');
     list.appendChild(e);
     return;
   }
@@ -121,7 +121,7 @@ function _todoDoneRender() {
   if (!done.length) {
     const e = document.createElement('div');
     e.className = 'todo-empty';
-    e.textContent = '완료된 항목이 없습니다.';
+    e.textContent = T('todoDoneEmpty');
     list.appendChild(e);
     return;
   }
@@ -146,7 +146,7 @@ function _makeTodoRow(id, text, done) {
   const del = document.createElement('button');
   del.className = 'todo-del';
   del.innerHTML = '&times;';
-  del.title = '삭제';
+  del.title = T('delete');
   del.addEventListener('click', e => { e.stopPropagation(); _todoDelete(id); });
 
   row.append(cb, label, del);
@@ -191,7 +191,7 @@ function _todoDelete(id) {
 
 function _todoClearUndone() {
   if (!_todos.some(t => !t.done)) return;
-  if (!confirm('미완료 할 일을 모두 삭제하시겠습니까?')) return;
+  if (!confirm(T('todoConfirmClearUndone'))) return;
   _todos = _todos.filter(t => t.done);
   _todoSave();
   _todoUpdateHeader();
@@ -200,7 +200,7 @@ function _todoClearUndone() {
 
 function _todoClearDone() {
   if (!_todos.some(t => t.done)) return;
-  if (!confirm('완료된 항목을 모두 삭제하시겠습니까?')) return;
+  if (!confirm(T('todoConfirmClearDone'))) return;
   _todos = _todos.filter(t => !t.done);
   _todoSave();
   _todoUpdateHeader();

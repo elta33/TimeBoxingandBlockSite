@@ -64,8 +64,8 @@ function _updateAdvancedFeedback(settings, overrides) {
     if (diffs.length) {
       const cycles = diffs.map(d => d.cycle).sort((a, b) => a - b);
       summary.textContent = cycles.length <= 3
-        ? `${cycles.join(', ')}${T('pomoAdvancedDiffLineSuffix')}`
-        : `${cycles.length}${T('pomoAdvancedDiffCountSuffix')}`;
+        ? T(cycles.length === 1 ? 'pomoAdvancedDiffLineOne' : 'pomoAdvancedDiffLine', [cycles.join(', ')])
+        : T('pomoAdvancedDiffCount', [String(cycles.length)]);
       summary.style.display = '';
     } else {
       summary.style.display = 'none';
@@ -205,14 +205,14 @@ function renderPomoPresets(presets) {
     if (diffs.length) {
       const summary = document.createElement('span');
       summary.className = 'pomo-preset-override-summary';
-      summary.textContent = `${diffs.length}${T('pomoAdvancedDiffCountSuffix')}`;
+      summary.textContent = T(diffs.length === 1 ? 'pomoAdvancedDiffCountOne' : 'pomoAdvancedDiffCount', [String(diffs.length)]);
       li.appendChild(summary);
     }
     const blockCount = ((preset.blockOverrides?.allow || []).length) + ((preset.blockOverrides?.extra || []).length);
     if (blockCount) {
       const domainSummary = document.createElement('span');
       domainSummary.className = 'pomo-preset-override-summary';
-      domainSummary.textContent = `${blockCount}${T('pomoPresetDomainDiffSuffix')}`;
+      domainSummary.textContent = T(blockCount === 1 ? 'pomoPresetDomainDiffOne' : 'pomoPresetDomainDiff', [String(blockCount)]);
       li.appendChild(domainSummary);
     }
     ul.appendChild(li);
@@ -232,14 +232,14 @@ let _advDraftBlockExtra  = []; // string[] — 이 프리셋 전용으로만 차
 let _advMasterDomainList = []; // 체크리스트 렌더링용 스냅샷(전용 추가 도메인은 제외한 마스터 리스트)
 
 function _advCycleLabel(n) {
-  return `${n}${T('pomoAdvancedCycleSuffix')}`;
+  return T('pomoAdvancedCycleLabel', [String(n)]);
 }
 
 function _renderAdvancedBaseText() {
   const el = document.getElementById('pomoAdvancedBaseText');
   if (!el) return;
   const s = _advDraftSettings;
-  el.textContent = `${T('pomoAdvancedBaseLabel')}: ${s.workMins}${T('pomoMin')} / ${s.restMins}${T('pomoMin')} · ${s.cycles}${T('pomoTimes')}`;
+  el.textContent = `${T('pomoAdvancedBaseLabel')}: ${T('pomoMinValue', [String(s.workMins)])} / ${T('pomoMinValue', [String(s.restMins)])} · ${s.cycles}${T('pomoTimes')}`;
 }
 
 function _renderCyclePicker() {

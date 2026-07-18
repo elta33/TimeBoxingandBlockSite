@@ -518,7 +518,7 @@
       <button id="customizeBtn" data-i18n="blockCustomize">차단 화면 커스텀</button>
       <button id="todoTrigger">
         <span class="todo-trigger-icon">☑</span>
-        <span class="todo-trigger-label">할 일</span>
+        <span class="todo-trigger-label" data-i18n="todoTitle">할 일</span>
         <span id="todoTriggerCount" class="todo-trigger-count" style="display:none;"></span>
       </button>
     </div>
@@ -585,24 +585,24 @@
   <!-- Todo 플로팅 패널 -->
   <div id="todoDonePopup">
     <div class="todo-popup-header">
-      <span class="todo-popup-title">완료된 항목</span>
-      <button id="todoDoneClearAllBtn" class="todo-list-meta-btn">모두 삭제</button>
+      <span class="todo-popup-title" data-i18n="todoDoneTitle">완료된 항목</span>
+      <button id="todoDoneClearAllBtn" class="todo-list-meta-btn" data-i18n="todoClearAll">모두 삭제</button>
       <button id="todoDoneCloseBtn" class="todo-close-btn">&times;</button>
     </div>
     <div id="todoDoneList" class="todo-list"></div>
   </div>
   <div id="todoPopup">
     <div class="todo-popup-header">
-      <span class="todo-popup-title">할 일</span>
+      <span class="todo-popup-title" data-i18n="todoTitle">할 일</span>
       <button id="todoBadge" class="todo-badge-btn">완료 0/0</button>
       <button id="todoCloseBtn" class="todo-close-btn">&times;</button>
     </div>
     <div class="todo-input-row">
-      <input type="text" id="todoInput" placeholder="새 할 일 추가…" maxlength="100">
-      <button id="todoAddBtn" class="todo-add-btn">추가</button>
+      <input type="text" id="todoInput" data-i18n-placeholder="todoInputPlaceholder" placeholder="새 할 일 추가…" maxlength="100">
+      <button id="todoAddBtn" class="todo-add-btn" data-i18n="add">추가</button>
     </div>
     <div class="todo-list-meta">
-      <button id="todoClearAllBtn" class="todo-list-meta-btn">모두 삭제</button>
+      <button id="todoClearAllBtn" class="todo-list-meta-btn" data-i18n="todoClearAll">모두 삭제</button>
     </div>
     <div id="todoList" class="todo-list"></div>
   </div>

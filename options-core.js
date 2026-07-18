@@ -32,12 +32,12 @@ function _updatePinUI() {
   if (!badge) return;
   if (_pinEnabled) {
     badge.className = 'pin-status-badge pin-active';
-    badge.textContent = '🔒 PIN 활성화됨 — 삭제·초기화·비활성화 잠김';
+    badge.textContent = T('pinStatusActive');
     if (setup)  setup.style.display  = 'none';
     if (change) change.style.display = 'block';
   } else {
     badge.className = 'pin-status-badge pin-inactive';
-    badge.textContent = 'PIN 미설정 — 잠금 비활성화';
+    badge.textContent = T('pinStatusInactive');
     if (setup)  setup.style.display  = 'block';
     if (change) change.style.display = 'none';
   }
@@ -101,7 +101,7 @@ async function _attemptPinUnlock() {
       _closePinModal();
       if (action) action();
     } else {
-      if (errorEl) errorEl.textContent = 'PIN이 올바르지 않습니다.';
+      if (errorEl) errorEl.textContent = T('pinErrWrong');
       if (input) {
         input.classList.remove('pin-shake');
         void input.offsetWidth;

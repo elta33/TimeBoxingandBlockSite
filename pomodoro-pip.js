@@ -8,7 +8,7 @@ var _timer         = null;
 var _previewActive = false;
 var _previewTimer  = null;
 
-function _advCycleLabel(n) { return n + T('pomoAdvancedCycleSuffix'); }
+function _advCycleLabel(n) { return T('pomoAdvancedCycleLabel', [String(n)]); }
 function _advEffectiveName(item) {
   return (item.name || '').trim() || _advCycleLabel(item.cycle);
 }

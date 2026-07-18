@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (_pinEnabled) {
       const toggle = e.target;
       toggle.checked = !toggle.checked; // 원래 상태 즉시 복원
-      _openPinModal('비활성화', () => {
+      _openPinModal(T('pinActionDisable'), () => {
         toggle.checked = !toggle.checked;
         dailyScheduleEnabled = !toggle.checked;
         TBBStorage.set({ dailyScheduleEnabled });
@@ -320,9 +320,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmPin = document.getElementById('pinNewConfirmInput')?.value || '';
     const errorEl    = document.getElementById('pinSetError');
     const showErr = msg => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
-    if (!newPin)            { showErr('PIN을 입력하세요.'); return; }
-    if (newPin.length < 4)  { showErr('PIN은 4자 이상이어야 합니다.'); return; }
-    if (newPin !== confirmPin) { showErr('PIN이 일치하지 않습니다.'); return; }
+    if (!newPin)            { showErr(T('pinErrEmpty')); return; }
+    if (newPin.length < 4)  { showErr(T('pinErrTooShort')); return; }
+    if (newPin !== confirmPin) { showErr(T('pinErrMismatch')); return; }
     const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
     const hash = await _hashPin(newPin, salt);
     chrome.storage.local.set({ lockPin: { hash, salt, enabled: true } }, () => {
@@ -347,15 +347,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmPin = document.getElementById('pinChangeConfirmInput')?.value || '';
     const errorEl    = document.getElementById('pinChangeError');
     const showErr = msg => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
-    if (!currentPin || !newPin || !confirmPin) { showErr('모든 항목을 입력하세요.'); return; }
-    if (newPin.length < 4)  { showErr('새 PIN은 4자 이상이어야 합니다.'); return; }
-    if (newPin !== confirmPin) { showErr('새 PIN이 일치하지 않습니다.'); return; }
+    if (!currentPin || !newPin || !confirmPin) { showErr(T('pinErrAllRequired')); return; }
+    if (newPin.length < 4)  { showErr(T('pinErrNewTooShort')); return; }
+    if (newPin !== confirmPin) { showErr(T('pinErrNewMismatch')); return; }
     chrome.storage.local.get(['lockPin'], async result => {
       const lp = result.lockPin;
       if (!lp?.hash || !lp?.salt) return;
       const hash = await _hashPin(currentPin, lp.salt);
       if (hash !== lp.hash) {
-        showErr('현재 PIN이 올바르지 않습니다.');
+        showErr(T('pinErrCurrentWrong'));
         document.getElementById('pinCurrentInput').value = '';
         return;
       }
@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // PIN 해제
   document.getElementById('pinRemoveBtn')?.addEventListener('click', () => {
-    _openPinModal('PIN 해제', () => {
+    _openPinModal(T('pinRemoveBtn'), () => {
       chrome.storage.local.set({ lockPin: { hash: '', salt: '', enabled: false } });
     });
   });

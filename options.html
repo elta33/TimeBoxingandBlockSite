@@ -83,7 +83,9 @@ body {
 /* ── 카드(섹터) ── */
 .sector { background: #fff; border-radius: 12px; padding: 22px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 #streakCalSector { position: relative; }
-.sector-title { display: flex; justify-content: space-between; align-items: center; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid #efefef; font-size: 1.5rem; font-weight: 700; color: #111; }
+.sector-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid #efefef; font-size: 1.5rem; font-weight: 700; color: #111; }
+/* note(긴 설명문)와 짝을 이루는 타이틀(현재 잠금 PIN 섹터)만: 타이틀은 한 줄 고정, 설명문이 대신 줄바꿈되게 한다. */
+.sector-title:has(.sector-title-note) > span:not(.sector-title-note) { white-space: nowrap; flex-shrink: 0; }
 .sector-desc { font-size: 0.9rem; color: #888; margin: 0 0 12px; }
 .sector-title-note { font-size: 0.8rem; font-weight: 500; color: #888; text-align: right; }
 
@@ -1671,13 +1673,13 @@ button { cursor: pointer; font-family: inherit; }
         <div id="daySelectRow">
           <div class="form-section-title" style="margin-top:14px;" data-i18n="daySelect">요일 선택</div>
           <div class="day-selector">
-            <input type="checkbox" id="day0" name="days" value="0"><label for="day0">월</label>
-            <input type="checkbox" id="day1" name="days" value="1"><label for="day1">화</label>
-            <input type="checkbox" id="day2" name="days" value="2"><label for="day2">수</label>
-            <input type="checkbox" id="day3" name="days" value="3"><label for="day3">목</label>
-            <input type="checkbox" id="day4" name="days" value="4"><label for="day4">금</label>
-            <input type="checkbox" id="day5" name="days" value="5"><label for="day5">토</label>
-            <input type="checkbox" id="day6" name="days" value="6"><label for="day6">일</label>
+            <input type="checkbox" id="day0" name="days" value="0"><label for="day0" data-i18n="dayMon">월</label>
+            <input type="checkbox" id="day1" name="days" value="1"><label for="day1" data-i18n="dayTue">화</label>
+            <input type="checkbox" id="day2" name="days" value="2"><label for="day2" data-i18n="dayWed">수</label>
+            <input type="checkbox" id="day3" name="days" value="3"><label for="day3" data-i18n="dayThu">목</label>
+            <input type="checkbox" id="day4" name="days" value="4"><label for="day4" data-i18n="dayFri">금</label>
+            <input type="checkbox" id="day5" name="days" value="5"><label for="day5" data-i18n="daySat">토</label>
+            <input type="checkbox" id="day6" name="days" value="6"><label for="day6" data-i18n="daySun">일</label>
           </div>
         </div>
 
@@ -1889,7 +1891,7 @@ button { cursor: pointer; font-family: inherit; }
       <div class="sector stats-pomo-sector">
         <div class="sector-title">
           <span data-i18n="statsPomoTitle">🍅 포모도로 통계</span>
-          <span class="stats-pomo-title-sub">반복 횟수 | 집중 시간</span>
+          <span class="stats-pomo-title-sub" data-i18n="statsPomoTitleSub">반복 횟수 | 집중 시간</span>
         </div>
         <div id="stat-pomo-content"></div>
       </div>
@@ -1911,7 +1913,7 @@ button { cursor: pointer; font-family: inherit; }
         <div class="stats-block-top">
           <div class="stat-block-count">
             <div class="stat-eyebrow" id="stat-block-fixed" data-i18n="statsBlockSub">방어한 접속 시도</div>
-            <div class="stat-value"><span id="stat-block-val">0</span><span class="stat-unit" data-i18n="statsBlockUnit">회</span></div>
+            <div class="stat-value"><span id="stat-block-val">0</span><span id="stat-block-unit" class="stat-unit"></span></div>
             <div class="stat-sub" id="stat-block-period" data-i18n="statsBlockCount">차단 횟수</div>
           </div>
           <div class="stats-block-domains">
@@ -1927,7 +1929,7 @@ button { cursor: pointer; font-family: inherit; }
             <svg id="stat-heatmap" viewBox="0 0 220 70" width="100%" style="display:block;overflow:visible;margin-top:4px"></svg>
           </div>
           <div class="stats-heatmap-labels">
-            <span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>23시</span>
+            <span data-i18n="statsHeatmapH0">0시</span><span data-i18n="statsHeatmapH6">6시</span><span data-i18n="statsHeatmapH12">12시</span><span data-i18n="statsHeatmapH18">18시</span><span data-i18n="statsHeatmapH23">23시</span>
           </div>
         </div>
       </div>
@@ -1976,33 +1978,33 @@ button { cursor: pointer; font-family: inherit; }
 
       <div class="sector">
         <div class="sector-title">
-          <span>잠금 PIN</span>
-          <span class="sector-title-note">PIN을 설정하면 박스 삭제·초기화·스케줄 비활성화에 인증이 필요합니다.</span>
+          <span data-i18n="pinSectionTitle">잠금 PIN</span>
+          <span class="sector-title-note" data-i18n="pinSectionNote">PIN을 설정하면 박스 삭제·초기화·스케줄 비활성화에 인증이 필요합니다.</span>
         </div>
-        <p class="sector-desc">PIN은 이 기기(로컬)에서만 유효합니다.</p>
-        <div id="pinStatusBadge" class="pin-status-badge pin-inactive">PIN 미설정 — 잠금 비활성화</div>
+        <p class="sector-desc" data-i18n="pinSectionDesc">PIN은 이 기기(로컬)에서만 유효합니다.</p>
+        <div id="pinStatusBadge" class="pin-status-badge pin-inactive" data-i18n="pinStatusInactive">PIN 미설정 — 잠금 비활성화</div>
 
         <div id="pinSetupSection">
-          <div class="pin-section-label">새 PIN 설정</div>
+          <div class="pin-section-label" data-i18n="pinSetupLabel">새 PIN 설정</div>
           <div class="pin-input-group">
-            <input type="password" id="pinNewInput" placeholder="새 PIN (4자 이상)" maxlength="20" autocomplete="new-password">
-            <input type="password" id="pinNewConfirmInput" placeholder="PIN 확인" maxlength="20" autocomplete="new-password">
+            <input type="password" id="pinNewInput" data-i18n-placeholder="pinNewPlaceholder" placeholder="새 PIN (4자 이상)" maxlength="20" autocomplete="new-password">
+            <input type="password" id="pinNewConfirmInput" data-i18n-placeholder="pinConfirmPlaceholder" placeholder="PIN 확인" maxlength="20" autocomplete="new-password">
           </div>
           <div id="pinSetError" class="pin-form-error"></div>
-          <button class="btn" id="pinSetBtn" style="width:100%;margin-top:10px;">PIN 등록</button>
+          <button class="btn" id="pinSetBtn" style="width:100%;margin-top:10px;" data-i18n="pinSetBtn">PIN 등록</button>
         </div>
 
         <div id="pinChangeSection" style="display:none;">
-          <div class="pin-section-label">PIN 변경</div>
+          <div class="pin-section-label" data-i18n="pinChangeLabel">PIN 변경</div>
           <div class="pin-input-group">
-            <input type="password" id="pinCurrentInput" placeholder="현재 PIN" maxlength="20" autocomplete="current-password">
-            <input type="password" id="pinChangeNewInput" placeholder="새 PIN" maxlength="20" autocomplete="new-password">
-            <input type="password" id="pinChangeConfirmInput" placeholder="새 PIN 확인" maxlength="20" autocomplete="new-password">
+            <input type="password" id="pinCurrentInput" data-i18n-placeholder="pinCurrentPlaceholder" placeholder="현재 PIN" maxlength="20" autocomplete="current-password">
+            <input type="password" id="pinChangeNewInput" data-i18n-placeholder="pinChangeNewPlaceholder" placeholder="새 PIN" maxlength="20" autocomplete="new-password">
+            <input type="password" id="pinChangeConfirmInput" data-i18n-placeholder="pinChangeConfirmPlaceholder" placeholder="새 PIN 확인" maxlength="20" autocomplete="new-password">
           </div>
           <div id="pinChangeError" class="pin-form-error"></div>
           <div class="pin-btns-row">
-            <button class="btn" id="pinChangeBtn" style="flex:1;">변경</button>
-            <button class="btn-danger" id="pinRemoveBtn" style="flex:1;padding:10px 16px;">PIN 해제</button>
+            <button class="btn" id="pinChangeBtn" style="flex:1;" data-i18n="pinChangeBtn">변경</button>
+            <button class="btn-danger" id="pinRemoveBtn" style="flex:1;padding:10px 16px;" data-i18n="pinRemoveBtn">PIN 해제</button>
           </div>
         </div>
       </div>
@@ -2059,13 +2061,13 @@ button { cursor: pointer; font-family: inherit; }
   <div id="pinModalOverlay" class="pin-modal-overlay" style="display:none;">
     <div class="pin-modal">
       <div class="pin-modal-lock-icon">🔒</div>
-      <div class="pin-modal-title">잠금 해제</div>
-      <div class="pin-modal-sub">PIN을 입력하세요</div>
-      <input type="password" id="pinModalInput" class="pin-modal-input" placeholder="PIN" maxlength="20" autocomplete="off">
+      <div class="pin-modal-title" data-i18n="pinModalTitle">잠금 해제</div>
+      <div class="pin-modal-sub" data-i18n="pinModalSub">PIN을 입력하세요</div>
+      <input type="password" id="pinModalInput" class="pin-modal-input" data-i18n-placeholder="pinModalPlaceholder" placeholder="PIN" maxlength="20" autocomplete="off">
       <div id="pinModalError" class="pin-modal-error"></div>
       <div class="pin-modal-footer">
-        <button id="pinModalCancelBtn" class="btn-ghost">취소</button>
-        <button id="pinModalConfirmBtn" class="btn">확인</button>
+        <button id="pinModalCancelBtn" class="btn-ghost" data-i18n="cancelEdit">취소</button>
+        <button id="pinModalConfirmBtn" class="btn" data-i18n="pinModalConfirm">확인</button>
       </div>
     </div>
   </div>
@@ -2167,30 +2169,30 @@ button { cursor: pointer; font-family: inherit; }
   <!-- Todo 플로팅 패널 -->
   <div id="todoDonePopup">
     <div class="todo-popup-header">
-      <span class="todo-popup-title">완료된 항목</span>
-      <button id="todoDoneClearAllBtn" class="todo-list-meta-btn">모두 삭제</button>
+      <span class="todo-popup-title" data-i18n="todoDoneTitle">완료된 항목</span>
+      <button id="todoDoneClearAllBtn" class="todo-list-meta-btn" data-i18n="todoClearAll">모두 삭제</button>
       <button id="todoDoneCloseBtn" class="todo-close-btn">&times;</button>
     </div>
     <div id="todoDoneList" class="todo-list"></div>
   </div>
   <div id="todoPopup">
     <div class="todo-popup-header">
-      <span class="todo-popup-title">할 일</span>
+      <span class="todo-popup-title" data-i18n="todoTitle">할 일</span>
       <button id="todoBadge" class="todo-badge-btn">완료 0/0</button>
       <button id="todoCloseBtn" class="todo-close-btn">&times;</button>
     </div>
     <div class="todo-input-row">
-      <input type="text" id="todoInput" placeholder="새 할 일 추가…" maxlength="100">
-      <button id="todoAddBtn" class="todo-add-btn">추가</button>
+      <input type="text" id="todoInput" data-i18n-placeholder="todoInputPlaceholder" placeholder="새 할 일 추가…" maxlength="100">
+      <button id="todoAddBtn" class="todo-add-btn" data-i18n="add">추가</button>
     </div>
     <div class="todo-list-meta">
-      <button id="todoClearAllBtn" class="todo-list-meta-btn">모두 삭제</button>
+      <button id="todoClearAllBtn" class="todo-list-meta-btn" data-i18n="todoClearAll">모두 삭제</button>
     </div>
     <div id="todoList" class="todo-list"></div>
   </div>
   <button id="todoTrigger">
     <span class="todo-trigger-icon">☑</span>
-    <span class="todo-trigger-label">할 일</span>
+    <span class="todo-trigger-label" data-i18n="todoTitle">할 일</span>
     <span id="todoTriggerCount" class="todo-trigger-count" style="display:none;"></span>
   </button>
 

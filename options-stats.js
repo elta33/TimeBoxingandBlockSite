@@ -5,6 +5,12 @@
 
 let _statsPeriod = 'today';
 
+// 차단 횟수 단위: 한국어는 "회", 영어는 단위 없이 숫자만(빈 문자열).
+// T()는 빈 메시지를 키 이름으로 폴백하므로, 여기서는 폴백 없이 getMessage를 직접 쓴다.
+function _blockUnit() {
+  return chrome.i18n.getMessage('statsBlockUnit');
+}
+
 function _statsTodayStr() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -139,7 +145,7 @@ function _renderBlockBarChart(allEvents, period) {
           dn.textContent = domain;
           const cnt = document.createElement('span');
           cnt.className = 'stats-bar-popover-count';
-          cnt.textContent = count + T('statsBlockUnit');
+          cnt.textContent = count + _blockUnit();
           row.append(dn, cnt);
           popover.appendChild(row);
         });
@@ -248,7 +254,7 @@ function _renderTopDomains(filteredEvents) {
 
     const countEl = document.createElement('span');
     countEl.className = 'stats-rank-count';
-    countEl.textContent = count + T('statsBlockUnit');
+    countEl.textContent = count + _blockUnit();
 
     li.append(rank, info, countEl);
     listEl.appendChild(li);
@@ -405,7 +411,7 @@ function _renderHeatmap(allEvents, period) {
 
     hit.addEventListener('mouseenter', () => {
       rect.style.filter = 'brightness(1.2)';
-      popover.textContent = `${h}:00 — ${display}${T('statsBlockUnit')}`;
+      popover.textContent = `${h}:00 — ${display}${_blockUnit()}`;
       popover.style.display = 'block';
 
       const barRect  = rect.getBoundingClientRect();
@@ -691,6 +697,8 @@ function renderStats(period) {
           })();
       const total = filtered.reduce((s, e) => s + (e.blocks || []).length, 0);
       blockVal.textContent = total;
+      const blockUnitEl = document.getElementById('stat-block-unit');
+      if (blockUnitEl) blockUnitEl.textContent = _blockUnit();
       const pSuffix = _statsPeriod === 'today' ? '' : _statsPeriod;
       if (blockFixed)  blockFixed.textContent  = T('statsBlockSub');
       if (blockPeriod) blockPeriod.textContent = T('statsBlockCount' + pSuffix);
