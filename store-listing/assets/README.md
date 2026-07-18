@@ -8,29 +8,38 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 |------|------|------|------|
 | 스토어 아이콘 | 128×128 PNG | 필수 | ✅ `icons/icon128.png` |
 | 스크린샷 | 1280×800 **또는** 640×400 PNG/JPEG, 1~5장 | 최소 1장 필수 | ⬜ 사용자 캡처 필요 (아래) |
-| 작은 프로모션 타일 | 440×280 PNG/JPEG | 선택(권장) | ✅ `promo-small-240... → promo-small-440x280.png` |
+| 작은 프로모션 타일 | 440×280 PNG/JPEG | 선택(권장) | ✅ `promo-small-440x280.png`(EN) · `promo-small-440x280.ko.png`(KO) |
 | 마퀴 프로모션 타일 | 1400×560 | 선택 | ⬜ 미제작 (필요 시 동일 방식으로 생성 가능) |
 
 > 스토어 아이콘은 등록 시 **512×512** 원본 업로드가 요구되는 경우가 있음(대시보드가 128로 리사이즈). 현재 최대 소스가 128이므로, 512 원본이 필요하면 벡터/고해상도 원본에서 재추출할 것.
 
 ## 1. 작은 프로모션 타일 (완료)
 
-- 결과물: `promo-small-440x280.png` (정확히 440×280)
-- 소스: `promo-small-440x280.source.html` (실제 `icons/icon128.png`를 base64 임베드, 브랜드 팔레트 `styles/tokens.css`의 tomato/navy 기반)
+- 결과물:
+  - EN(기본): `promo-small-440x280.png` — "Block sites. / Own your time." · `Timeboxing · Website blocker · Pomodoro · Stats`
+  - KO(ko 로케일 병행 시): `promo-small-440x280.ko.png` — "차단하고, / 시간의 주인이 되세요." · `타임박싱 · 웹사이트 차단 · 포모도로 · 통계`
+- **디자인 원본(source of truth): Claude Design 프로젝트** "FocusBox 프로모션 타일 디자인"의 `Promo Tile 440x280.dc.html`. 레이아웃/색/폰트 변경은 거기서 하고, 아래 정적 HTML로 export(바인딩 해석)해서 렌더한다.
+- 로컬 소스(렌더용): `promo-small-440x280.source.html`(EN) / `promo-small-440x280.ko.source.html`(KO). 둘 다 실제 `icons/icon128.png`를 base64 임베드하며, 문구만 다르고 레이아웃·색·아이콘·워드마크는 동일하다.
+- 디자인 스펙(현행): 배경 플랫 `#10141f`, 액센트 tomato `#ff6347`(본체 `styles/tokens.css`와 통일), 폰트 **Sora**(워드마크·슬로건)+**Manrope**(서브라인, Google Fonts), 상단우측 톤링+하단좌측 화이트링+tomato 액센트 아크.
+- 스토어 default language가 English이므로 **EN 타일이 기본 제출본**. KO 타일은 리스팅을 ko 로케일로 병행 등록할 때만 사용.
 
 ### 재생성 방법 (Windows / headless Chrome)
 
 ```bash
+# EN, KO 각각. <SP>는 OneDrive 밖의 임시 폴더(예: %TEMP%\...\scratchpad)
 "C:/Program Files/Google/Chrome/Application/chrome.exe" \
   --headless=new --disable-gpu --no-first-run --hide-scrollbars \
-  --force-device-scale-factor=1 --user-data-dir="<임시폴더>/cr-profile" \
-  --window-size=440,280 \
-  --screenshot="promo-small-440x280.png" \
-  "promo-small-440x280.source.html"
+  --force-device-scale-factor=1 --user-data-dir="<SP>/cr-profile" \
+  --virtual-time-budget=4000 --window-size=440,280 \
+  --screenshot="<SP>/en.png" \
+  "<이 폴더의 절대경로>/promo-small-440x280.source.html"
+# 그 뒤 <SP>/en.png → promo-small-440x280.png 로 복사 (KO도 동일)
 ```
 
 - `--window-size`가 정확한 출력 픽셀을 결정한다. 다른 크기(예: 1400×560 마퀴)가 필요하면 HTML의 `.tile`/`html,body` 크기와 `--window-size`를 함께 바꾸면 된다.
+- **폰트는 Google Fonts(Sora/Manrope)를 렌더 시점에 네트워크로 받는다.** `--virtual-time-budget`(ms)을 주지 않으면 스크린샷이 폰트 로드 전에 찍혀 fallback(맨 시스템 sans)으로 나온다. 오프라인/결정론이 필요하면 woff2를 base64로 `@font-face` 임베드할 것. (한글은 Sora에 글리프가 없어 시스템 한글 폰트로 fallback되는 게 정상)
 - `--user-data-dir`을 별도 지정하지 않으면 실행 중인 실제 Chrome과 프로필이 충돌해 "액세스 거부"로 저장이 실패한다(경험적으로 확인됨).
+- 추가로, `--screenshot` 출력 경로를 **OneDrive 동기화 폴더 안**으로 직접 지정하면 헤드리스 Chrome이 "액세스 거부(0x5)"로 저장 실패하는 경우가 있다. OneDrive 밖(임시 폴더)에 저장한 뒤 복사할 것.
 
 ## 2. 스크린샷 (사용자 작업 필요)
 
@@ -55,7 +64,7 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 
 ### 2-2. 1280×800 합성 (원하면 Claude가 대행)
 
-raw 캡처를 주면, 위 브랜드 톤(navy 배경 + tomato 액센트)으로 캡션을 얹은
+raw 캡처를 주면, 프로모션 타일과 같은 톤(`#10141f` 배경 + tomato `#ff6347` 액센트, Sora/Manrope)으로 캡션을 얹은
 1280×800 타일로 합성해 `screenshots/`에 만들 수 있다. 캡션 초안은
 `store-listing/store-description.md`의 "스크린샷 캡션 제안" 참고.
 
