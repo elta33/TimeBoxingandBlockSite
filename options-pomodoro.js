@@ -101,10 +101,12 @@ function renderPomoList(list, override) {
     const span = document.createElement('span');
     span.textContent = domain; span.title = domain; span.className = 'domain-text';
     const del = _makeTrashButton(T('delete'), () => {
-      TBBStorage.get(['pomodoroList'], r => {
-        const arr = r.pomodoroList || [];
-        arr.splice(i, 1);
-        TBBStorage.set({ pomodoroList: arr }, loadPomoData);
+      animateShrinkAndRemove(li, () => {
+        TBBStorage.get(['pomodoroList'], r => {
+          const arr = r.pomodoroList || [];
+          arr.splice(i, 1);
+          TBBStorage.set({ pomodoroList: arr }, loadPomoData);
+        });
       });
     });
     li.append(span, del);
@@ -397,8 +399,10 @@ function _renderAdvancedDomainPanel() {
     left.append(tag, span);
 
     const del = _makeTrashButton(T('delete'), () => {
-      _advDraftBlockExtra.splice(idx, 1);
-      _renderAdvancedDomainPanel();
+      animateShrinkAndRemove(li, () => {
+        _advDraftBlockExtra.splice(idx, 1);
+        _renderAdvancedDomainPanel();
+      });
     });
 
     li.append(left, del);

@@ -8,6 +8,53 @@ function polarToXY(cx, cy, r, angleDeg) {
 
 let dayViewClockInterval = null;
 
+// ── 도넛 세그먼트 기하 상수 + 경로 계산 (renderDayView 안의 실제 렌더링과 동일한 값을 쓰되,
+// 박스 추가/편집 애니메이션이 렌더 함수 밖에서도 같은 경로를 다시 계산할 수 있도록 전역으로 분리) ──
+const DONUT_CX = 260, DONUT_CY = 260, DONUT_R_OUTER = 175, DONUT_R_INNER = 108;
+function makeDonutSegPath(startMins, endMins) {
+  if ((endMins - startMins) >= TOTAL_MINS) return null;
+  const a1 = minsToAngle(startMins), a2 = minsToAngle(endMins);
+  const p1 = polarToXY(DONUT_CX, DONUT_CY, DONUT_R_OUTER, a1), p2 = polarToXY(DONUT_CX, DONUT_CY, DONUT_R_OUTER, a2);
+  const p3 = polarToXY(DONUT_CX, DONUT_CY, DONUT_R_INNER, a2), p4 = polarToXY(DONUT_CX, DONUT_CY, DONUT_R_INNER, a1);
+  const large = (endMins - startMins) > TOTAL_MINS / 2 ? 1 : 0;
+  return `M ${p1.x} ${p1.y} A ${DONUT_R_OUTER} ${DONUT_R_OUTER} 0 ${large} 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${DONUT_R_INNER} ${DONUT_R_INNER} 0 ${large} 0 ${p4.x} ${p4.y} Z`;
+}
+
+// ── 박스 추가: 세그먼트가 생성 위치(자기 중심)에서부터 확장되는 애니메이션 ──
+function animateDonutGrow(wrap, boxIndex) {
+  const seg = wrap?.querySelector(`.donut-seg[data-box-index="${boxIndex}"]`);
+  if (!seg) return;
+  seg.classList.remove('donut-seg-grow');
+  void seg.getBoundingClientRect();
+  seg.classList.add('donut-seg-grow');
+}
+
+// ── 박스 편집: 시작/종료 시간이 바뀐 만큼 세그먼트 길이가 부드럽게 늘어나거나 줄어드는 애니메이션 ──
+// 새 렌더가 이미 최종 모양으로 그려진 세그먼트를 찾아, 일단 이전 모양으로 되돌린 뒤
+// 최종 모양까지 부드럽게(easeInOutCubic) 되돌아가는 방식으로 모핑한다.
+function animateDonutResize(wrap, boxIndex, oldStartTime, oldEndTime, newStartTime, newEndTime, duration = 320) {
+  const seg = wrap?.querySelector(`.donut-seg[data-box-index="${boxIndex}"]`);
+  if (!seg || seg.tagName !== 'path') return; // 24시간 박스(circle)는 모핑 대상에서 제외
+  let os = timeToMins(oldStartTime), oe = timeToMins(oldEndTime);
+  if (oe <= os) oe += TOTAL_MINS;
+  let ns = timeToMins(newStartTime), ne = timeToMins(newEndTime);
+  if (ne <= ns) ne += TOTAL_MINS;
+  if (oe - os >= TOTAL_MINS || ne - ns >= TOTAL_MINS) return; // 24시간 박스로 전환되거나 이탈하는 경우는 모핑하지 않고 최종 모양 그대로 둠
+  if (os === ns && oe === ne) return;
+  const oldD = makeDonutSegPath(os, oe);
+  if (!oldD) return;
+  seg.setAttribute('d', oldD);
+  const t0 = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - t0) / duration);
+    const e = easeInOutCubic(t);
+    const d = makeDonutSegPath(os + (ns - os) * e, oe + (ne - oe) * e);
+    if (d) seg.setAttribute('d', d);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 function renderDayView(boxes, wrap, onEditBox) {
   if (dayViewClockInterval) { clearInterval(dayViewClockInterval); dayViewClockInterval = null; }
 
@@ -255,10 +302,14 @@ function renderDayView(boxes, wrap, onEditBox) {
     delBoxBtn.className = 'btn-danger btn-sm' + (_pinEnabled ? ' pin-locked' : '');
     delBoxBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('donutDeleteBox');
     delBoxBtn.onclick = () => {
+      const doDelete = () => {
+        const seg = segGroup.querySelector(`.donut-seg[data-box-index="${boxIndex}"]`);
+        animateShrinkAndRemove(seg, () => deleteBox(boxIndex), 220, 'donut-seg-shrink');
+      };
       if (_pinEnabled) {
-        _openPinModal(T('delete'), () => deleteBox(boxIndex));
+        _openPinModal(T('delete'), doDelete);
       } else {
-        deleteBox(boxIndex);
+        doDelete();
       }
     };
     btnGroup.appendChild(delBoxBtn);
@@ -460,16 +511,6 @@ function renderDayView(boxes, wrap, onEditBox) {
 
   wrap._pulseBox = pulseBox;
 
-  // ── 도넛 세그먼트 path 생성 ──
-  function makeSegPath(startMins, endMins, rOuter, rInner) {
-    if ((endMins - startMins) >= TOTAL_MINS) return null;
-    const a1 = minsToAngle(startMins), a2 = minsToAngle(endMins);
-    const p1 = polarToXY(CX, CY, rOuter, a1), p2 = polarToXY(CX, CY, rOuter, a2);
-    const p3 = polarToXY(CX, CY, rInner, a2), p4 = polarToXY(CX, CY, rInner, a1);
-    const large = (endMins - startMins) > TOTAL_MINS / 2 ? 1 : 0;
-    return `M ${p1.x} ${p1.y} A ${rOuter} ${rOuter} 0 ${large} 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${rInner} ${rInner} 0 ${large} 0 ${p4.x} ${p4.y} Z`;
-  }
-
   // ── 세그먼트 생성 및 이벤트 바인딩 ──
   boxes.forEach((box, i) => {
     const startM = timeToMins(box.startTime);
@@ -488,7 +529,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       seg.setAttribute('stroke-width', R_OUTER - R_INNER);
       seg.setAttribute('opacity', '0.85');
     } else {
-      const pathD = makeSegPath(startM, endM, R_OUTER, R_INNER);
+      const pathD = makeDonutSegPath(startM, endM);
       seg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       seg.setAttribute('d', pathD);
       seg.setAttribute('fill', color); seg.setAttribute('opacity', '0.85');

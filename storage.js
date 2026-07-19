@@ -115,15 +115,29 @@ function deleteCustomDomain(boxIndex, cdIndex, onDone) {
   });
 }
 
-// ── 리스트 전체 초기화 ──
+// ── 리스트 전체 초기화 (모든 항목이 한 점으로 뭉치며 소멸한 뒤 실제로 지운다) ──
 function clearAll(storageKey, confirmMsg, inputIdsToClear, options) {
   const skipConfirm = options?.skipConfirm || false;
   if (!skipConfirm && !confirm(confirmMsg)) return;
-  TBBStorage.set({ [storageKey]: [] }, () => {
-    if (inputIdsToClear) inputIdsToClear.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    if (storageKey === 'dailyBoxes' || storageKey === 'weeklyBoxes') {
-      if (_editingBoxIndex !== null) exitBoxEditMode(); else { stagingCustomDomains = []; renderStagingList(); }
-    }
-    loadSettings();
-  });
+
+  const doClear = () => {
+    TBBStorage.set({ [storageKey]: [] }, () => {
+      if (inputIdsToClear) inputIdsToClear.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      if (storageKey === 'dailyBoxes' || storageKey === 'weeklyBoxes') {
+        if (_editingBoxIndex !== null) exitBoxEditMode(); else { stagingCustomDomains = []; renderStagingList(); }
+      }
+      loadSettings();
+    });
+  };
+
+  let targets = [];
+  if (storageKey === 'generalList' || storageKey === 'permanentList') {
+    targets = Array.from(document.querySelectorAll(`#${storageKey} .custom-domain-item`));
+  } else if (storageKey === 'dailyBoxes' || storageKey === 'weeklyBoxes') {
+    const wrap = document.getElementById('timetableWrap');
+    if (wrap) targets = Array.from(wrap.querySelectorAll('.tbox, .donut-seg'));
+  }
+
+  if (targets.length > 0) animateConvergeAndVanish(targets, doClear);
+  else doClear();
 }

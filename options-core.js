@@ -249,7 +249,7 @@ function renderList(elementId, items, storageKey, warnId) {
     const span = document.createElement('span');
     span.textContent = item; span.title = item; span.className = 'domain-text';
     li.appendChild(span);
-    const delBtn = _makeTrashButton(T('delete'), () => deleteItem(storageKey, index));
+    const delBtn = _makeTrashButton(T('delete'), () => animateShrinkAndRemove(li, () => deleteItem(storageKey, index)));
     li.appendChild(delBtn);
     ul.appendChild(li);
   });
@@ -341,7 +341,7 @@ function createCustomDomainItemUI(domain, mode, idPrefix, elType, onDelete) {
   modeBadge.textContent = T('allow');
   controls.appendChild(modeBadge);
 
-  const delBtn = _makeTrashButton(T('delete'), (e) => { e.stopPropagation(); onDelete(); });
+  const delBtn = _makeTrashButton(T('delete'), (e) => { e.stopPropagation(); animateShrinkAndRemove(item, onDelete); });
   controls.appendChild(delBtn);
 
   item.appendChild(controls);
@@ -434,6 +434,42 @@ function animateNewListItem(ul) {
   } else {
     playGrow();
   }
+}
+
+// ── 삭제: 축소되며 사라지는 애니메이션 ──
+// 요소(들)에 축소+페이드 애니메이션을 재생한 뒤 onDone을 호출한다. 실제 storage 삭제는
+// onDone 안에서 일어나므로, 화면에서 사라지는 연출이 끝난 뒤에야 데이터가 지워진다.
+// 도메인 리스트 항목(li), 타임박스 카드(.tbox)는 기본 className(domain-item-remove, border-box
+// 기준 자기 중심 축소)을 쓰고, 도넛 세그먼트(svg path/circle)는 fill-box 기준으로 정확히
+// 자기 중심으로 축소하는 'donut-seg-shrink'를 넘겨서 쓴다.
+function animateShrinkAndRemove(elements, onDone, duration = 200, className = 'domain-item-remove') {
+  const els = (Array.isArray(elements) ? elements : [elements]).filter(Boolean);
+  if (els.length === 0) { if (onDone) onDone(); return; }
+  els.forEach(el => {
+    el.classList.remove(className);
+    void el.getBoundingClientRect();
+    el.classList.add(className);
+  });
+  setTimeout(() => { if (onDone) onDone(); }, duration);
+}
+
+// ── 전체 초기화: 모든 항목이 한 점(평균 중심)으로 뭉치며 소멸하는 애니메이션 ──
+function animateConvergeAndVanish(elements, onDone, duration = 380) {
+  const els = (elements || []).filter(Boolean);
+  if (els.length === 0) { if (onDone) onDone(); return; }
+  const rects = els.map(el => el.getBoundingClientRect());
+  const cx = rects.reduce((s, r) => s + r.left + r.width / 2, 0) / rects.length;
+  const cy = rects.reduce((s, r) => s + r.top + r.height / 2, 0) / rects.length;
+  els.forEach((el, i) => {
+    const r = rects[i];
+    const dx = cx - (r.left + r.width / 2);
+    const dy = cy - (r.top + r.height / 2);
+    el.classList.add('clear-converge');
+    void el.offsetWidth;
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(0)`;
+    el.style.opacity = '0';
+  });
+  setTimeout(() => { if (onDone) onDone(); }, duration);
 }
 
 // ── 겹침 강조: 링 형태로 번지는 플래시 연출 ──
@@ -534,10 +570,14 @@ function buildBoxCard(box, boxIndex, isWeek) {
     delBtn.title = T('deleteBoxTitle');
     delBtn.onclick = (e) => {
       e.stopPropagation();
+      const doDelete = () => {
+        const els = document.querySelectorAll(`.tbox[data-box-index="${boxIndex}"]`);
+        animateShrinkAndRemove([...els], () => deleteBox(boxIndex));
+      };
       if (_pinEnabled) {
-        _openPinModal(T('delete'), () => deleteBox(boxIndex));
+        _openPinModal(T('delete'), doDelete);
       } else {
-        deleteBox(boxIndex);
+        doDelete();
       }
     };
     card.appendChild(delBtn);
@@ -614,9 +654,12 @@ function renderWeekDetailPanel(box, boxIndex) {
   delBoxBtn.textContent = (_pinEnabled ? '🔒 ' : '') + T('donutDeleteBox');
   delBoxBtn.onclick = () => {
     const doDelete = () => {
-      deleteBox(boxIndex);
-      panel.style.display = 'none';
-      panel.dataset.openIndex = '';
+      const els = document.querySelectorAll(`.tbox[data-box-index="${boxIndex}"]`);
+      animateShrinkAndRemove([...els], () => {
+        deleteBox(boxIndex);
+        panel.style.display = 'none';
+        panel.dataset.openIndex = '';
+      });
     };
     if (_pinEnabled) {
       _openPinModal(T('delete'), doDelete);
@@ -963,10 +1006,15 @@ function openDayPopup(dow, dayLabel, allBoxes) {
       }
 
       const color = popupColorPickerCtl ? popupColorPickerCtl.get() : BOX_COLOR_DEFAULT;
-      if (_popupEditingBoxIndex !== null) {
+      const wasEditing = _popupEditingBoxIndex !== null;
+      const oldBox = wasEditing ? { ...boxes[_popupEditingBoxIndex] } : null;
+      let savedBoxIndex;
+      if (wasEditing) {
         boxes[_popupEditingBoxIndex] = { name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains], color };
+        savedBoxIndex = _popupEditingBoxIndex;
       } else {
         boxes.push({ name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains], color });
+        savedBoxIndex = boxes.length - 1;
       }
       TBBStorage.set({ [boxKey]: boxes }, () => {
         currentBoxes = boxes;
@@ -975,6 +1023,11 @@ function openDayPopup(dow, dayLabel, allBoxes) {
         refreshDonut();
         // 메인 주간 뷰도 갱신
         renderBoxes(boxes);
+        if (wasEditing && oldBox) {
+          animateDonutResize(wrap, savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
+        } else {
+          animateDonutGrow(wrap, savedBoxIndex);
+        }
       });
     });
   });
@@ -1333,13 +1386,18 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
     }
 
     const color = boxColorPickerCtl ? boxColorPickerCtl.get() : BOX_COLOR_DEFAULT;
-    if (_editingBoxIndex !== null) {
+    const wasEditing = _editingBoxIndex !== null;
+    const oldBox = wasEditing ? { ...boxes[_editingBoxIndex] } : null;
+    let savedBoxIndex;
+    if (wasEditing) {
       boxes[_editingBoxIndex] = { name, startTime, endTime, mode: 'block', days: currentView === 'week' ? days : [], customDomains: [...stagingCustomDomains], color };
+      savedBoxIndex = _editingBoxIndex;
     } else {
       const daysToSave = currentView === 'week' ? days : [null];
       daysToSave.forEach(day => {
         boxes.push({ name, startTime, endTime, mode: 'block', days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains], color });
       });
+      savedBoxIndex = boxes.length - 1;
     }
     TBBStorage.set({ [boxKey]: boxes }, () => {
       exitBoxEditMode();
@@ -1349,6 +1407,14 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
         renderList('generalList',   result.generalList   || [], 'generalList',   'generalWarn');
         renderList('permanentList', result.permanentList || [], 'permanentList', 'permanentWarn');
         renderBoxes(result[key] || [], topMins);
+        if (currentView === 'day') {
+          const dayWrap = document.getElementById('timetableWrap');
+          if (wasEditing && oldBox) {
+            animateDonutResize(dayWrap, savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
+          } else {
+            animateDonutGrow(dayWrap, savedBoxIndex);
+          }
+        }
       });
     });
   });

@@ -252,6 +252,33 @@ button { cursor: pointer; font-family: inherit; }
 }
 .domain-item-grow { animation: domainItemGrow 0.26s ease-out; transform-origin: center center; }
 
+/* ── 삭제: 축소되며 사라짐 (도메인 항목 / 타임박스 카드 / 도넛 세그먼트 공용) ── */
+@keyframes domainItemShrink {
+  from { transform: scale(1);    opacity: 1; }
+  to   { transform: scale(0.35); opacity: 0; }
+}
+.domain-item-remove { animation: domainItemShrink 0.2s ease-in forwards; transform-origin: center center; pointer-events: none; }
+
+/* ── 전체 초기화: 모든 항목이 한 점으로 뭉치며 소멸 ── */
+.clear-converge {
+  transition: transform 0.38s cubic-bezier(0.55, 0, 0.85, 0.35), opacity 0.34s ease-in;
+  pointer-events: none;
+}
+
+/* ── 도넛 세그먼트: 생성 시 자기 위치 중앙에서 확장, 삭제 시 자기 위치 중앙으로 축소 ──
+   transform-box: fill-box로 세그먼트 자신의 바운딩 박스 중심을 기준점으로 고정한다
+   (지정하지 않으면 SVG 기본값은 뷰포트 기준이라 도넛 전체 중심으로 이동해버림). */
+@keyframes donutSegGrow {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes donutSegShrink {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(0); opacity: 0; }
+}
+.donut-seg-grow   { transform-box: fill-box; transform-origin: center; animation: donutSegGrow 0.32s ease-out; }
+.donut-seg-shrink { transform-box: fill-box; transform-origin: center; animation: donutSegShrink 0.22s ease-in forwards; pointer-events: none; }
+
 /* ── 박스 추가 폼 내부 레이블 행 ── */
 .form-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 .form-label { font-size: 0.82rem; color: #666; width: 64px; flex-shrink: 0; }
