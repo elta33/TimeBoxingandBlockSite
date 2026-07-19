@@ -472,6 +472,61 @@ function animateConvergeAndVanish(elements, onDone, duration = 380) {
   setTimeout(() => { if (onDone) onDone(); }, duration);
 }
 
+// ── 박스 추가(일주일 뷰): 자기 위치 중앙에서부터 확장되는 애니메이션 ──
+// 도메인 리스트와 같은 domain-item-grow를 재사용 — .tbox는 일반 HTML 요소라
+// transform-origin의 기준 박스(border-box)가 자기 자신이라 그대로 중심 확장으로 동작한다.
+function animateGrowElements(elements, className = 'domain-item-grow') {
+  const els = (Array.isArray(elements) ? elements : [elements]).filter(Boolean);
+  els.forEach(el => {
+    el.classList.remove(className);
+    void el.getBoundingClientRect();
+    el.classList.add(className);
+  });
+}
+
+// ── 요일 배열이 순서 무관하게 같은 집합인지 비교 (일주일 뷰 박스 편집 시 리사이즈
+// 애니메이션을 적용해도 되는 케이스인지 판단하는 데 사용 — 요일이 바뀌면 렌더되는
+// 컬럼(조각) 수 자체가 달라지므로 모핑 대신 즉시 최종 모습으로 넘어간다) ──
+function _sameDaySet(a, b) {
+  const sa = [...(a || [])].sort().join(',');
+  const sb = [...(b || [])].sort().join(',');
+  return sa === sb;
+}
+
+// ── 박스 편집(일주일 뷰): 시간이 바뀐 만큼 카드 높이/위치가 부드럽게 늘어나거나 줄어드는 애니메이션 ──
+// 이미 최종 위치/높이로 그려진 카드를 잠깐 이전 모양으로 되돌린 뒤 새 모양까지 트랜지션한다.
+// 자정을 넘기거나(2조각) 24시간 박스인 경우는 조각 구조가 달라질 수 있어 모핑하지 않는다.
+function animateWeekResize(wrapEl, boxIndex, oldStartTime, oldEndTime, newStartTime, newEndTime, duration = 300) {
+  const els = [...(wrapEl?.querySelectorAll(`.tbox[data-box-index="${boxIndex}"]`) || [])];
+  if (els.length === 0) return;
+  const os = timeToMins(oldStartTime), oe = timeToMins(oldEndTime);
+  const ns = timeToMins(newStartTime), ne = timeToMins(newEndTime);
+  if (oe <= os || ne <= ns) return; // 자정 넘김/24시간 박스는 스킵
+  const oldTop = minsToPx(os), oldHeight = Math.max(minsToPx(oe - os) - 3, 20);
+  const newTop = minsToPx(ns), newHeight = Math.max(minsToPx(ne - ns) - 3, 20);
+  if (oldTop === newTop && oldHeight === newHeight) return;
+  els.forEach(el => {
+    el.style.transition = 'none';
+    el.style.top = `${oldTop}px`;
+    el.style.height = `${oldHeight}px`;
+    void el.getBoundingClientRect();
+    el.style.transition = `top ${duration}ms ease-in-out, height ${duration}ms ease-in-out`;
+    el.style.top = `${newTop}px`;
+    el.style.height = `${newHeight}px`;
+    el.addEventListener('transitionend', () => { el.style.transition = ''; }, { once: true });
+  });
+}
+
+// ── 스크롤 컨테이너 안의 특정 요소를 화면 중앙으로 이즈인아웃 스크롤 포커싱 ──
+function scrollElementToCenter(scrollContainer, el, duration = 500) {
+  if (!scrollContainer || !el) return;
+  const elRect = el.getBoundingClientRect();
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const elTopInScroll = scrollContainer.scrollTop + (elRect.top - containerRect.top);
+  const target = Math.max(0, elTopInScroll - (scrollContainer.clientHeight - el.offsetHeight) / 2);
+  smoothScrollTo(scrollContainer, target, duration);
+}
+
 // ── 겹침 강조: 링 형태로 번지는 플래시 연출 ──
 function flashElements(els, className = 'focus-flash', duration = 1400) {
   els.forEach(el => {
@@ -594,6 +649,9 @@ function buildBoxCard(box, boxIndex, isWeek) {
       }
       document.querySelectorAll(`.tbox[data-box-index="${boxIndex}"]`).forEach(el => el.classList.add('selected'));
       renderWeekDetailPanel(box, boxIndex);
+      // 선택한 박스가 스크롤 영역 중앙에 오도록 이즈인아웃 포커싱
+      const scrollBody = card.closest('.week-scroll-body');
+      if (scrollBody) scrollElementToCenter(scrollBody, card);
     });
     return card;
   }
@@ -1090,7 +1148,7 @@ function getWeekOrder() {
 }
 
 // ── 주간 뷰 렌더링 ──
-function renderWeekView(boxes, wrap, scrollToMins) {
+function renderWeekView(boxes, wrap, scrollToMins, onSettled) {
   if (weekViewClockInterval) { clearInterval(weekViewClockInterval); weekViewClockInterval = null; }
   const weekOrder = getWeekOrder();
   const todayDow  = new Date().getDay();
@@ -1188,17 +1246,25 @@ function renderWeekView(boxes, wrap, scrollToMins) {
   scrollBody.addEventListener('scroll', () => { wrap._weekScrollTop = scrollBody.scrollTop; }, { passive: true });
 
   if (scrollToMins !== undefined) {
-    requestAnimationFrame(() => { scrollBody.scrollTop = Math.max(0, minsToPx(scrollToMins) - 40); });
+    // 박스 추가/수정 직후 해당 시간대로 이동 — 이즈인아웃으로 부드럽게 스크롤한 뒤,
+    // 끝나면 onSettled(추가/수정 강조 애니메이션 트리거)를 호출한다.
+    // 리렌더로 새로 만들어진 스크롤 컨테이너는 항상 scrollTop 0에서 시작하므로, 애니메이션을
+    // 시작하기 직전에 직전 스크롤 위치로 먼저 맞춰둔다. 이 스냅을 안 하면 0으로 순간 이동했다가
+    // 다시 내려오는 것처럼 보이는 깜빡임이 생긴다(직전 위치가 목표보다 아래일 때 특히 두드러짐).
+    requestAnimationFrame(() => {
+      if (wrap._weekScrollTop !== undefined) scrollBody.scrollTop = wrap._weekScrollTop;
+      smoothScrollTo(scrollBody, Math.max(0, minsToPx(scrollToMins) - 40), 550, onSettled);
+    });
   } else if (wrap._weekScrollTop !== undefined) {
-    requestAnimationFrame(() => { scrollBody.scrollTop = wrap._weekScrollTop; });
+    requestAnimationFrame(() => { scrollBody.scrollTop = wrap._weekScrollTop; if (onSettled) onSettled(); });
   } else {
     const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
-    requestAnimationFrame(() => { scrollBody.scrollTop = Math.max(0, minsToPx(nowMins) - 260); });
+    requestAnimationFrame(() => { scrollBody.scrollTop = Math.max(0, minsToPx(nowMins) - 260); if (onSettled) onSettled(); });
   }
 }
 
 // ── 뷰 디스패처 ──
-function renderBoxes(boxes, scrollToMins) {
+function renderBoxes(boxes, scrollToMins, onSettled) {
   currentBoxes = boxes;
   const wrap = document.getElementById('timetableWrap');
   if (!wrap) return;
@@ -1211,8 +1277,8 @@ function renderBoxes(boxes, scrollToMins) {
     clearInterval(weekViewClockInterval); weekViewClockInterval = null;
   }
 
-  if (currentView === 'day') renderDayView(boxes, wrap);
-  else renderWeekView(boxes, wrap, scrollToMins);
+  if (currentView === 'day') { renderDayView(boxes, wrap); if (onSettled) onSettled(); }
+  else renderWeekView(boxes, wrap, scrollToMins, onSettled);
 }
 
 // ── 스테이징 커스텀 도메인 목록 렌더링 ──
@@ -1389,6 +1455,7 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
     const wasEditing = _editingBoxIndex !== null;
     const oldBox = wasEditing ? { ...boxes[_editingBoxIndex] } : null;
     let savedBoxIndex;
+    let newBoxIndices = []; // 일주일 뷰에서 여러 요일에 동시 추가한 경우, 생성된 모든 실제 인덱스
     if (wasEditing) {
       boxes[_editingBoxIndex] = { name, startTime, endTime, mode: 'block', days: currentView === 'week' ? days : [], customDomains: [...stagingCustomDomains], color };
       savedBoxIndex = _editingBoxIndex;
@@ -1396,6 +1463,7 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
       const daysToSave = currentView === 'week' ? days : [null];
       daysToSave.forEach(day => {
         boxes.push({ name, startTime, endTime, mode: 'block', days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains], color });
+        newBoxIndices.push(boxes.length - 1);
       });
       savedBoxIndex = boxes.length - 1;
     }
@@ -1406,13 +1474,29 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
       TBBStorage.get(['generalList', 'permanentList', key], result => {
         renderList('generalList',   result.generalList   || [], 'generalList',   'generalWarn');
         renderList('permanentList', result.permanentList || [], 'permanentList', 'permanentWarn');
-        renderBoxes(result[key] || [], topMins);
-        if (currentView === 'day') {
-          const dayWrap = document.getElementById('timetableWrap');
-          if (wasEditing && oldBox) {
-            animateDonutResize(dayWrap, savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
-          } else {
-            animateDonutGrow(dayWrap, savedBoxIndex);
+        // 렌더 직후(스크롤이 시작되기 전) 곧바로 재생: 편집 시 박스 길이 리사이즈 모핑.
+        // 렌더된 카드는 이미 최종(새) 크기이므로, 여기서 잠깐 이전 크기로 되돌린 뒤 스크롤과
+        // 동시에 새 크기로 트랜지션해야 "포커싱이 끝난 뒤 되돌아갔다 다시 변하는" 이중 변화가 없다.
+        renderBoxes(result[key] || [], topMins, () => {
+          // 스크롤 포커싱이 끝난 뒤에만 재생: 새로 추가된 박스의 등장(확장) 효과 —
+          // 새 박스는 이전 상태가 없어 포커싱 후에 재생해도 어색함이 없다.
+          if (!wasEditing) {
+            const boxWrap = document.getElementById('timetableWrap');
+            if (currentView === 'day') {
+              animateDonutGrow(boxWrap, savedBoxIndex);
+            } else if (currentView === 'week') {
+              newBoxIndices.forEach(idx => {
+                animateGrowElements([...boxWrap.querySelectorAll(`.tbox[data-box-index="${idx}"]`)]);
+              });
+            }
+          }
+        });
+        if (wasEditing && oldBox) {
+          const boxWrap = document.getElementById('timetableWrap');
+          if (currentView === 'day') {
+            animateDonutResize(boxWrap, savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
+          } else if (currentView === 'week' && _sameDaySet(oldBox.days, days)) {
+            animateWeekResize(boxWrap, savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
           }
         }
       });
