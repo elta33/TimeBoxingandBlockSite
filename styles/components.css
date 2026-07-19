@@ -128,27 +128,81 @@
 }
 .todo-list-meta-btn:hover { background: rgba(255,99,71,0.08); }
 .todo-list {
-  flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0;
+  flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 8px;
   scrollbar-width: thin; scrollbar-color: #e0e0e0 transparent;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .todo-list::-webkit-scrollbar { width: 4px; }
 .todo-list::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
 .todo-empty { text-align: center; padding: 28px 0; color: #ccc; font-size: 0.82rem; }
+/* 도메인 리스트(.custom-domain-item)와 같은 톤의 박스형 카드 — 배경을 그대로 쓰던 이전
+   플랫 행 대신 윤곽이 잡힌 카드로 보이게 한다. */
 .todo-item {
-  display: flex; align-items: center; gap: 8px; padding: 7px 14px; transition: background 0.1s;
+  display: flex; align-items: center; gap: 8px;
+  background: #f5f5f5;
+  border: 1px solid #e6e6e6;
+  padding: 8px 10px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  transition: background 0.1s, border-color 0.1s;
 }
-.todo-item:hover { background: #fafafa; }
+.todo-item:hover { background: #ececec; border-color: #ddd; }
 .todo-cb { flex-shrink: 0; width: 15px; height: 15px; cursor: pointer; accent-color: #111; margin: 0; }
 .todo-text {
   flex: 1; min-width: 0; font-size: 0.85rem; color: #333;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  position: relative;
 }
-.todo-item.todo-done .todo-text { color: #bbb; text-decoration: line-through; }
+.todo-item.todo-done .todo-text { color: #bbb; }
+/* 취소선을 ::after 선으로 그려서, 방금 완료한 항목만 왼쪽→오른쪽으로 그어지는
+   연출(.todo-strike-sweep)을 줄 수 있게 한다. 이미 완료돼 있던 항목은 애니메이션 없이
+   바로 100% 너비로 보인다. */
+.todo-item.todo-done .todo-text::after {
+  content: '';
+  position: absolute; left: 0; top: 50%; height: 1px; width: 100%;
+  background: currentColor;
+}
+/* 슬라이드 인이 끝나기 전까지는 취소선을 완전히 숨겨둔다 — 이게 없으면 카드가 생성되는
+   순간 위 기본 규칙(width:100%)이 즉시 적용돼 다 그어진 채로 들어왔다가, sweep 클래스가
+   붙는 순간 0으로 리셋 후 다시 그어지는 이중 변화가 생긴다. */
+.todo-item.todo-done .todo-text.todo-strike-hidden::after { width: 0; }
+.todo-item.todo-done .todo-text.todo-strike-sweep::after {
+  width: 0;
+  animation: todoStrikeSweep 0.45s ease-out forwards;
+}
+@keyframes todoStrikeSweep { from { width: 0; } to { width: 100%; } }
+/* 삭제 쓰레기통 아이콘 호버 애니메이션 — options.html의 .icon-trash-btn과
+   여기 .todo-del이 공유(이 파일이 두 페이지 모두에 로드되므로 여기 한 번만
+   정의). 확대된 채로 호버 유지(forwards), 호버 해제 시 transition으로 복귀.
+   좌우 이동이 아니라 좌우로 살짝 기울어지는(rotate) 흔들림. */
+@keyframes trashIconWiggle {
+  0%   { transform: scale(1) rotate(0deg); }
+  20%  { transform: scale(1.15) rotate(0deg); }
+  40%  { transform: scale(1.15) rotate(-12deg); }
+  60%  { transform: scale(1.15) rotate(12deg); }
+  80%  { transform: scale(1.15) rotate(-6deg); }
+  100% { transform: scale(1.15) rotate(0deg); }
+}
 .todo-del {
-  flex-shrink: 0; width: 20px; height: 20px; background: none; border: none;
-  color: #ccc; font-size: 1rem; cursor: pointer; border-radius: 3px; padding: 0;
+  flex-shrink: 0; width: 26px; height: 26px; background: none; border: none;
+  color: #666; font-size: 1rem; cursor: pointer; border-radius: 3px; padding: 0;
   display: flex; align-items: center; justify-content: center;
-  transition: color 0.12s, background 0.12s; opacity: 0; font-family: inherit; line-height: 1;
+  transition: color 0.12s; opacity: 0; font-family: inherit; line-height: 1;
 }
 .todo-item:hover .todo-del { opacity: 1; }
-.todo-del:hover { color: var(--tomato); background: rgba(255,99,71,0.08); }
+.todo-del:hover { color: var(--tomato); }
+.todo-del svg { transition: transform 0.15s ease; }
+.todo-del:hover svg { animation: trashIconWiggle 0.4s ease forwards; }
+
+/* ── 추가/삭제: 중심 확장/축소 애니메이션 ── options-core.js의 domain-item-grow/-remove와
+   같은 톤이지만, todo.js는 그 헬퍼가 없는 block.html에서도 동작해야 하므로 자체 keyframes를 둔다. */
+@keyframes todoItemGrow {
+  from { transform: scale(0.55); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.todo-item-grow { animation: todoItemGrow 0.26s ease-out; transform-origin: center center; }
+@keyframes todoItemShrink {
+  from { transform: scale(1);    opacity: 1; }
+  to   { transform: scale(0.35); opacity: 0; }
+}
+.todo-item-remove { animation: todoItemShrink 0.2s ease-in forwards; transform-origin: center center; pointer-events: none; }

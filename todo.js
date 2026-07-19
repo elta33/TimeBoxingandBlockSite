@@ -7,6 +7,11 @@ const TODO_POPUP_GAP = 8;
 let _todos    = [];
 let _todoOpen = false;
 let _doneOpen = false;
+// todoItems는 sync 키라 저장 한 번에 chrome.storage.sync.set + (성공 시) local.remove 정리까지
+// 이어져 onChanged가 여러 번(그중엔 newValue가 비어있는 것도) 튈 수 있다. 그때마다 재렌더링하면
+// 방금 justAddedId/justCompletedId로 그려둔 애니메이션이 인자 없는 재렌더링에 덮어써진다.
+// 그래서 내용 비교 대신, 우리가 방금 저장을 시작한 뒤 짧은 시간 동안의 onChanged는 통째로 무시한다.
+let _todoSuppressChangeUntil = 0;
 
 // ── 스토리지 ──
 function _todoLoad(cb) {
@@ -28,6 +33,7 @@ function _todoLoad(cb) {
 }
 
 function _todoSave() {
+  _todoSuppressChangeUntil = Date.now() + 1500;
   TBBStorage.set({ [TODO_STORE_KEY]: _todos });
 }
 
@@ -98,7 +104,7 @@ function _todoUpdateHeader() {
   }
 }
 
-function _todoRender() {
+function _todoRender(justAddedId, justUncompletedId) {
   const list = document.getElementById('todoList');
   if (!list) return;
   list.innerHTML = '';
@@ -110,10 +116,15 @@ function _todoRender() {
     list.appendChild(e);
     return;
   }
-  undone.forEach(({ id, text }) => list.appendChild(_makeTodoRow(id, text, false)));
+  undone.forEach(({ id, text }) => {
+    const row = _makeTodoRow(id, text, false);
+    list.appendChild(row);
+    if (id === justAddedId) _todoAnimateGrow(row);
+    else if (id === justUncompletedId) _todoAnimateSlideIn(row, -120, false);
+  });
 }
 
-function _todoDoneRender() {
+function _todoDoneRender(justCompletedId) {
   const list = document.getElementById('todoDoneList');
   if (!list) return;
   list.innerHTML = '';
@@ -125,12 +136,41 @@ function _todoDoneRender() {
     list.appendChild(e);
     return;
   }
-  done.forEach(({ id, text }) => list.appendChild(_makeTodoRow(id, text, true)));
+  done.forEach(({ id, text }) => {
+    const row = _makeTodoRow(id, text, true);
+    if (id === justCompletedId) {
+      // 슬라이드 인이 끝나기 전까지는 취소선을 숨겨둔다 (todo-strike-hidden 참고)
+      row.querySelector('.todo-text')?.classList.add('todo-strike-hidden');
+    }
+    list.appendChild(row);
+    if (id === justCompletedId) _todoAnimateSlideIn(row, 120, true);
+  });
 }
+
+// ── 추가/삭제: 중심 확장/축소 애니메이션 (options-core.js 헬퍼 없이 자체 구현 —
+// block.html에도 todo.js가 로드되지만 options-core.js는 로드되지 않는다) ──
+function _todoAnimateGrow(el) {
+  if (!el) return;
+  el.classList.remove('todo-item-grow');
+  void el.offsetWidth;
+  el.classList.add('todo-item-grow');
+}
+
+function _todoAnimateShrinkThenRemove(el, onDone, duration = 200) {
+  if (!el) { if (onDone) onDone(); return; }
+  el.classList.add('todo-item-remove');
+  setTimeout(() => { if (onDone) onDone(); }, duration);
+}
+
+// 도메인 리스트 / 포모도로 프리셋 / 타임박스 삭제 버튼과 동일한 쓰레기통 아이콘
+// (options-core.js의 TRASH_ICON_SVG와 동일 — todo.js는 그게 없는 block.html에서도
+// 동작해야 하므로 자체 상수로 둔다).
+const TODO_TRASH_ICON_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
 
 function _makeTodoRow(id, text, done) {
   const row = document.createElement('div');
   row.className = 'todo-item' + (done ? ' todo-done' : '');
+  row.dataset.id = id;
 
   const cb = document.createElement('input');
   cb.type = 'checkbox';
@@ -145,7 +185,7 @@ function _makeTodoRow(id, text, done) {
 
   const del = document.createElement('button');
   del.className = 'todo-del';
-  del.innerHTML = '&times;';
+  del.innerHTML = TODO_TRASH_ICON_SVG;
   del.title = T('delete');
   del.addEventListener('click', e => { e.stopPropagation(); _todoDelete(id); });
 
@@ -159,14 +199,15 @@ function _todoAdd() {
   if (!input) return;
   const text = input.value.trim();
   if (!text) return;
-  _todos.push({
+  const newTodo = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     text,
     done: false,
-  });
+  };
+  _todos.push(newTodo);
   _todoSave();
   _todoUpdateHeader();
-  if (_todoOpen) _todoRender();
+  if (_todoOpen) _todoRender(newTodo.id);
   input.value = '';
   input.focus();
 }
@@ -174,19 +215,112 @@ function _todoAdd() {
 function _todoToggle(id) {
   const t = _todos.find(t => t.id === id);
   if (!t) return;
-  t.done = !t.done;
-  _todoSave();
-  _todoUpdateHeader();
-  if (_todoOpen) _todoRender();
-  if (_doneOpen) _todoDoneRender();
+  if (!t.done) _todoAnimateCompleteThenToggle(t);
+  else         _todoAnimateUncompleteThenToggle(t);
+}
+
+// ── 완료 처리: 완료 창을 열고, 메인 목록에서는 박스가 왼쪽으로 슬라이드 아웃하며
+// (목록 컨테이너의 overflow-x:hidden에 가려 창 밖으로 나가는 부분은 보이지 않음),
+// 완료 창에는 반대쪽(오른쪽)에서 슬라이드 인하며 자연스럽게 나타나 자리를 잡은 뒤
+// 왼쪽→오른쪽 취소선 스윕을 재생한다. 두 애니메이션 모두 각 목록의 overflow에 잘리므로
+// 팝업 경계를 뚫고 넘어가는 것처럼 보이지 않는다. ──
+function _todoAnimateCompleteThenToggle(t) {
+  const finish = () => {
+    t.done = true;
+    _todoSave();
+    _todoUpdateHeader();
+    if (_todoOpen) _todoRender();
+    if (_doneOpen) _todoDoneRender(t.id);
+  };
+
+  if (!_doneOpen) _todoDoneOpenPopup();
+  else _todoPositionDonePopup();
+
+  const row = document.querySelector(`#todoList .todo-item[data-id="${t.id}"]`);
+  _todoAnimateSlideOut(row, -120, finish);
+}
+
+// ── 완료 해제: 완료 창에서는 오른쪽(메인 창 쪽)으로 슬라이드 아웃하고,
+// 메인 목록에는 반대쪽(왼쪽)에서 슬라이드 인하며 나타난다 — 완료 처리 애니메이션을
+// 방향만 뒤집어 그대로 재사용한다. 취소선은 그릴 필요가 없어 재생하지 않는다. ──
+function _todoAnimateUncompleteThenToggle(t) {
+  const finish = () => {
+    t.done = false;
+    _todoSave();
+    _todoUpdateHeader();
+    if (_doneOpen) _todoDoneRender();
+    if (_todoOpen) _todoRender(undefined, t.id);
+  };
+
+  const row = document.querySelector(`#todoDoneList .todo-item[data-id="${t.id}"]`);
+  _todoAnimateSlideOut(row, 120, finish);
+}
+
+// ── 목록 밖으로 슬라이드 아웃(트랜지션이 끝나면 onDone 호출) ──
+// offsetPercent: 양수면 오른쪽으로, 음수면 왼쪽으로 나간다.
+function _todoAnimateSlideOut(row, offsetPercent, onDone) {
+  if (!row) { if (onDone) onDone(); return; }
+  row.style.pointerEvents = 'none';
+  void row.offsetWidth; // 리플로우를 확정시킨 뒤 트랜지션을 걸어야 확실히 재생된다
+  row.style.transition = 'transform 0.32s ease-in, opacity 0.28s ease-in';
+  row.style.transform  = `translateX(${offsetPercent}%)`;
+  row.style.opacity    = '0';
+
+  let settled = false;
+  const cleanup = () => {
+    if (settled) return;
+    settled = true;
+    if (onDone) onDone();
+  };
+  row.addEventListener('transitionend', cleanup, { once: true });
+  setTimeout(cleanup, 380); // 트랜지션 이벤트가 유실되는 경우 대비 안전망
+}
+
+// ── 목록 밖(반대쪽)에서 슬라이드 인 (_todoRender/_todoDoneRender에서 호출) ──
+// enterFromPercent: 시작 위치(양수=오른쪽 바깥, 음수=왼쪽 바깥). withStrike면 다 들어온 뒤
+// 왼쪽→오른쪽 취소선 스윕을 재생한다(완료 방향에만 해당, 완료 해제는 재생하지 않음).
+// 막 생성된 요소에 시작 상태와 최종 상태(트랜지션 포함)를 rAF 한 번으로만 나눠 적용하면
+// 브라우저가 두 스타일 변경을 하나로 묶어버려 트랜지션 없이 바로 최종 상태로 "뿅" 나타나는
+// 경우가 있다. 시작 상태 적용 직후 강제로 리플로우(offsetWidth 읽기)를 일으켜 그 상태를
+// 먼저 확정시킨 뒤에 최종 상태로 바꿔야 트랜지션이 확실히 재생된다.
+function _todoAnimateSlideIn(row, enterFromPercent, withStrike) {
+  if (!row) return;
+  row.style.transition = 'none';
+  row.style.transform  = `translateX(${enterFromPercent}%)`;
+  row.style.opacity    = '0';
+  void row.offsetWidth;
+  row.style.transition = 'transform 0.34s cubic-bezier(0.25,0.8,0.4,1), opacity 0.3s ease-out';
+  row.style.transform  = 'translateX(0)';
+  row.style.opacity    = '1';
+
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    row.style.transition = '';
+    row.style.transform  = '';
+    if (withStrike) {
+      const textEl = row.querySelector('.todo-text');
+      textEl?.classList.remove('todo-strike-hidden');
+      textEl?.classList.add('todo-strike-sweep');
+    }
+  };
+  row.addEventListener('transitionend', finish, { once: true });
+  setTimeout(finish, 400); // 트랜지션 이벤트가 유실되는 경우 대비 안전망
 }
 
 function _todoDelete(id) {
-  _todos = _todos.filter(t => t.id !== id);
-  _todoSave();
-  _todoUpdateHeader();
-  if (_todoOpen) _todoRender();
-  if (_doneOpen) _todoDoneRender();
+  const row = document.querySelector(`#todoList .todo-item[data-id="${id}"]`)
+           || document.querySelector(`#todoDoneList .todo-item[data-id="${id}"]`);
+  const removeNow = () => {
+    _todos = _todos.filter(t => t.id !== id);
+    _todoSave();
+    _todoUpdateHeader();
+    if (_todoOpen) _todoRender();
+    if (_doneOpen) _todoDoneRender();
+  };
+  if (row) _todoAnimateShrinkThenRemove(row, removeNow);
+  else removeNow();
 }
 
 function _todoClearUndone() {
@@ -377,6 +511,12 @@ function _todoInitDrag() {
     // storage 변경 실시간 반영 (options ↔ block 공유, local/sync 양쪽 다 반영)
     chrome.storage.onChanged.addListener((changes, area) => {
       if (!changes[TODO_STORE_KEY]) return;
+      // todoItems는 sync 키라 저장 한 번에 로컬/싱크/(정리용) local.remove까지 겹쳐 onChanged가
+      // 여러 번 튈 수 있고, 그중 일부는 newValue가 비어있기까지 하다. 방금 이 창에서 저장을
+      // 시작했다면(suppress 윈도 안) 전부 무시 — 우리가 이미 justAddedId/justCompletedId로
+      // 애니메이션까지 그려둔 상태를 인자 없는 재렌더링이 덮어써서 끊어버리는 걸 막는다.
+      // 그 창을 벗어난, 진짜 외부(다른 탭/창) 변경일 때만 반영한다.
+      if (Date.now() < _todoSuppressChangeUntil) return;
       _todos = changes[TODO_STORE_KEY].newValue || [];
       _todoUpdateHeader();
       if (_todoOpen) _todoRender();

@@ -74,6 +74,7 @@ function _liveUpdateBoxColor(boxIndex, color, dayViewWrap) {
   if (boxIndex === null || boxIndex === undefined) return;
   document.querySelectorAll(`.tbox[data-box-index="${boxIndex}"]`).forEach(card => {
     card.style.background = color;
+    card.style.setProperty('--box-glow', color);
     card.classList.toggle('tbox-dark-text', isLightBoxColor(color));
   });
   if (dayViewWrap && dayViewWrap._updateBoxColor) dayViewWrap._updateBoxColor(boxIndex, color);
@@ -583,6 +584,7 @@ function buildBoxCard(box, boxIndex, isWeek) {
     card.style.height = `${Math.max(minsToPx(heightMins) - 3, 20)}px`;
     const boxColor = resolveBoxColor(box);
     card.style.background = boxColor;
+    card.style.setProperty('--box-glow', boxColor);
     if (isLightBoxColor(boxColor)) card.classList.add('tbox-dark-text');
 
     const nameEl = document.createElement('div');
