@@ -636,7 +636,7 @@ function _pomoTick() {
   });
 }
 
-function loadPomoData() {
+function loadPomoData(onDone) {
   TBBStorage.get(['pomodoroSettings', 'pomodoroList', 'pomodoroState', 'pomodoroPresets', 'pomodoroCycleOverrides', 'pomodoroActiveDomainOverride'], data => {
     const settings     = data.pomodoroSettings || { workMins: 25, restMins: 5, cycles: 2 };
     const list         = data.pomodoroList     || [];
@@ -656,6 +656,7 @@ function loadPomoData() {
     renderPomoPresets(presets);
     updatePomoDisplay(state, settings, overrides);
     _updateAdvancedFeedback(settings, overrides);
+    if (onDone) onDone();
   });
 }
 
@@ -1015,6 +1016,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (input) input.value = '';
     hideWarn('advDomainWarn');
     _renderAdvancedDomainPanel();
+    animateNewListItem(document.getElementById('advDomainExtraList'));
   }
   document.getElementById('advDomainAddBtn')?.addEventListener('click', doAddAdvDomain);
   document.getElementById('advDomainAddInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') doAddAdvDomain(); });
@@ -1092,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
       TBBStorage.set({ pomodoroList: arr }, () => {
         if (input) input.value = '';
         hideWarn('pomoWarn');
-        loadPomoData();
+        loadPomoData(() => animateNewListItem(document.getElementById('pomoList')));
       });
     });
   }

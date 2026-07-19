@@ -116,6 +116,8 @@
   "formStart":         { "message": "시작" },
   "formEnd":           { "message": "종료" },
   "daySelect":         { "message": "요일 선택" },
+  "boxColorLabel":     { "message": "박스 색상" },
+  "boxColorCustomTitle": { "message": "직접 선택" },
   "exceptionAddress":  { "message": "차단 예외 주소" },
   "placeholderGithub": { "message": "예: github.com" },
   "boxCreate":         { "message": "박스 생성 완료" },

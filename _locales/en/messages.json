@@ -116,6 +116,8 @@
   "formStart":         { "message": "Start" },
   "formEnd":           { "message": "End" },
   "daySelect":         { "message": "Select Days" },
+  "boxColorLabel":     { "message": "Box Color" },
+  "boxColorCustomTitle": { "message": "Custom color" },
   "exceptionAddress":  { "message": "Block Exceptions" },
   "placeholderGithub": { "message": "e.g. github.com" },
   "boxCreate":         { "message": "Create Box" },

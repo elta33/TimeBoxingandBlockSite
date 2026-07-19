@@ -7,6 +7,82 @@ let dailyScheduleEnabled = true;
 let weekViewClockInterval = null;
 let _editingBoxIndex = null; // 수정 중인 박스 인덱스 (null이면 새 박스 추가 모드)
 
+// ── 박스 색상 선택기 (메인 폼 + 팝업 폼 공용) ──
+// 프리셋 스와치와 커스텀(<input type="color">) 스와치를 하나의 컨트롤러로 묶어
+// get/set/reset만 노출한다. 팝업 폼은 열릴 때마다 이 함수를 다시 호출해 이전
+// 리스너가 남아있지 않은 새 DOM 위에 다시 바인딩한다(다른 팝업 필드들과 동일 패턴).
+// onChange는 사용자가 실제로 스와치를 클릭하거나 커스텀 색을 고를 때만 호출된다
+// (set/reset으로 인한 프로그래매틱 변경은 제외) — 수정 모드에서 이 콜백으로
+// 타임테이블/도넛의 해당 박스를 저장 전 미리보기로 즉시 갱신한다.
+function setupBoxColorPicker(containerId, onChange) {
+  const container = document.getElementById(containerId);
+  if (!container) return null;
+  const swatches = Array.from(container.querySelectorAll('.box-color-swatch[data-color]'));
+  const customBtn = container.querySelector('.box-color-custom');
+  const customInput = container.querySelector('.box-color-custom-input');
+  let current = BOX_COLOR_DEFAULT;
+
+  function markSelected(el) {
+    swatches.forEach(s => s.classList.remove('selected'));
+    if (customBtn) customBtn.classList.remove('selected');
+    if (el) el.classList.add('selected');
+  }
+
+  swatches.forEach(sw => {
+    sw.addEventListener('click', () => {
+      current = sw.dataset.color;
+      markSelected(sw);
+      if (onChange) onChange(current);
+    });
+  });
+
+  if (customInput) {
+    customInput.addEventListener('input', () => {
+      current = customInput.value;
+      if (customBtn) customBtn.style.background = current;
+      markSelected(customBtn);
+      if (onChange) onChange(current);
+    });
+  }
+
+  markSelected(swatches[0]); // 기본값(첫 프리셋 = 토마토)으로 시작
+
+  return {
+    get: () => current,
+    set(color) {
+      current = color || BOX_COLOR_DEFAULT;
+      const match = swatches.find(s => s.dataset.color === current);
+      if (match) {
+        if (customBtn) customBtn.style.background = '';
+        markSelected(match);
+      } else {
+        if (customBtn) customBtn.style.background = current;
+        if (customInput && /^#/.test(current)) customInput.value = current;
+        markSelected(customBtn);
+      }
+    },
+    reset() {
+      current = BOX_COLOR_DEFAULT;
+      if (customBtn) customBtn.style.background = '';
+      markSelected(swatches[0]);
+    },
+  };
+}
+
+// 수정 중인 박스의 색이 바뀌면 저장 전이라도 실제 타임테이블/도넛에 바로 반영한다.
+function _liveUpdateBoxColor(boxIndex, color, dayViewWrap) {
+  if (boxIndex === null || boxIndex === undefined) return;
+  document.querySelectorAll(`.tbox[data-box-index="${boxIndex}"]`).forEach(card => {
+    card.style.background = color;
+    card.classList.toggle('tbox-dark-text', isLightBoxColor(color));
+  });
+  if (dayViewWrap && dayViewWrap._updateBoxColor) dayViewWrap._updateBoxColor(boxIndex, color);
+}
+
+const boxColorPickerCtl = setupBoxColorPicker('boxColorPicker', (color) => {
+  _liveUpdateBoxColor(_editingBoxIndex, color, document.getElementById('timetableWrap'));
+});
+
 // ── PIN 잠금 ──
 let _pinEnabled = false;
 let _pendingPinAction = null;
@@ -340,6 +416,26 @@ function scrollAndBounce(ul, el, warnId, msg) {
   }
 }
 
+// ── 도메인 리스트 추가: 스크롤 포커싱 후 중심 확장 애니메이션 ──
+// 새 항목은 항상 리스트 맨 끝에 붙는다는 전제. 리스트가 스크롤 가능한 상태면 맨 밑까지
+// 이즈인아웃으로 부드럽게 스크롤한 뒤, 끝나면 새 항목이 중심에서부터 확장되며 나타나는
+// 연출을 재생한다. 스크롤할 필요가 없으면(다 보이는 경우) 확장 애니메이션만 바로 재생한다.
+function animateNewListItem(ul) {
+  if (!ul) return;
+  const newEl = ul.lastElementChild;
+  const playGrow = () => {
+    if (!newEl) return;
+    newEl.classList.remove('domain-item-grow');
+    void newEl.offsetWidth;
+    newEl.classList.add('domain-item-grow');
+  };
+  if (ul.scrollHeight - ul.clientHeight > 1) {
+    smoothScrollTo(ul, ul.scrollHeight - ul.clientHeight, 420, playGrow);
+  } else {
+    playGrow();
+  }
+}
+
 // ── 겹침 강조: 링 형태로 번지는 플래시 연출 ──
 function flashElements(els, className = 'focus-flash', duration = 1400) {
   els.forEach(el => {
@@ -390,10 +486,13 @@ function buildBoxCard(box, boxIndex, isWeek) {
 
   function makeCard(topMins, heightMins, isWrapTop) {
     const card = document.createElement('div');
-    card.className = 'tbox box-block';
+    card.className = 'tbox';
     card.dataset.boxIndex = boxIndex;
     card.style.top    = `${minsToPx(topMins)}px`;
     card.style.height = `${Math.max(minsToPx(heightMins) - 3, 20)}px`;
+    const boxColor = resolveBoxColor(box);
+    card.style.background = boxColor;
+    if (isLightBoxColor(boxColor)) card.classList.add('tbox-dark-text');
 
     const nameEl = document.createElement('div');
     nameEl.className = 'tbox-name';
@@ -610,6 +709,7 @@ function renderWeekDetailPanel(box, boxIndex) {
         wAddDomainPopup.style.display = 'none';
         if (_wPopupOutsideHandler) document.removeEventListener('mousedown', _wPopupOutsideHandler);
         refreshPanel(boxes);
+        animateNewListItem(panel.querySelector('.donut-domain-list'));
       });
     });
   }
@@ -677,6 +777,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
 
   // ── 팝업 전용 박스 수정 모드 (하루 뷰 도넛과 동일한 기능을 팝업 자체 폼으로 이월) ──
   let _popupEditingBoxIndex = null;
+  let popupColorPickerCtl = null;
 
   function enterPopupBoxEditMode(box, realIndex) {
     _popupEditingBoxIndex = realIndex;
@@ -687,6 +788,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
 
     popupStagingDomains = (box.customDomains || []).map(cd => ({ ...cd }));
     renderPopupStagingList();
+    if (popupColorPickerCtl) popupColorPickerCtl.set(box.color);
 
     const titleEl = document.getElementById('popupBoxFormTitle');
     if (titleEl) titleEl.textContent = T('donutEditBox');
@@ -712,6 +814,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
     if (popupEndTime)   popupEndTime.value = '';
     popupStagingDomains = [];
     renderPopupStagingList();
+    if (popupColorPickerCtl) popupColorPickerCtl.reset();
     const warnEl = document.getElementById('popup_boxWarn');
     if (warnEl) warnEl.style.display = 'none';
   }
@@ -753,6 +856,14 @@ function openDayPopup(dow, dayLabel, allBoxes) {
   if (popupEndTime)    popupEndTime.value = '';
   popupStagingDomains = [];
   renderPopupStagingList();
+  // 색상 선택기도 팝업이 열릴 때마다 DOM을 새로 복제해(이전 리스너 제거) 다시 바인딩
+  const _oldPopupColorPicker = document.getElementById('popup_boxColorPicker');
+  if (_oldPopupColorPicker) {
+    _oldPopupColorPicker.parentNode.replaceChild(_oldPopupColorPicker.cloneNode(true), _oldPopupColorPicker);
+  }
+  popupColorPickerCtl = setupBoxColorPicker('popup_boxColorPicker', (color) => {
+    _liveUpdateBoxColor(_popupEditingBoxIndex, color, wrap);
+  });
   // 이전에 팝업을 수정 모드로 둔 채 닫았을 수 있으므로 매번 새 박스 추가 모드로 초기화
   const _popupTitleEl = document.getElementById('popupBoxFormTitle');
   if (_popupTitleEl) _popupTitleEl.textContent = T('newBox');
@@ -791,6 +902,7 @@ function openDayPopup(dow, dayLabel, allBoxes) {
     const warnEl = document.getElementById('popup_customWarn');
     if (warnEl) warnEl.style.display = 'none';
     renderPopupStagingList();
+    animateNewListItem(document.getElementById('popup_stagingCustomList'));
   };
 
   // 박스 생성
@@ -850,10 +962,11 @@ function openDayPopup(dow, dayLabel, allBoxes) {
         return;
       }
 
+      const color = popupColorPickerCtl ? popupColorPickerCtl.get() : BOX_COLOR_DEFAULT;
       if (_popupEditingBoxIndex !== null) {
-        boxes[_popupEditingBoxIndex] = { name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains] };
+        boxes[_popupEditingBoxIndex] = { name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains], color };
       } else {
-        boxes.push({ name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains] });
+        boxes.push({ name, startTime, endTime, mode: 'block', days: [internalDow], customDomains: [...popupStagingDomains], color });
       }
       TBBStorage.set({ [boxKey]: boxes }, () => {
         currentBoxes = boxes;
@@ -1078,6 +1191,7 @@ document.getElementById('addCustomStagingBtn').onclick = () => {
     document.getElementById('customDomainInput').value = '';
     hideWarn('customWarn');
     renderStagingList();
+    animateNewListItem(document.getElementById('stagingCustomList'));
   }
 };
 
@@ -1101,6 +1215,7 @@ function enterBoxEditMode(box, boxIndex) {
 
   stagingCustomDomains = (box.customDomains || []).map(cd => ({ ...cd }));
   renderStagingList();
+  if (boxColorPickerCtl) boxColorPickerCtl.set(box.color);
 
   const titleEl = document.getElementById('boxFormTitle');
   if (titleEl) titleEl.textContent = T('donutEditBox');
@@ -1129,6 +1244,7 @@ function exitBoxEditMode() {
   clearDaySelection();
   stagingCustomDomains = [];
   renderStagingList();
+  if (boxColorPickerCtl) boxColorPickerCtl.reset();
   hideWarn('boxWarn');
 }
 
@@ -1216,12 +1332,13 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
       return;
     }
 
+    const color = boxColorPickerCtl ? boxColorPickerCtl.get() : BOX_COLOR_DEFAULT;
     if (_editingBoxIndex !== null) {
-      boxes[_editingBoxIndex] = { name, startTime, endTime, mode: 'block', days: currentView === 'week' ? days : [], customDomains: [...stagingCustomDomains] };
+      boxes[_editingBoxIndex] = { name, startTime, endTime, mode: 'block', days: currentView === 'week' ? days : [], customDomains: [...stagingCustomDomains], color };
     } else {
       const daysToSave = currentView === 'week' ? days : [null];
       daysToSave.forEach(day => {
-        boxes.push({ name, startTime, endTime, mode: 'block', days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains] });
+        boxes.push({ name, startTime, endTime, mode: 'block', days: day !== null ? [day] : [], customDomains: [...stagingCustomDomains], color });
       });
     }
     TBBStorage.set({ [boxKey]: boxes }, () => {

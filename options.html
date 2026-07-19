@@ -245,6 +245,13 @@ button { cursor: pointer; font-family: inherit; }
 }
 .focus-flash-dark { animation: focusPulseDark 0.7s ease-in-out 2; }
 
+/* ── 도메인 추가: 중심 확장 애니메이션 (스크롤 포커싱 직후 재생) ── */
+@keyframes domainItemGrow {
+  from { transform: scale(0.55); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.domain-item-grow { animation: domainItemGrow 0.26s ease-out; transform-origin: center center; }
+
 /* ── 박스 추가 폼 내부 레이블 행 ── */
 .form-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 .form-label { font-size: 0.82rem; color: #666; width: 64px; flex-shrink: 0; }
@@ -307,16 +314,19 @@ button { cursor: pointer; font-family: inherit; }
 /* ── 타임박스 카드 ── */
 .tbox { position: absolute; left: 4px; right: 4px; border-radius: 6px; padding: 5px 9px; color: #fff; cursor: pointer; transition: filter 0.12s, box-shadow 0.12s; box-sizing: border-box; min-height: 20px; z-index: 1; }
 .tbox:hover { filter: brightness(1.07); box-shadow: 0 3px 10px rgba(0,0,0,0.18); z-index: 5; }
-.tbox.box-block { background: var(--tomato); }
 .tbox.selected { outline: 2px solid var(--select-outline); outline-offset: -2px; box-shadow: 0 3px 12px rgba(0,0,0,0.3); z-index: 6; }
-.tbox.box-allow { background: var(--green); }
+/* 밝은 커스텀 배경색(예: 연노랑)에서 흰 텍스트가 묻히지 않도록 isLightBoxColor()가
+   판단해 붙여주는 대비용 클래스. */
+.tbox.tbox-dark-text, .tbox.tbox-dark-text .tbox-name, .tbox.tbox-dark-text .tbox-time, .tbox.tbox-dark-text .tbox-custom-summary { color: #2a2a2a; }
+.tbox.tbox-dark-text .tbox-del { color: #2a2a2a; }
+.tbox.tbox-dark-text .tbox-del:hover { color: #000; }
 .tbox-name { font-size: 0.78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tbox-time { font-size: 0.68rem; opacity: 0.85; margin-top: 1px; }
 .tbox-custom-summary { font-size: 0.72rem; opacity: 0.8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 배경 없이 쓰레기통 아이콘만, 박스 안쪽 우상단에 배치(예전엔 박스 밖으로
    -16px 튀어나가 있어서, 주 끝 요일에서 오른쪽으로 잘리거나 다른 박스에
-   가려지는 문제가 있었음). 박스 배경이 토마토/초록(.box-block/.box-allow)
-   고정색이라 공용 --trash-icon 대신 박스 본문 텍스트와 같은 흰색으로 고정 —
+   가려지는 문제가 있었음). 공용 --trash-icon 대신 박스 본문 텍스트와 같은
+   흰색으로 고정(밝은 커스텀 박스색에서는 .tbox-dark-text가 함께 어둡게 덮어씀) —
    잠금 상태(.tbox-del-locked)는 예외적으로 아래에서 자체 배경을 유지(다른
    아이콘/의미라 별도 취급). */
 .tbox-del {
@@ -335,6 +345,29 @@ button { cursor: pointer; font-family: inherit; }
 }
 .tbox-del:hover { color: #eee; }
 .tbox:hover .tbox-del, .tbox-del:hover { opacity: 1; }
+
+/* ── 박스 색상 선택기 (새 박스 추가/수정 폼 최하단, 메인+팝업 공용) ── */
+.box-color-picker { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.box-color-swatch {
+  width: 28px; height: 28px; border-radius: 50%; border: none; padding: 0;
+  cursor: pointer; box-sizing: border-box; position: relative;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.12) inset;
+  transition: transform 0.12s;
+}
+.box-color-swatch:hover { transform: scale(1.1); }
+/* 스와치 색상 자체가 흰색/검정 등 극단값일 수 있고 페이지도 라이트/다크 두 테마라
+   --select-outline 하나로는 어느 조합에서든 보인다는 보장이 없다. 흰 링 바로
+   바깥에 어두운 링을 겹쳐 항상 대비가 생기게 한다. */
+.box-color-swatch.selected { box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(0,0,0,0.55); }
+.box-color-custom {
+  display: block;
+  background: conic-gradient(from 180deg, #ff0000, #ff9900, #ffee00, #33ff00, #00fff3, #0066ff, #cc00ff, #ff0000);
+  overflow: hidden;
+}
+.box-color-custom-input {
+  opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%;
+  border: none; padding: 0; margin: 0; cursor: pointer;
+}
 
 /* ── 일주일 뷰 ── */
 .week-header-row { display: grid; position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #e4e4e4; }
@@ -1003,7 +1036,7 @@ button { cursor: pointer; font-family: inherit; }
 .pin-btns-row { display: flex; gap: 8px; margin-top: 10px; }
 
 /* ── 잠긴 버튼 공통 ── */
-.tbox-del.tbox-del-locked { background: rgba(0,0,0,0.62) !important; color: #fff; font-size: 0.95rem; letter-spacing: -0.02em; opacity: 0.85; }
+.tbox-del.tbox-del-locked { background: rgba(0,0,0,0.62) !important; color: #fff !important; font-size: 0.95rem; letter-spacing: -0.02em; opacity: 0.85; }
 .tbox:hover .tbox-del.tbox-del-locked { opacity: 1; }
 .btn-danger.pin-locked { background: var(--tomato-locked) !important; }
 
@@ -1695,6 +1728,22 @@ button { cursor: pointer; font-family: inherit; }
         </div>
         <ul id="stagingCustomList" class="domain-list" style="margin-top:8px;"></ul>
 
+        <hr class="form-divider">
+
+        <div class="form-section-title" data-i18n="boxColorLabel">박스 색상</div>
+        <div class="box-color-picker" id="boxColorPicker">
+          <button type="button" class="box-color-swatch" data-color="var(--tomato)" style="background:var(--tomato)"></button>
+          <button type="button" class="box-color-swatch" data-color="#ff8c00" style="background:#ff8c00"></button>
+          <button type="button" class="box-color-swatch" data-color="var(--amber)" style="background:var(--amber)"></button>
+          <button type="button" class="box-color-swatch" data-color="var(--green)" style="background:var(--green)"></button>
+          <button type="button" class="box-color-swatch" data-color="var(--blue)" style="background:var(--blue)"></button>
+          <button type="button" class="box-color-swatch" data-color="#7c5cff" style="background:#7c5cff"></button>
+          <button type="button" class="box-color-swatch" data-color="#ff5c9e" style="background:#ff5c9e"></button>
+          <label class="box-color-swatch box-color-custom" id="boxColorCustomBtn" data-i18n-title="boxColorCustomTitle" title="직접 선택">
+            <input type="color" id="boxColorCustomInput" class="box-color-custom-input" value="#7c5cff">
+          </label>
+        </div>
+
         <button id="addBoxBtn" class="btn" style="width:100%;margin-top:18px;" data-i18n="boxCreate">박스 생성 완료</button>
         <button id="cancelEditBoxBtn" class="btn-ghost btn-sm" style="width:100%;margin-top:8px;display:none;" data-i18n="cancelEdit">취소</button>
       </div>
@@ -2053,6 +2102,22 @@ button { cursor: pointer; font-family: inherit; }
             <button id="popup_addCustomStagingBtn" class="btn btn-sm" data-i18n="add">추가</button>
           </div>
           <ul id="popup_stagingCustomList" class="domain-list" style="margin-top:8px;"></ul>
+
+          <hr class="form-divider">
+
+          <div class="form-section-title" data-i18n="boxColorLabel">박스 색상</div>
+          <div class="box-color-picker" id="popup_boxColorPicker">
+            <button type="button" class="box-color-swatch" data-color="var(--tomato)" style="background:var(--tomato)"></button>
+            <button type="button" class="box-color-swatch" data-color="#ff8c00" style="background:#ff8c00"></button>
+            <button type="button" class="box-color-swatch" data-color="var(--amber)" style="background:var(--amber)"></button>
+            <button type="button" class="box-color-swatch" data-color="var(--green)" style="background:var(--green)"></button>
+            <button type="button" class="box-color-swatch" data-color="var(--blue)" style="background:var(--blue)"></button>
+            <button type="button" class="box-color-swatch" data-color="#7c5cff" style="background:#7c5cff"></button>
+            <button type="button" class="box-color-swatch" data-color="#ff5c9e" style="background:#ff5c9e"></button>
+            <label class="box-color-swatch box-color-custom" id="popup_boxColorCustomBtn" data-i18n-title="boxColorCustomTitle" title="직접 선택">
+              <input type="color" id="popup_boxColorCustomInput" class="box-color-custom-input" value="#7c5cff">
+            </label>
+          </div>
 
           <button id="popup_addBoxBtn" class="btn" style="width:100%;margin-top:18px;" data-i18n="boxCreate">박스 생성 완료</button>
           <button id="popup_cancelEditBoxBtn" class="btn-ghost btn-sm" style="width:100%;margin-top:8px;display:none;" data-i18n="cancelEdit">취소</button>

@@ -133,7 +133,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       nameEl.setAttribute('x', CX); nameEl.setAttribute('y', CY - 18);
       nameEl.setAttribute('text-anchor', 'middle'); nameEl.setAttribute('dominant-baseline', 'middle');
       nameEl.setAttribute('font-size', '15'); nameEl.setAttribute('font-weight', 'bold');
-      nameEl.setAttribute('fill', 'var(--tomato)');
+      nameEl.setAttribute('fill', resolveBoxColor(box));
       nameEl.setAttribute('font-family', 'inherit');
       nameEl.textContent = box.name.length > 10 ? box.name.slice(0, 10) + '…' : box.name;
       centerGroup.appendChild(nameEl);
@@ -150,7 +150,7 @@ function renderDayView(boxes, wrap, onEditBox) {
       modeEl.setAttribute('x', CX); modeEl.setAttribute('y', CY + 30);
       modeEl.setAttribute('text-anchor', 'middle'); modeEl.setAttribute('dominant-baseline', 'middle');
       modeEl.setAttribute('font-size', '11');
-      modeEl.setAttribute('fill', 'var(--tomato)');
+      modeEl.setAttribute('fill', resolveBoxColor(box));
       modeEl.setAttribute('font-family', 'inherit');
       modeEl.textContent = T('donutBlockBox');
       centerGroup.appendChild(modeEl);
@@ -475,7 +475,7 @@ function renderDayView(boxes, wrap, onEditBox) {
     const startM = timeToMins(box.startTime);
     let endM = timeToMins(box.endTime);
     if (endM <= startM) endM += TOTAL_MINS;
-    const color = 'var(--tomato)';
+    const color = resolveBoxColor(box);
 
     let seg;
     if (endM - startM >= TOTAL_MINS) {
@@ -498,11 +498,30 @@ function renderDayView(boxes, wrap, onEditBox) {
     seg.style.cursor = 'pointer';
     seg.style.transition = 'transform 0.18s ease, opacity 0.15s';
     seg.classList.add('donut-seg');
+    // 필터링된(요일 팝업) 배열은 로컬 인덱스와 실제 storage 인덱스가 다를 수 있어 _idx로 보정
+    seg.dataset.boxIndex = box._idx !== undefined ? box._idx : i;
     seg.addEventListener('mouseenter', () => { if (i !== selectedIndex) seg.setAttribute('opacity', '1'); });
     seg.addEventListener('mouseleave', () => { if (i !== selectedIndex) seg.setAttribute('opacity', '0.85'); });
     seg.addEventListener('click', () => selectBox(i));
     segGroup.appendChild(seg);
   });
+
+  // ── 박스 수정 폼에서 색을 바꿀 때 저장 전이라도 세그먼트/중앙 텍스트에 바로 반영 ──
+  function updateBoxColor(boxIndex, color) {
+    segGroup.querySelectorAll(`.donut-seg[data-box-index="${boxIndex}"]`).forEach(seg => {
+      if (seg.tagName === 'circle') seg.setAttribute('stroke', color);
+      else seg.setAttribute('fill', color);
+    });
+    if (selectedIndex === null) return;
+    const selBox = boxes[selectedIndex];
+    const realSelIdx = selBox && (selBox._idx !== undefined ? selBox._idx : selectedIndex);
+    if (String(realSelIdx) !== String(boxIndex)) return;
+    // renderCenter(box)가 만드는 3개 text 중 이름(0번)과 모드 라벨(2번)만 박스 색을 쓴다
+    const texts = centerGroup.querySelectorAll('text');
+    if (texts[0]) texts[0].setAttribute('fill', color);
+    if (texts[2]) texts[2].setAttribute('fill', color);
+  }
+  wrap._updateBoxColor = updateBoxColor;
 
   // ── 중앙 클릭 → 선택 해제 ──
   const centerClickZone = document.createElementNS('http://www.w3.org/2000/svg', 'circle');

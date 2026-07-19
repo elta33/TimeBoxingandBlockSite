@@ -7,13 +7,48 @@ function getBoxKey() {
   return currentView === 'week' ? 'weeklyBoxes' : 'dailyBoxes';
 }
 
+// ── 박스 색상 (기본 프리셋 + 커스텀) ──
+// box.color가 없는 기존 저장 데이터(마이그레이션 이전)는 BOX_COLOR_DEFAULT로 대체해 렌더링한다.
+const BOX_COLOR_DEFAULT = 'var(--tomato)';
+const BOX_COLOR_PRESETS = [
+  BOX_COLOR_DEFAULT,
+  '#ff8c00',
+  'var(--amber)',
+  'var(--green)',
+  'var(--blue)',
+  '#7c5cff',
+  '#ff5c9e',
+];
+
+function resolveBoxColor(box) {
+  return (box && box.color) || BOX_COLOR_DEFAULT;
+}
+
+// CSS 변수(var(--x))든 리터럴(#rrggbb)이든 상관없이 실제 렌더링되는 RGB를 얻어와
+// 밝기(YIQ)를 계산한다 — 밝은 박스 색 위에 흰 텍스트/아이콘이 묻히는 걸 방지하기 위함.
+function isLightBoxColor(colorValue) {
+  if (!colorValue) return false;
+  const probe = document.createElement('div');
+  probe.style.color = colorValue;
+  probe.style.display = 'none';
+  document.body.appendChild(probe);
+  const rgb = getComputedStyle(probe).color;
+  document.body.removeChild(probe);
+  const m = rgb.match(/\d+/g);
+  if (!m) return false;
+  const [r, g, b] = m.map(Number);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 150;
+}
+
 // ── 전체 설정 로드 (렌더링 진입점) ──
-function loadSettings() {
+function loadSettings(onDone) {
   const boxKey = getBoxKey();
   TBBStorage.get(['generalList', 'permanentList', boxKey], function(result) {
     renderList('generalList',   result.generalList   || [], 'generalList',   'generalWarn');
     renderList('permanentList', result.permanentList || [], 'permanentList', 'permanentWarn');
     renderBoxes(result[boxKey] || []);
+    if (onDone) onDone();
   });
 }
 
@@ -34,7 +69,7 @@ function addToList(inputId, storageKey, ulId, warnId) {
     TBBStorage.set({ [storageKey]: list }, () => {
       input.value = '';
       hideWarn(warnId);
-      loadSettings();
+      loadSettings(() => animateNewListItem(document.getElementById(ulId)));
     });
   });
 }
