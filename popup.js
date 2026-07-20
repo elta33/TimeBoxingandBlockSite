@@ -182,6 +182,8 @@ const upcomingBoxWrap = document.getElementById('upcomingBoxWrap');
 const pomoSection     = document.getElementById('pomoSection');
 const pomoStatusText  = document.getElementById('pomoStatusText');
 const pomoPipBtn      = document.getElementById('pomoPipBtn');
+const shortsBlockSwitch = document.getElementById('shortsBlockSwitch');
+const instaBlockSwitch  = document.getElementById('instaBlockSwitch');
 
 let currentHostname = null;
 let storageData = {};
@@ -210,6 +212,27 @@ switchTrack.addEventListener('click', toggleSchedule);
 switchTrack.addEventListener('keydown', e => {
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleSchedule(); }
 });
+
+// ── 강력 차단 토글(쇼츠/인스타) — 옵션 페이지의 인스타 하위 체크박스(팔로우 게시물 노출)는
+// 팝업에서 다루지 않는다: 여기선 켜고 끄는 스위치 두 개만 노출한다. ──
+function setupStrongBlockSwitch(track, storageKey) {
+  function setVisual(on) {
+    track.classList.toggle('on', on);
+    track.setAttribute('aria-checked', String(on));
+  }
+  function toggle() {
+    const on = !track.classList.contains('on');
+    setVisual(on);
+    TBBStorage.set({ [storageKey]: on });
+  }
+  TBBStorage.get([storageKey], result => setVisual(!!result[storageKey]));
+  track.addEventListener('click', toggle);
+  track.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+  });
+}
+setupStrongBlockSwitch(shortsBlockSwitch, 'shortsBlockEnabled');
+setupStrongBlockSwitch(instaBlockSwitch, 'instaBlockEnabled');
 
 // ── 렌더링 ──
 function renderAll() {
