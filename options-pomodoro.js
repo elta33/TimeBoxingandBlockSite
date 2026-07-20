@@ -99,7 +99,8 @@ function renderPomoList(list, override) {
       li.appendChild(tag);
     }
     const span = document.createElement('span');
-    span.textContent = domain; span.title = domain; span.className = 'domain-text';
+    const displayDomain = domainToDisplay(domain);
+    span.textContent = displayDomain; span.title = displayDomain; span.className = 'domain-text';
     const del = _makeTrashButton(T('delete'), () => {
       animateShrinkAndRemove(li, () => {
         TBBStorage.get(['pomodoroList'], r => {
@@ -395,7 +396,8 @@ function _renderAdvancedDomainPanel() {
     tag.textContent = T('pomoAdvancedDomainExtraTag');
     const span = document.createElement('span');
     span.className = 'domain-text';
-    span.textContent = domain; span.title = domain;
+    const displayDomain = domainToDisplay(domain);
+    span.textContent = displayDomain; span.title = displayDomain;
     left.append(tag, span);
 
     const del = _makeTrashButton(T('delete'), () => {
@@ -442,7 +444,8 @@ function _renderAdvancedDomainPanel() {
     }
     const span = document.createElement('span');
     span.className = 'domain-text';
-    span.textContent = domain; span.title = domain;
+    const displayDomain = domainToDisplay(domain);
+    span.textContent = displayDomain; span.title = displayDomain;
     label.appendChild(span);
 
     li.appendChild(label);

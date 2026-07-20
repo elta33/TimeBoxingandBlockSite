@@ -142,7 +142,7 @@ function _renderBlockBarChart(allEvents, period) {
           row.className = 'stats-bar-popover-row';
           const dn = document.createElement('span');
           dn.className = 'stats-bar-popover-domain';
-          dn.textContent = domain;
+          dn.textContent = domainToDisplay(domain);
           const cnt = document.createElement('span');
           cnt.className = 'stats-bar-popover-count';
           cnt.textContent = count + _blockUnit();
@@ -240,7 +240,7 @@ function _renderTopDomains(filteredEvents) {
 
     const name = document.createElement('span');
     name.className = 'stats-rank-domain';
-    name.textContent = domain;
+    name.textContent = domainToDisplay(domain);
 
     const barBg = document.createElement('div');
     barBg.className = 'stats-rank-bar-bg';

@@ -248,7 +248,8 @@ function renderList(elementId, items, storageKey, warnId) {
     const li = document.createElement('li');
     li.className = 'custom-domain-item';
     const span = document.createElement('span');
-    span.textContent = item; span.title = item; span.className = 'domain-text';
+    const displayItem = domainToDisplay(item);
+    span.textContent = displayItem; span.title = displayItem; span.className = 'domain-text';
     li.appendChild(span);
     const delBtn = _makeTrashButton(T('delete'), () => animateShrinkAndRemove(li, () => deleteItem(storageKey, index)));
     li.appendChild(delBtn);
@@ -331,7 +332,8 @@ function createCustomDomainItemUI(domain, mode, idPrefix, elType, onDelete) {
   item.className = 'custom-domain-item';
 
   const domSpan = document.createElement('span');
-  domSpan.textContent = domain; domSpan.title = domain; domSpan.className = 'domain-text';
+  const displayDomain = domainToDisplay(domain);
+  domSpan.textContent = displayDomain; domSpan.title = displayDomain; domSpan.className = 'domain-text';
   item.appendChild(domSpan);
 
   const controls = document.createElement('div');
@@ -602,7 +604,7 @@ function buildBoxCard(box, boxIndex, isWeek) {
     if (box.customDomains && box.customDomains.length > 0 && heightMins >= 30) {
       const summaryEl = document.createElement('div');
       summaryEl.className = 'tbox-custom-summary';
-      const first = box.customDomains[0].domain;
+      const first = domainToDisplay(box.customDomains[0].domain);
       const rest  = box.customDomains.length - 1;
       if (rest > 0) {
         summaryEl.textContent = first;

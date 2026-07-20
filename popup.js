@@ -367,7 +367,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
     const urlObj = new URL(url);
     if (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') {
       currentHostname = urlObj.hostname.replace(/^www\./, '');
-      currentDomainEl.textContent = currentHostname;
+      currentDomainEl.textContent = domainToDisplay(currentHostname);
       currentPageSect.style.display = 'block';
     }
   } catch (_) {}
