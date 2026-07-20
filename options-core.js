@@ -1478,30 +1478,46 @@ document.getElementById('addBoxBtn').addEventListener('click', () => {
       TBBStorage.get(['generalList', 'permanentList', key], result => {
         renderList('generalList',   result.generalList   || [], 'generalList',   'generalWarn');
         renderList('permanentList', result.permanentList || [], 'permanentList', 'permanentWarn');
-        // 렌더 직후(스크롤이 시작되기 전) 곧바로 재생: 편집 시 박스 길이 리사이즈 모핑.
-        // 렌더된 카드는 이미 최종(새) 크기이므로, 여기서 잠깐 이전 크기로 되돌린 뒤 스크롤과
-        // 동시에 새 크기로 트랜지션해야 "포커싱이 끝난 뒤 되돌아갔다 다시 변하는" 이중 변화가 없다.
+        // 렌더(카드는 이미 최종 모습으로 그려짐) 직후 반환되면, 스크롤이 시작되기 전인 지금
+        // 편집(리사이즈) 애니메이션은 곧바로 건다 — 편집 대상 박스는 이미 화면 어딘가에
+        // 보이고 있었을 것이므로 스크롤과 동시에 진행돼야 "다 그려진 박스가 스크롤 후에
+        // 다시 이전 길이→새 길이로 바뀌는" 이중 변화가 없다.
+        // 반면 새로 추가된 박스는 스크롤을 해야 보일 만큼 화면 밖에 있는 경우가 대부분이라,
+        // 여기서 바로 확장 애니메이션(0.26s)을 틀면 스크롤(0.55s)이 끝나기 전에 화면 밖에서
+        // 다 재생돼버려 "생성 애니메이션이 아예 사라진" 것처럼 보인다. 그래서 새 박스는
+        // 일단 scale(0)으로 숨겨만 두고, 아래 onSettled(스크롤이 끝나 실제로 보이는 시점)에서
+        // 확장 애니메이션을 재생한다. 하루 뷰(도넛)는 스크롤이 없어 원래도 문제없다.
         renderBoxes(result[key] || [], topMins, () => {
-          // 스크롤 포커싱이 끝난 뒤에만 재생: 새로 추가된 박스의 등장(확장) 효과 —
-          // 새 박스는 이전 상태가 없어 포커싱 후에 재생해도 어색함이 없다.
-          if (!wasEditing) {
-            const boxWrap = document.getElementById('timetableWrap');
-            if (currentView === 'day') {
-              animateDonutGrow(boxWrap, savedBoxIndex);
-            } else if (currentView === 'week') {
-              newBoxIndices.forEach(idx => {
-                animateGrowElements([...boxWrap.querySelectorAll(`.tbox[data-box-index="${idx}"]`)]);
-              });
-            }
-          }
-        });
-        if (wasEditing && oldBox) {
+          if (wasEditing) return;
           const boxWrap = document.getElementById('timetableWrap');
           if (currentView === 'day') {
-            animateDonutResize(boxWrap, savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
-          } else if (currentView === 'week' && _sameDaySet(oldBox.days, days)) {
-            animateWeekResize(boxWrap, savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
+            animateDonutGrow(boxWrap, savedBoxIndex);
+          } else if (currentView === 'week') {
+            newBoxIndices.forEach(idx => {
+              const els = [...boxWrap.querySelectorAll(`.tbox[data-box-index="${idx}"]`)];
+              els.forEach(el => { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; });
+              animateGrowElements(els);
+            });
           }
+        });
+
+        if (currentView === 'week') {
+          const boxWrap = document.getElementById('timetableWrap');
+          if (wasEditing && oldBox) {
+            if (_sameDaySet(oldBox.days, days)) {
+              animateWeekResize(boxWrap, savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
+            }
+          } else {
+            newBoxIndices.forEach(idx => {
+              boxWrap.querySelectorAll(`.tbox[data-box-index="${idx}"]`).forEach(el => {
+                el.style.transition = 'none';
+                el.style.transform  = 'scale(0)';
+                el.style.opacity    = '0';
+              });
+            });
+          }
+        } else if (currentView === 'day' && wasEditing && oldBox) {
+          animateDonutResize(document.getElementById('timetableWrap'), savedBoxIndex, oldBox.startTime, oldBox.endTime, startTime, endTime);
         }
       });
     });
