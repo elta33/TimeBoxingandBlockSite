@@ -7,7 +7,7 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 | 에셋 | 사양 | 필수 | 상태 |
 |------|------|------|------|
 | 스토어 아이콘 | 128×128 PNG | 필수 | ✅ `icons/icon128.png` |
-| 스크린샷 | 1280×800 **또는** 640×400 PNG/JPEG, 1~5장 | 최소 1장 필수 | ⬜ 사용자 캡처 필요 (아래) |
+| 스크린샷 | 1280×800 **또는** 640×400 PNG/JPEG, 1~5장 | 최소 1장 필수 | 🟨 2/5 — `screenshots/screenshot-02-block*.png`, `screenshot-04-pomodoro*.png`(재캡처 권장, 아래 §2) |
 | 작은 프로모션 타일 | 440×280 PNG/JPEG | 선택(권장) | ✅ `promo-small-440x280.png`(EN) · `promo-small-440x280.ko.png`(KO) |
 | 마퀴 프로모션 타일 | 1400×560 | 선택 | ⬜ 미제작 (필요 시 동일 방식으로 생성 가능) |
 
@@ -62,10 +62,66 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
    - 팝업(현재 페이지 상태 + 원클릭 차단 추가)
 4. 캡처 PNG를 `store-listing/assets/screenshots/raw/`에 저장.
 
-### 2-2. 1280×800 합성 (원하면 Claude가 대행)
+### 2-2. 1280×800 합성 (확립된 템플릿)
 
-raw 캡처를 주면, 프로모션 타일과 같은 톤(`#10141f` 배경 + tomato `#ff6347` 액센트, Sora/Manrope)으로 캡션을 얹은
-1280×800 타일로 합성해 `screenshots/`에 만들 수 있다. 캡션 초안은
-`store-listing/store-description.md`의 "스크린샷 캡션 제안" 참고.
+디자인 원본(source of truth): **Claude Design 프로젝트 "FocusBox Screenshots"**
+(`FocusBox Screenshots.dc.html`). 레이아웃/색/폰트 변경은 거기서 하고,
+아래 정적 HTML로 export해서 렌더한다 — 프로모션 타일과 동일한 워크플로우.
+
+**템플릿 구조 (1280×800):**
+
+| 영역 | 스펙 |
+|------|------|
+| 배경 | 플랫 `#10141f` + 우상단 tomato 톤링/액센트 아크 + 좌하단 화이트 링 (프로모션 타일과 동일) |
+| 브랜드 락업 | `top:38px left:72px` — 실제 `icons/icon128.png` 30px + `Focus`(흰) `Box`(tomato) Sora 700/22px |
+| 캡션 밴드 | 상단 220px, 좌우 패딩 72px. 헤드라인 Sora 800/44px(강조어만 `#ff6347`) + 서브라인 Manrope 600/19px `#8b93a7` |
+| 캡처 슬롯 | `left:72 top:220 w:1136 h:508`, radius 16, `box-shadow 0 24px 60px rgba(0,0,0,.5)` |
+
+> **핵심 규칙: 슬롯 rect(1136×508 = 2.236:1)를 먼저 고정하고, 실캡처를 그 비율에 맞춰 크롭한다.**
+> 페이지 전체를 다 넣지 말고 의미 있는 영역만 크롭하는 게 가독성에 낫다.
+> 소스 HTML에서는 `object-fit:cover` + `object-position`으로 초점만 조절하면 되므로
+> 이미지 편집 도구 없이 CSS만으로 크롭이 끝난다(예: 4200×2400 캡처 → `center 28%`).
+
+**완료분:**
+
+| 슬라이드 | 결과물 | 소스 HTML | 원본 캡처 |
+|---|---|---|---|
+| 2 (차단 화면) | `screenshots/screenshot-02-block{,.ko}.png` | `screenshot-02-block{,.ko}.source.html` | `block-{en,ko}.png` (4200×2400) |
+| 4 (포모도로+PiP) | `screenshots/screenshot-04-pomodoro{,.ko}.png` | `screenshot-04-pomodoro{,.ko}.source.html` | `pomodoro-{en,ko}.png` (1566×890 / 1600×879) |
+
+> ⚠️ **캡처 구도가 결과물 품질을 결정한다 — 슬라이드 4에서 실제로 겪은 것.**
+>
+> 1차 캡처는 PiP가 카드 **아래로** 늘어져 bbox가 약 1335×815(**1.64:1**)였다. 슬롯(2.236:1)에
+> 넣으려면 **60%까지 축소**해야 해서 UI 텍스트가 스토어 캐러셀 크기에서 안 읽혔다. 사각형
+> 크롭으로는 "카드 + 아래로 늘어진 PiP"를 담으면서 좌하단 빈 영역만 뺄 수 없다.
+>
+> 2차 캡처에서 **PiP를 카드 세로 범위 안으로 올려** 재촬영하니 bbox가 약 1336×583(**2.29:1**)이
+> 되어 슬롯에 거의 맞고, 축소율이 60% → **82%**로 올라갔다(UI 약 1.4배).
+>
+> **규칙 ①: 떠 있는 창(PiP 등)은 본문 카드와 세로 범위가 겹치도록 드래그한 뒤 찍을 것.**
+> **규칙 ②: 떠 있는 창이 다른 카드의 "내용"을 가리지 않는 위치에 둘 것.** 2차 캡처는 PiP가
+> 차단 리스트의 도메인 이름만 정확히 덮어서, 행에 휴지통 아이콘만 남아 목록이 비어 보인다.
+> 이건 크롭으로 못 고친다 — PiP가 그 카드 *위에* 떠 있어서 PiP를 온전히 담는 크롭은 반드시
+> 그 카드를 포함한다(리스트를 빼려고 좁게 자르면 카드가 어정쩡하게 잘려 더 나빠지는 걸 확인함).
+> 다음에 다시 찍을 일이 있으면 PiP를 타이머 카드 위쪽에 겹치게 두면 양쪽 다 만족한다.
+
+### 재생성 방법
+
+프로모션 타일과 동일하되 `--window-size=1280,800`:
+
+```bash
+"C:/Program Files/Google/Chrome/Application/chrome.exe" \
+  --headless=new --disable-gpu --no-first-run --hide-scrollbars \
+  --force-device-scale-factor=1 --user-data-dir="<SP>/cr-profile" \
+  --allow-file-access-from-files \
+  --virtual-time-budget=6000 --window-size=1280,800 \
+  --screenshot="<SP>/slide02-en.png" \
+  "<이 폴더의 절대경로>/screenshot-02-block.source.html"
+```
+
+- `--allow-file-access-from-files`가 필요하다 — 소스 HTML이 `block-en.png`/`../../icons/icon128.png`를
+  상대경로 `<img>`로 참조하기 때문(프로모션 타일은 아이콘을 base64로 임베드해서 이 플래그가 없었다).
+- `--screenshot` 출력은 OneDrive 밖(`<SP>`)에 쓰고 나서 복사할 것 — §1의 "액세스 거부(0x5)" 주의와 동일.
+- 한글 캡션은 Sora에 글리프가 없어 시스템 굵은 한글 폰트로 폴백되는 게 정상이다.
 
 > 대안: 캡션 없이 raw 캡처를 640×400 또는 1280×800으로 리사이즈만 해서 그대로 제출해도 CWS 요건은 충족된다(최소 1장). 합성은 완성도용 선택 사항.

@@ -172,51 +172,61 @@ function renderDayView(boxes, wrap, onEditBox) {
   const detailArea = document.createElement('div');
   detailArea.className = 'donut-detail-area';
 
-  // ── 중앙 텍스트 렌더링 ──
+  // 선택된 박스가 없을 때 중앙에 기본으로 보여줄, 지금 이 순간 활성화된 박스 탐색
+  // (popup.js의 isBoxActiveNow와 동일한 자정 넘김 처리 로직).
+  function findActiveBoxNow() {
+    const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+    return boxes.find(box => {
+      const startM = timeToMins(box.startTime);
+      const rawEndM = timeToMins(box.endTime);
+      let endM = rawEndM;
+      let n = nowM;
+      if (endM <= startM) {
+        endM += TOTAL_MINS;
+        if (n <= rawEndM) n += TOTAL_MINS;
+      }
+      return n >= startM && n < endM;
+    }) || null;
+  }
+
+  // ── 중앙 텍스트 렌더링 ── box가 없으면(수동 선택 해제 상태) 지금 활성화된 박스가 있는 경우
+  // 그걸 기본으로 보여주고, 없을 때만 날짜/안내 문구로 폴백한다.
   function renderCenter(box) {
     centerGroup.innerHTML = '';
-    if (box) {
+    const displayBox = box || findActiveBoxNow();
+    if (displayBox) {
       const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       nameEl.setAttribute('x', CX); nameEl.setAttribute('y', CY - 18);
       nameEl.setAttribute('text-anchor', 'middle'); nameEl.setAttribute('dominant-baseline', 'middle');
-      nameEl.setAttribute('font-size', '15'); nameEl.setAttribute('font-weight', 'bold');
-      nameEl.setAttribute('fill', resolveBoxColor(box));
+      nameEl.setAttribute('font-size', '19.5'); nameEl.setAttribute('font-weight', 'bold');
+      nameEl.setAttribute('fill', resolveBoxColor(displayBox));
       nameEl.setAttribute('font-family', 'inherit');
-      nameEl.textContent = box.name.length > 10 ? box.name.slice(0, 10) + '…' : box.name;
+      nameEl.textContent = displayBox.name.length > 10 ? displayBox.name.slice(0, 10) + '…' : displayBox.name;
       centerGroup.appendChild(nameEl);
 
       const timeEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       timeEl.setAttribute('x', CX); timeEl.setAttribute('y', CY + 8);
       timeEl.setAttribute('text-anchor', 'middle'); timeEl.setAttribute('dominant-baseline', 'middle');
-      timeEl.setAttribute('font-size', '13'); timeEl.setAttribute('fill', 'var(--donut-time-label)');
+      timeEl.setAttribute('font-size', '16.9'); timeEl.setAttribute('fill', 'var(--donut-time-label)');
       timeEl.setAttribute('font-family', 'inherit');
-      timeEl.textContent = `${box.startTime} – ${box.endTime}`;
+      timeEl.textContent = `${displayBox.startTime} – ${displayBox.endTime}`;
       centerGroup.appendChild(timeEl);
-
-      const modeEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      modeEl.setAttribute('x', CX); modeEl.setAttribute('y', CY + 30);
-      modeEl.setAttribute('text-anchor', 'middle'); modeEl.setAttribute('dominant-baseline', 'middle');
-      modeEl.setAttribute('font-size', '11');
-      modeEl.setAttribute('fill', resolveBoxColor(box));
-      modeEl.setAttribute('font-family', 'inherit');
-      modeEl.textContent = T('donutBlockBox');
-      centerGroup.appendChild(modeEl);
     } else {
       const now = new Date();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
       const dayEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      dayEl.setAttribute('x', CX); dayEl.setAttribute('y', CY - 12);
+      dayEl.setAttribute('x', CX); dayEl.setAttribute('y', CY - 18);
       dayEl.setAttribute('text-anchor', 'middle'); dayEl.setAttribute('dominant-baseline', 'middle');
-      dayEl.setAttribute('font-size', '16'); dayEl.setAttribute('font-weight', 'bold');
+      dayEl.setAttribute('font-size', '19.5'); dayEl.setAttribute('font-weight', 'bold');
       dayEl.setAttribute('fill', 'var(--donut-day-label)'); dayEl.setAttribute('font-family', 'inherit');
       dayEl.textContent = `${mm}-${dd}`;
       centerGroup.appendChild(dayEl);
 
       const hintEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      hintEl.setAttribute('x', CX); hintEl.setAttribute('y', CY + 12);
+      hintEl.setAttribute('x', CX); hintEl.setAttribute('y', CY + 8);
       hintEl.setAttribute('text-anchor', 'middle'); hintEl.setAttribute('dominant-baseline', 'middle');
-      hintEl.setAttribute('font-size', '12'); hintEl.setAttribute('fill', 'var(--donut-hint)');
+      hintEl.setAttribute('font-size', '16.9'); hintEl.setAttribute('fill', 'var(--donut-hint)');
       hintEl.setAttribute('font-family', 'inherit');
       hintEl.textContent = T('donutSelectHint');
       centerGroup.appendChild(hintEl);
@@ -557,10 +567,9 @@ function renderDayView(boxes, wrap, onEditBox) {
     const selBox = boxes[selectedIndex];
     const realSelIdx = selBox && (selBox._idx !== undefined ? selBox._idx : selectedIndex);
     if (String(realSelIdx) !== String(boxIndex)) return;
-    // renderCenter(box)가 만드는 3개 text 중 이름(0번)과 모드 라벨(2번)만 박스 색을 쓴다
+    // renderCenter(box)가 만드는 2개 text 중 이름(0번)만 박스 색을 쓴다
     const texts = centerGroup.querySelectorAll('text');
     if (texts[0]) texts[0].setAttribute('fill', color);
-    if (texts[2]) texts[2].setAttribute('fill', color);
   }
   wrap._updateBoxColor = updateBoxColor;
 
@@ -586,5 +595,10 @@ function renderDayView(boxes, wrap, onEditBox) {
     wrap.appendChild(hint);
   }
 
-  dayViewClockInterval = setInterval(renderClockHand, 60000);
+  // 시계 바늘과 함께, 선택된 박스가 없을 때 기본으로 뜨는 활성 박스 표시도 분/시간 경계를
+  // 넘어가면 같이 갱신되도록 한다(페이지를 계속 열어둔 채로 박스 시작/종료 시각을 지나는 경우).
+  dayViewClockInterval = setInterval(() => {
+    renderClockHand();
+    if (selectedIndex === null) renderCenter(null);
+  }, 60000);
 }

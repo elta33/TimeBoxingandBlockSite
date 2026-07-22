@@ -1,0 +1,60 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1280px;height:800px;overflow:hidden}
+.shot{position:relative;width:1280px;height:800px;background:#10141f;overflow:hidden;font-family:'Manrope',system-ui,Arial,sans-serif}
+
+/* 우상단 tomato 톤링 + 액센트 아크 (절반 캔버스 밖) */
+.ring-tr{position:absolute;top:-132px;right:-118px;width:360px;height:360px;border-radius:50%;border:26px solid rgba(255,99,71,.16)}
+.ring-accent{position:absolute;top:-132px;right:-118px;width:360px;height:360px;border-radius:50%;border:26px solid transparent;border-bottom-color:#ff6347;transform:rotate(-24deg)}
+/* 좌하단 흐린 화이트 링 */
+.ring-bl{position:absolute;bottom:-148px;left:-132px;width:360px;height:360px;border-radius:50%;border:22px solid rgba(255,255,255,.04)}
+
+/* 좌상단 브랜드 락업 — 실제 FocusBox 아이콘 사용 */
+.lockup{position:absolute;top:38px;left:72px;display:flex;align-items:center;gap:11px;z-index:2}
+.lockup img{width:30px;height:30px;display:block;border-radius:8px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.5))}
+.wordmark{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:-.01em;line-height:1}
+.wordmark .w{color:#fff}
+.wordmark .b{color:#ff6347}
+
+/* 캡션 밴드 */
+.caption{position:absolute;top:0;left:0;right:0;height:220px;padding:0 72px 32px;display:flex;flex-direction:column;justify-content:flex-end;z-index:2}
+h1{font-family:'Sora',sans-serif;font-weight:800;font-size:44px;line-height:1.15;color:#fff;letter-spacing:-.015em}
+h1 em{font-style:normal;color:#ff6347}
+p{margin-top:16px;font-family:'Manrope',sans-serif;font-weight:600;font-size:19px;line-height:1.4;color:#8b93a7;max-width:920px}
+
+/* 캡처 슬롯.
+   재캡처로 PiP를 카드 세로 범위 안으로 올려서 콘텐츠 bbox가 약 1336x583(2.29:1)이 됐다.
+   슬롯(2.236:1)과 거의 같아 이제 폭 기준으로 꽉 채울 수 있다(축소율 60% → 82%).
+   남는 상하 여백은 슬롯 배경을 캡처의 실제 body 배경색(#121212, 다크모드 L0)과 맞춰
+   이음매 없이 흡수시킨다. */
+.slot{position:absolute;left:72px;top:220px;width:1136px;height:508px;border-radius:16px;background:#121212;box-shadow:0 24px 60px rgba(0,0,0,.5);overflow:hidden}
+/* 죽은 여백만 보수적으로 잘라낸 뒤 폭 기준 스케일 (crop 1380x600 @ 50,0 → scale 1136/1380 = .8232) */
+.crop{position:absolute;left:50%;top:50%;width:1380px;height:600px;overflow:hidden;transform:translate(-50%,-50%) scale(.8232)}
+.crop img{position:absolute;left:-50px;top:0;display:block}
+.slot .edge{position:absolute;inset:0;border-radius:16px;border:1px solid rgba(255,255,255,.06);pointer-events:none}
+</style></head><body>
+<div class="shot">
+  <div class="ring-tr"></div>
+  <div class="ring-accent"></div>
+  <div class="ring-bl"></div>
+
+  <div class="lockup">
+    <img alt="" src="../../icons/icon128.png">
+    <div class="wordmark"><span class="w">Focus</span><span class="b">Box</span></div>
+  </div>
+
+  <div class="caption">
+    <h1>Focus in cycles. Timer stays <em>on top</em>.</h1>
+    <p>Pomodoro with savable presets and a floating Picture-in-Picture window.</p>
+  </div>
+
+  <div class="slot">
+    <div class="crop"><img alt="" src="pomodoro-en.png"></div>
+    <div class="edge"></div>
+  </div>
+</div>
+</body></html>

@@ -137,7 +137,10 @@
     .num-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .num-val:disabled { opacity: 0.4; }
 
-    .unit { font-size: 0.57rem; color: #999; flex-shrink: 0; }
+    /* 고정 폭: 단위 텍스트 길이가 로케일마다 다르면(예: "min" vs "×") .num-val(flex:1)이
+       차지하는 공간이 행마다 달라져 숫자가 행끼리 어긋나 보인다 — 폭을 고정해 모든 설정 행의
+       숫자 위치가 항상 같은 자리에 오도록 한다. */
+    .unit { font-size: 0.57rem; color: #999; flex-shrink: 0; width: 24px; }
 
     /* ── 상단 탭 고정 ── */
     .aot-row { margin-top: 10px; }

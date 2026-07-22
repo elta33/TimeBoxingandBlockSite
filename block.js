@@ -242,7 +242,17 @@ let _selQuote = null;  // index into _quotes
 // ─────────────────────────────────────────────
 // 스토리지 저장
 // ─────────────────────────────────────────────
-function saveImages() { chrome.storage.local.set({ [STORE_IMGS]: _imgs }); }
+// chrome.storage.local.set은 실패해도 예외를 던지지 않고 rejected Promise만 반환한다 —
+// catch 없이 두면 저장이 조용히 실패해도(예: 용량 초과) 화면엔 반영된 것처럼 보이다가
+// 새로고침 시 이전 상태로 되돌아간다. 이미지는 base64라 용량을 금방 채우므로 실패를
+// 사용자에게 알려준다(manifest의 unlimitedStorage로 기본 10MB 상한 자체는 없앴지만,
+// 디스크 부족 등 다른 이유의 실패에도 대비).
+function saveImages() {
+  chrome.storage.local.set({ [STORE_IMGS]: _imgs }).catch(err => {
+    console.error('이미지 저장 실패:', err);
+    alert(T('custImageSaveFailed'));
+  });
+}
 function saveQuotes() { TBBStorage.set({ [STORE_QUOTES]: _quotes }); }
 function saveLinks()  { TBBStorage.set({ [STORE_LINKS]:  _links  }); }
 

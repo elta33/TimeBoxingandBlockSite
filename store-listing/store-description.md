@@ -94,14 +94,34 @@ FocusBox는 어떤 네트워크 요청도 하지 않습니다. 분석 도구도,
 
 ---
 
-## 스크린샷 캡션 제안 (5장 기준)
+## 스크린샷 캡션 (확정, 5장)
 
-스토어 스크린샷은 최대 5장. 각 장의 의도와 캡션(이미지 위에 얹을 짧은 문구) 초안:
+스토어 스크린샷은 최대 5장. 스토어에 캡션 필드가 없으므로 문구는 **이미지에 합성**한다
+(상단 캡션 밴드 + 하단 캡처 슬롯 템플릿 — `assets/README.md` 참고).
+강조 단어(`**`)만 tomato `#ff6347`로 처리한다.
 
-1. **타임박스 스케줄러(도넛/주간 뷰)** — "Plan your day. Block distractions on schedule."
-2. **차단 안내 화면(block.html, 커스텀 배경+문구)** — "A calm wall between you and the rabbit hole."
-3. **포모도로 타이머 + PiP** — "Focus in cycles. Keep the timer on top."
-4. **집중 통계(스트릭/히트맵/차트)** — "See the habit forming."
-5. **팝업(현재 페이지 상태 + 한 번에 차단 추가)** — "Block the current site in one click."
+| # | 화면 | EN (기본 제출본) | KO (ko 로케일 병행 시) |
+|---|------|------------------|------------------------|
+| 1 | 타임박스 스케줄러 (하루 도넛 뷰) | Block sites on **your** schedule. | 차단할 시간을 **직접** 정하세요. |
+| 2 | 차단 안내 화면 (block.html) | A wall between you and the **rabbit hole**. | 당신과 **딴짓** 사이를 가로막는 벽. |
+| 3 | 사이트별 강력 차단 (쇼츠/인스타) | Kill the **Shorts**. Keep the platform. | **쇼츠**만 끄고, 플랫폼은 그대로. |
+| 4 | 포모도로 타이머 + PiP | Focus in cycles. Timer stays **on top**. | 사이클로 집중, 타이머는 **항상 위에**. |
+| 5 | 집중 통계 (스트릭·차트·분포) | Watch the habit **form** — 100% on-device. | **쌓이는** 습관을 눈으로. 100% 기기 안에서. |
 
-캡션은 이미지에 태워도 되고, 스토어는 캡션 필드가 없으므로 넣을 거면 이미지 합성 시 얹어야 함.
+서브라인(헤드라인 아래 한 줄):
+
+1. Draw focus blocks by hour and day. Distractions switch off — right on time.
+2. Two levels of blocking — always, or only when a timebox is live.
+3. Surgical toggles hide short-form feeds without blocking the whole site.
+4. Pomodoro with presets and a floating Picture-in-Picture window.
+5. Streaks, focus time, block stats. No accounts. No servers. No tracking.
+
+### 구성 근거 (메모)
+
+- 초안에 있던 **팝업(원클릭 차단)을 빼고 사이트별 강력 차단을 넣었다** — 팝업은 편의 기능이라
+  차별점이 약한 반면, 쇼츠/릴스 선별 차단은 경쟁 확장에 드물고 검색 유입이 강하다.
+- 프라이버시는 별도 슬라이드 대신 5번 캡션에 흡수해 마무리 메시지로 쓴다.
+- 2번 캡션에서 "calm"을 뺐다 — 실제 `block.html`은 알람시계 + "차단 발동!" + 뒤엉킨 낙서로
+  **주의를 환기하는** 톤이라 "차분한(calm)"은 화면과 어긋나고 설치 후 기대 불일치를 만든다.
+- 3번은 유튜브/인스타 실화면 대신 **추상화된 목업**을 쓸 것 — 타사 UI·저작물을 스토어 자산에
+  그대로 싣는 건 제휴 오해 소지가 있다.
