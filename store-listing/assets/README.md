@@ -7,7 +7,7 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 | 에셋 | 사양 | 필수 | 상태 |
 |------|------|------|------|
 | 스토어 아이콘 | 128×128 PNG | 필수 | ✅ `icons/icon128.png` |
-| 스크린샷 | 1280×800 **또는** 640×400 PNG/JPEG, 1~5장 | 최소 1장 필수 | 🟨 2/5 — `screenshots/screenshot-02-block*.png`, `screenshot-04-pomodoro*.png`(재캡처 권장, 아래 §2) |
+| 스크린샷 | 1280×800 **또는** 640×400 PNG/JPEG, 1~5장 | 최소 1장 필수 | 🟨 4/5 — `screenshots/` 1~4 완료, 5(통계 캡처) 남음 (아래 §2) |
 | 작은 프로모션 타일 | 440×280 PNG/JPEG | 선택(권장) | ✅ `promo-small-440x280.png`(EN) · `promo-small-440x280.ko.png`(KO) |
 | 마퀴 프로모션 타일 | 1400×560 | 선택 | ⬜ 미제작 (필요 시 동일 방식으로 생성 가능) |
 
@@ -68,7 +68,16 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 (`FocusBox Screenshots.dc.html`). 레이아웃/색/폰트 변경은 거기서 하고,
 아래 정적 HTML로 export해서 렌더한다 — 프로모션 타일과 동일한 워크플로우.
 
-**템플릿 구조 (1280×800):**
+**템플릿은 두 가지 (1280×800 공통):**
+
+- **A형 — 상단 캡션 + 하단 와이드 캡처** (슬라이드 1·2·4): 아래 표 참고.
+- **B형 — 좌측 세로중앙 캡션 + 우측 세로 패널** (슬라이드 3·5): 캡션 존 `left:72 w:560`
+  (세로 중앙 정렬, 헤드라인 48px), 세로 패널 `left:704 top:64 w:504 h:672`(**3:4**),
+  슬롯 스타일(radius 16/그림자/edge border)은 A형과 동일. 세로로 긴 콘텐츠(통계 컬럼,
+  아이콘 그래픽)에 사용 — A형 슬롯(2.236:1)에 세로 콘텐츠를 넣으면 축소율이 급락하는
+  문제(슬라이드 4의 1차 실패)를 레이아웃 차원에서 회피한다.
+
+**A형 구조:**
 
 | 영역 | 스펙 |
 |------|------|
@@ -86,8 +95,15 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 
 | 슬라이드 | 결과물 | 소스 HTML | 원본 캡처 |
 |---|---|---|---|
+| 1 (도넛 스케줄러) | `screenshots/screenshot-01-donut{,.ko}.png` | `screenshot-01-donut{,.ko}.source.html` | `Donut-{en,ko}.png` (4200×2400) |
 | 2 (차단 화면) | `screenshots/screenshot-02-block{,.ko}.png` | `screenshot-02-block{,.ko}.source.html` | `block-{en,ko}.png` (4200×2400) |
+| 3 (강력 차단) | `screenshots/screenshot-03-strongblock{,.ko}.png` | `screenshot-03-strongblock{,.ko}.source.html` | **없음 — 그래픽.** 릴스 글리프(직접 드로잉, 좌·흐린 아래 레이어) + 쇼츠 글리프(simple-icons 패스, 우·그림자 위 레이어)를 겹치고 tomato 금지 링 + `/shorts /reels → home feed` 리다이렉트 필. **B형 레이아웃**(아래 참고). KO는 EN 소스에서 sed 텍스트 치환으로 생성 |
 | 4 (포모도로+PiP) | `screenshots/screenshot-04-pomodoro{,.ko}.png` | `screenshot-04-pomodoro{,.ko}.source.html` | `pomodoro-{en,ko}.png` (1566×890 / 1600×879) |
+
+슬라이드 1 크롭 메모: 상단 네비게이션 바만 제외하고 두 카드(박스 추가 폼 + 도넛)를 body 여백
+포함으로 자르면 4095×1831 = 2.2365로 슬롯 비율과 사실상 일치해 레터박스가 없다. 도넛 하단
+"12" 눈금 라벨이 슬롯 가장자리에 물려서 크롭 원점을 15px 내려(y=225) 보정했다 — 가장자리에
+걸리는 미세 요소는 렌더 후 반드시 육안 확인할 것.
 
 > ⚠️ **캡처 구도가 결과물 품질을 결정한다 — 슬라이드 4에서 실제로 겪은 것.**
 >

@@ -144,6 +144,7 @@
     /* ── 강력 차단 기능(쇼츠/인스타) — 팝업 맨 아래 섹션이므로 하단 테두리 제거 ── */
     #strongBlockSection { border-bottom: none; }
     .p-toggle-row + .p-toggle-row { margin-top: 8px; }
+    .p-strong-block-label { font-size: 13.6px; }
 
     /* ══════════════ 다크모드 ══════════════
        options.html과 동일한 방식: <html data-theme="dark">일 때만 적용되는
@@ -243,7 +244,7 @@
   <div id="strongBlockSection" class="p-section">
     <div class="p-section-label" data-i18n="strongBlockTitle">강력 차단 기능</div>
     <div class="p-toggle-row">
-      <span data-i18n="shortsBlockToggleLabel">유튜브 쇼츠 강력 차단</span>
+      <span class="p-strong-block-label" data-i18n="shortsBlockToggleLabel">유튜브 쇼츠 강력 차단</span>
       <div class="p-switch-wrap">
         <div id="shortsBlockSwitch" class="p-switch-track" role="switch" aria-checked="false" tabindex="0">
           <div class="p-switch-thumb"></div>
@@ -251,7 +252,7 @@
       </div>
     </div>
     <div class="p-toggle-row">
-      <span data-i18n="instaBlockToggleLabel">인스타그램 강력 차단</span>
+      <span class="p-strong-block-label" data-i18n="instaBlockToggleLabel">인스타그램 강력 차단</span>
       <div class="p-switch-wrap">
         <div id="instaBlockSwitch" class="p-switch-track" role="switch" aria-checked="false" tabindex="0">
           <div class="p-switch-thumb"></div>
