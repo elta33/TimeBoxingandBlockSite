@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1280px;height:800px;overflow:hidden}
+.shot{position:relative;width:1280px;height:800px;background:#10141f;overflow:hidden;font-family:'Manrope',system-ui,Arial,sans-serif}
+
+/* 우상단 tomato 톤링 + 액센트 아크 (절반 캔버스 밖) */
+.ring-tr{position:absolute;top:-132px;right:-118px;width:360px;height:360px;border-radius:50%;border:26px solid rgba(255,99,71,.16)}
+.ring-accent{position:absolute;top:-132px;right:-118px;width:360px;height:360px;border-radius:50%;border:26px solid transparent;border-bottom-color:#ff6347;transform:rotate(-24deg)}
+.ring-bl{position:absolute;bottom:-148px;left:-132px;width:360px;height:360px;border-radius:50%;border:22px solid rgba(255,255,255,.04)}
+
+/* 좌상단 브랜드 락업 */
+.lockup{position:absolute;top:38px;left:72px;display:flex;align-items:center;gap:11px;z-index:2}
+.lockup img{width:30px;height:30px;display:block;border-radius:8px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.5))}
+.wordmark{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:-.01em;line-height:1}
+.wordmark .w{color:#fff}
+.wordmark .b{color:#ff6347}
+
+/* ── A형: 상단 캡션 밴드 + 하단 와이드 캡처 ── */
+.caption{position:absolute;top:0;left:0;right:0;height:220px;padding:0 72px 32px;display:flex;flex-direction:column;justify-content:flex-end;z-index:2}
+h1{font-family:'Sora',sans-serif;font-weight:800;font-size:44px;line-height:1.2;color:#fff;letter-spacing:-.015em}
+h1 em{font-style:normal;color:#ff6347}
+p{margin-top:16px;font-family:'Manrope',sans-serif;font-weight:600;font-size:19px;line-height:1.4;color:#8b93a7;max-width:920px}
+
+/* 캡처 슬롯.
+   통계 탭 하단 두 카드(집중 통계 + 차단 통계)만 크롭 — 스트릭 달력은 데이터가 적을 때
+   대부분 빈 그리드라 낭비이고, 포모도로 통계는 세로 스택이라 와이드 구도에 안 맞음.
+   두 카드 묶음(1355×711 ≈ 1.91:1)은 슬롯(2.236:1)보다 세로가 길어 높이 기준으로 맞추고,
+   좌우 여백은 캡처 body 배경색(#121212)으로 이음매 없이 채운다. */
+.slot{position:absolute;left:72px;top:220px;width:1136px;height:508px;border-radius:16px;background:#121212;box-shadow:0 24px 60px rgba(0,0,0,.5);overflow:hidden}
+/* crop 1358x713 @ 8,396 → scale 508/713 = .7125 (높이 기준, 렌더 폭 967) */
+.crop{position:absolute;left:50%;top:50%;width:1358px;height:713px;overflow:hidden;transform:translate(-50%,-50%) scale(.7125)}
+.crop img{position:absolute;left:-8px;top:-396px;display:block}
+.slot .edge{position:absolute;inset:0;border-radius:16px;border:1px solid rgba(255,255,255,.06);pointer-events:none}
+</style></head><body>
+<div class="shot">
+  <div class="ring-tr"></div>
+  <div class="ring-accent"></div>
+  <div class="ring-bl"></div>
+
+  <div class="lockup">
+    <img alt="" src="../../icons/icon128.png">
+    <div class="wordmark"><span class="w">Focus</span><span class="b">Box</span></div>
+  </div>
+
+  <div class="caption">
+    <h1><em>쌓이는</em> 습관을 눈으로. 100% 기기 안에서.</h1>
+    <p>일별 집중 시간, 차단 횟수, 상위 차단 도메인. 계정도, 서버도, 추적도 없습니다.</p>
+  </div>
+
+  <div class="slot">
+    <div class="crop"><img alt="" src="Stats-ko.png"></div>
+    <div class="edge"></div>
+  </div>
+</div>
+</body></html>

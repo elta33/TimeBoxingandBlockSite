@@ -515,14 +515,14 @@ function _renderStreakCalendar(allEvents, streak) {
   top.className = 'scal-top';
   const eyebrowEl = document.createElement('div');
   eyebrowEl.className = 'stat-eyebrow';
-  eyebrowEl.textContent = '🔥 연속 집중 스트릭';
+  eyebrowEl.textContent = T('statsStreak');
   const valueEl = document.createElement('div');
   valueEl.className = 'stat-value';
   const valueNum = document.createElement('span');
   valueNum.textContent = String(streak.current);
   const valueUnit = document.createElement('span');
   valueUnit.className = 'stat-unit';
-  valueUnit.textContent = '일째';
+  valueUnit.textContent = T('statsDayUnit');
   valueEl.append(valueNum, valueUnit);
   top.append(eyebrowEl, valueEl);
   container.appendChild(top);
@@ -543,7 +543,7 @@ function _renderStreakCalendar(allEvents, streak) {
     if (m !== lastMonth) {
       lastMonth = m;
       const lbl = document.createElement('span');
-      lbl.textContent = (m + 1) + '월';
+      lbl.textContent = T('month' + (m + 1));
       lbl.style.left = (w * PITCH) + 'px';
       monthsEl.appendChild(lbl);
     }
@@ -555,7 +555,7 @@ function _renderStreakCalendar(allEvents, streak) {
 
   const daysEl = document.createElement('div');
   daysEl.className = 'scal-days';
-  ['월', '', '수', '', '금', '', '일'].forEach(lbl => {
+  [T('dayMon'), '', T('dayWed'), '', T('dayFri'), '', T('daySun')].forEach(lbl => {
     const s = document.createElement('span');
     s.textContent = lbl;
     daysEl.appendChild(s);
@@ -630,9 +630,9 @@ function _renderStreakCalendar(allEvents, streak) {
   const mkCell = (bg) => { const s = document.createElement('span'); s.className = 'scal-leg-cell'; s.style.background = bg; return s; };
   const mkLbl  = (t)  => { const s = document.createElement('span'); s.className = 'scal-leg-lbl';  s.textContent = t; return s; };
   legend.append(
-    mkLbl('없음'), mkCell('var(--scal-cell-empty)'),
+    mkLbl(T('statsStreakLegendNone')), mkCell('var(--scal-cell-empty)'),
     mkCell('var(--scal-t1)'), mkCell('var(--scal-t2)'), mkCell('var(--scal-t3)'), mkCell('var(--scal-t4)'),
-    mkLbl('집중')
+    mkLbl(T('statsStreakLegendFocus'))
   );
   legendRow.appendChild(legend);
 

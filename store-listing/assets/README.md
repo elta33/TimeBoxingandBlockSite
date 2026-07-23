@@ -7,7 +7,7 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 | 에셋 | 사양 | 필수 | 상태 |
 |------|------|------|------|
 | 스토어 아이콘 | 128×128 PNG | 필수 | ✅ `icons/icon128.png` |
-| 스크린샷 | 1280×800 **또는** 640×400 PNG/JPEG, 1~5장 | 최소 1장 필수 | 🟨 4/5 — `screenshots/` 1~4 완료, 5(통계 캡처) 남음 (아래 §2) |
+| 스크린샷 | 1280×800 **또는** 640×400 PNG/JPEG, 1~5장 | 최소 1장 필수 | ✅ **5/5 완료** — `screenshots/screenshot-0{1..5}-*{,.ko}.png` (EN/KO 각 5장, 아래 §2) |
 | 작은 프로모션 타일 | 440×280 PNG/JPEG | 선택(권장) | ✅ `promo-small-440x280.png`(EN) · `promo-small-440x280.ko.png`(KO) |
 | 마퀴 프로모션 타일 | 1400×560 | 선택 | ⬜ 미제작 (필요 시 동일 방식으로 생성 가능) |
 
@@ -71,7 +71,7 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 **템플릿은 두 가지 (1280×800 공통):**
 
 - **A형 — 상단 캡션 + 하단 와이드 캡처** (슬라이드 1·2·4): 아래 표 참고.
-- **B형 — 좌측 세로중앙 캡션 + 우측 세로 패널** (슬라이드 3·5): 캡션 존 `left:72 w:560`
+- **B형 — 좌측 세로중앙 캡션 + 우측 세로 패널** (슬라이드 3): 캡션 존 `left:72 w:560`
   (세로 중앙 정렬, 헤드라인 48px), 세로 패널 `left:704 top:64 w:504 h:672`(**3:4**),
   슬롯 스타일(radius 16/그림자/edge border)은 A형과 동일. 세로로 긴 콘텐츠(통계 컬럼,
   아이콘 그래픽)에 사용 — A형 슬롯(2.236:1)에 세로 콘텐츠를 넣으면 축소율이 급락하는
@@ -97,8 +97,9 @@ Chrome Web Store 제출에 필요한 이미지 에셋의 상태와 제작 방법
 |---|---|---|---|
 | 1 (도넛 스케줄러) | `screenshots/screenshot-01-donut{,.ko}.png` | `screenshot-01-donut{,.ko}.source.html` | `Donut-{en,ko}.png` (4200×2400) |
 | 2 (차단 화면) | `screenshots/screenshot-02-block{,.ko}.png` | `screenshot-02-block{,.ko}.source.html` | `block-{en,ko}.png` (4200×2400) |
-| 3 (강력 차단) | `screenshots/screenshot-03-strongblock{,.ko}.png` | `screenshot-03-strongblock{,.ko}.source.html` | **없음 — 그래픽.** 릴스 글리프(직접 드로잉, 좌·흐린 아래 레이어) + 쇼츠 글리프(simple-icons 패스, 우·그림자 위 레이어)를 겹치고 tomato 금지 링 + `/shorts /reels → home feed` 리다이렉트 필. **B형 레이아웃**(아래 참고). KO는 EN 소스에서 sed 텍스트 치환으로 생성 |
+| 3 (강력 차단) | `screenshots/screenshot-03-strongblock{,.ko}.png` | `screenshot-03-strongblock{,.ko}.source.html` | **없음 — 그래픽.** 릴스 글리프(직접 드로잉, 좌·아래 레이어) + 쇼츠 글리프(simple-icons 패스, 우·그림자 위 레이어)를 같은 색·같은 불투명도(#dfe3e8/.85)로 겹치고 tomato 금지 링. **B형 레이아웃**(아래 참고). KO는 EN 소스에서 sed 텍스트 치환으로 생성 |
 | 4 (포모도로+PiP) | `screenshots/screenshot-04-pomodoro{,.ko}.png` | `screenshot-04-pomodoro{,.ko}.source.html` | `pomodoro-{en,ko}.png` (1566×890 / 1600×879) |
+| 5 (통계) | `screenshots/screenshot-05-stats{,.ko}.png` | `screenshot-05-stats{,.ko}.source.html` | `Stats-{en,ko}.png` (1379×1149 / 1374×1109). **A형.** 하단 두 카드(집중 통계+차단 통계)만 크롭 — 스트릭 달력은 데이터가 적으면 빈 그리드가 대부분이라 제외, 포모도로 통계는 세로 스택이라 와이드 구도에 부적합. 두 카드 묶음(≈1.91:1)은 슬롯보다 세로가 길어 높이 기준으로 맞추고 좌우를 `#121212`로 채움(72% 스케일). EN·KO 크롭 오프셋 상이 — 소스 주석 참고 |
 
 슬라이드 1 크롭 메모: 상단 네비게이션 바만 제외하고 두 카드(박스 추가 폼 + 도넛)를 body 여백
 포함으로 자르면 4095×1831 = 2.2365로 슬롯 비율과 사실상 일치해 레터박스가 없다. 도넛 하단
