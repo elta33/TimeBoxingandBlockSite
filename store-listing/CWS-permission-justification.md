@@ -2,6 +2,8 @@
 
 TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWithHostAccess`를 함께 요청하는 것에 대한 Chrome Web Store(CWS) 심사 대응 문서. Developer Dashboard의 **Privacy practices** 탭에 그대로 붙여넣을 수 있도록 한국어/영어 텍스트를 같이 준비했다(리뷰어가 자동번역에 의존하는 경우가 많아 영어본을 병기하는 것이 반려 리스크를 줄인다).
 
+> **최종 검토 기준 커밋:** `6e0e6be`(2026-07-24). `manifest.json`의 permissions 목록이 바뀌면(권한 추가/삭제) 이 문서도 같이 갱신할 것 — 특히 2장의 코드 근거(파일명:라인)는 리팩터링 시 어긋나기 쉽다.
+
 ---
 
 ## 1. CWS 심사 프로세스가 실제로 어떻게 진행되는가
@@ -10,14 +12,14 @@ TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWith
 2. **권한 기반 트리거로 수동 심사 큐 편입** — `host_permissions`에 `<all_urls>`(또는 이에 준하는 광범위 패턴)가 있거나, `declarativeNetRequestWithHostAccess`/`scripting`/`tabs`처럼 Google이 "powerful permission"으로 분류한 권한이 있으면 자동으로 사람이 보는 심사 큐로 넘어간다. **TBB는 이 조건에 정확히 해당한다.**
 3. **Developer Dashboard "Privacy practices" 탭 작성 요구** — 아래 항목이 비어 있거나 부실하면 자동 검증 단계에서부터 제출이 막히거나(필수 필드 미입력), 사람 심사에서 반려된다.
    - **Single purpose description** (확장 전체의 단일 목적 설명, 1개)
-   - **Permission justification** — 매니페스트에 선언된 "민감" 권한 각각에 대해 별도 텍스트박스가 자동 생성됨(TBB 기준: host permissions, `declarativeNetRequest`, `scripting`, `tabs`, `activeTab`)
+   - **Permission justification** — 매니페스트에 선언된 "민감" 권한 각각에 대해 별도 텍스트박스가 자동 생성됨(TBB 기준: host permissions, `declarativeNetRequest`/`declarativeNetRequestWithHostAccess`, `scripting`, `tabs`. `activeTab`은 미사용이 확인되어 제거 완료 — 2-5장 참고)
    - **Data usage disclosure** — 수집/사용하는 데이터 카테고리 체크박스 + "판매하지 않음/핵심 기능과 무관한 용도로 쓰지 않음/신용평가에 쓰지 않음" 인증 체크
    - **Privacy policy** — 반드시 **실제로 호스팅된 URL**이어야 함(텍스트 붙여넣기 불가). 그 페이지 안에 호스트 권한으로 처리하는 데이터에 대한 구체적 언급이 있어야 함
 4. **심사 기간** — 통상 수 시간~수 주. `<all_urls>` + DNR 조합처럼 민감 권한이 섞인 신규 제출은 **최초 제출에서 바로 승인되지 않고 1회 이상의 "추가 정보 요청"을 받는 경우가 흔함**. 이는 정상적인 과정이지 특별히 코드에 문제가 있다는 신호가 아니다.
 5. **흔한 반려 사유** (TBB에 적용해 미리 점검할 것):
    - Justification 텍스트가 "필요해서", "기능을 위해" 수준으로 너무 일반적 — **구체적으로 어떤 파일의 어떤 코드가 그 권한을 왜 쓰는지** 매핑해야 함 (본 문서 2장이 그 매핑)
    - Single purpose와 실제 기능이 여러 개로 흩어져 "다목적 확장"처럼 보임 — TBB는 "웹사이트 차단 기반 시간관리(타임박싱/포모도로)"라는 하나의 목적으로 서술 가능하지만, 포모도로/통계/PIN/커스터마이징 등 부가기능이 많으므로 심사자가 "왜 이 모든 기능이 하나의 목적인가"를 되물을 수 있음 → single purpose 서술에서 이들을 전부 "차단을 통한 시간관리"의 하위 수단으로 명시적으로 묶어야 함
-   - 요청 권한 대비 매니페스트상 실제 사용 근거가 안 보이는 경우 — TBB는 반대로 실제 코드가 전체 도메인에서 동작해야 하는 정당한 케이스지만, **`activeTab`은 매니페스트에 선언돼 있으나 코드 어디서도 쓰이지 않음**(아래 2-5장). 미사용 권한은 그 자체로 반려 사유가 될 수 있으므로 제거 권장.
+   - 요청 권한 대비 매니페스트상 실제 사용 근거가 안 보이는 경우 — TBB는 반대로 실제 코드가 전체 도메인에서 동작해야 하는 정당한 케이스다. 이전에는 `activeTab`이 매니페스트에 선언돼 있으나 코드 어디서도 쓰이지 않는 죽은 권한이었는데(2-5장 참고), **제거 완료**되어 이 리스크는 해소됨 — 향후 새 권한을 추가할 때마다 실제 API 호출 근거가 있는지 먼저 grep으로 확인하는 습관을 유지할 것.
    - Privacy policy 페이지가 일반적인 템플릿이라 host permission으로 처리하는 데이터를 구체적으로 언급하지 않음
 
 ---
@@ -27,8 +29,8 @@ TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWith
 ### 2-1. `host_permissions: ["<all_urls>"]`
 
 **왜 특정 도메인 목록으로 좁힐 수 없는가:** TBB의 핵심 기능은 사용자가 옵션 페이지에서 **차단하고 싶은 도메인을 자유 텍스트로 직접 입력**하는 것이다(`generalList`/`permanentList`/`dailyBoxes.customDomains` 등). 즉 어떤 사이트를 차단할지는 매니페스트 작성 시점이 아니라 **각 사용자가 설치 후 런타임에 결정**하며, 그 값은 무제한이다. 따라서:
-- SPA 내비게이션 감지용 콘텐츠 스크립트(`page-world.js`, `content.js`, `manifest.json:32-44`)는 사용자가 어떤 사이트를 차단 목록에 넣을지 사전에 알 수 없으므로 모든 사이트에 주입되어야 한다.
-- `block.html`을 리다이렉트 대상으로 노출하는 `web_accessible_resources`(`manifest.json:45-58`)도 동일한 이유로 `<all_urls>`가 필요하다.
+- SPA 내비게이션 감지용 콘텐츠 스크립트(`page-world.js`, `content.js`, `manifest.json:35-47`)는 사용자가 어떤 사이트를 차단 목록에 넣을지 사전에 알 수 없으므로 모든 사이트에 주입되어야 한다.
+- `block.html`을 리다이렉트 대상으로 노출하는 `web_accessible_resources`(`manifest.json:48-61`)도 동일한 이유로 `<all_urls>`가 필요하다.
 
 **영문 justification (붙여넣기용):**
 > This extension lets users block arbitrary websites they choose at runtime (entered as free-text domains in the options page), for time-boxing and Pomodoro-based focus sessions. Because the set of blocked domains is entirely user-defined and unbounded, the extension cannot be scoped to a fixed list of domains at install time. Broad host access is required so that (1) the SPA-navigation-detection content scripts (`page-world.js`, `content.js`) can detect in-page navigation on any domain the user has chosen to block, and (2) the block/redirect page (`block.html`) can be reached via redirect from any domain. No data is read from page content — the scripts only observe URL/navigation changes to decide whether to redirect.
@@ -60,7 +62,7 @@ TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWith
 
 **코드 근거:**
 - `background.js:243-250` — 강력 차단 토글 on/off 시 이미 열려있는 관련 탭(유튜브/인스타그램)만 새로고침(`chrome.tabs.query({url: [...]})` → `chrome.tabs.reload`)해 토글 변경을 즉시 반영.
-- `popup.js:364` — 팝업이 열릴 때 현재 활성 탭의 URL을 읽어 "이 사이트를 차단 목록에 추가" UI를 제공.
+- `popup.js:387` — 팝업이 열릴 때 현재 활성 탭의 URL을 읽어 "이 사이트를 차단 목록에 추가" UI를 제공.
 
 **영문 justification:**
 > `tabs` is used for two narrow purposes: (1) reloading only the already-open YouTube/Instagram tabs when the user toggles the strong-block feature for that site, so the change applies immediately without a full browser restart, and (2) reading the active tab's URL when the popup opens, to let the user add the current site to their block list with one click.
@@ -68,13 +70,18 @@ TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWith
 **한글 justification:**
 > `tabs`는 두 가지 좁은 목적에만 사용됩니다: (1) 강력 차단 토글을 켜거나 끌 때, 이미 열려 있는 해당 사이트(유튜브/인스타그램) 탭만 새로고침하여 브라우저 재시작 없이 즉시 반영, (2) 팝업을 열 때 현재 활성 탭의 URL을 읽어 "이 사이트를 차단 목록에 추가" 버튼을 제공.
 
-### 2-5. `activeTab` — 제출 전 제거 권장
+### 2-5. `activeTab` — 제거됨 (조치 완료)
 
-코드베이스 전체에서 `chrome.tabs.executeScript`/`chrome.scripting.executeScript` 등 `activeTab`이 실제로 필요한 API 호출이 **한 건도 없다**. `host_permissions: ["<all_urls>"]`가 이미 모든 탭의 URL 접근을 상시 보장하므로 `activeTab`은 현재 아무 기능도 추가하지 않는 죽은 선언이다.
+코드베이스 전체에서 `chrome.tabs.executeScript`/`chrome.scripting.executeScript` 등 `activeTab`이 실제로 필요한 API 호출이 **한 건도 없었다**. `host_permissions: ["<all_urls>"]`가 이미 모든 탭의 URL 접근을 상시 보장하므로 아무 기능도 추가하지 않는 죽은 선언이었음을 확인하고 `manifest.json`에서 **제거했다**(더 이상 매니페스트에 없음). 사용하지 않는 권한을 남겨두면 (a) 심사자가 "이건 왜 필요한가"를 되묻는 불필요한 리스크 포인트가 되고, (b) 정당화해야 할 대상이 하나 늘어나 반려 확률만 올라가므로, 향후 권한을 추가할 때도 실제 사용 근거 없이 "혹시 필요할까봐" 선언하지 않을 것.
 
-**권장 조치:** `manifest.json`에서 `activeTab`을 제거할 것. 사용하지 않는 권한은 (a) 심사자가 "이건 왜 필요한가"를 되묻는 불필요한 리스크 포인트가 되고, (b) 정당화 문서 작성 대상이 하나 늘어나 반려 확률만 올라간다. 제거해도 기능 손실이 없다.
+### 2-6. `unlimitedStorage` (신규 추가됨)
 
-### 2-6. `alarms`, `storage`, `windows` (참고용, 통상 민감 권한으로 분류되지 않음)
+**코드 근거:** 차단 화면(`block.html`/`block.js`)에서 사용자가 직접 업로드하는 커스텀 배경 이미지(`customBgImages`)를 Base64로 `chrome.storage.local`에 저장하는데, 이미지 데이터는 금방 `chrome.storage.local`의 기본 용량 상한(약 10MB)을 채운다. `unlimitedStorage`는 이 **로컬 저장 용량 상한만 해제**하는 권한으로, 새로운 데이터 접근 범위(호스트, 탭, 사용자 활동 등)를 추가하지 않는다 — CWS도 통상 이 권한을 "powerful permission"으로 분류하지 않아 별도 justification 텍스트박스가 안 뜨는 경우가 많지만, Data usage 탭 서술에 한 줄 포함해두면 안전하다. (`block.js:246-248`에 저장 실패 시 사용자에게 알림을 띄우는 방어 코드도 이 용량 이슈를 배경으로 추가됨 — 상한 해제와는 별개로 디스크 자체가 부족한 경우까지 대비.)
+
+**영문 justification (필요시):**
+> `unlimitedStorage` removes the default ~10MB cap on `chrome.storage.local` so that user-uploaded Base64 background images for the block screen don't silently fail to save. It does not grant access to any new category of data — all image data remains local to the device and is never transmitted.
+
+### 2-7. `alarms`, `storage`, `windows` (참고용, 통상 민감 권한으로 분류되지 않음)
 
 - `alarms` — `background.js:444`, 1분 간격 타임박스/포모도로 틱(`timeboxTicker`) 갱신. 사용자 데이터 접근 없음.
 - `storage` — 모든 설정을 `chrome.storage.local`/`chrome.storage.sync`에만 저장(`storage-api.js`). 외부 서버 전송 없음.
@@ -116,9 +123,9 @@ CWS는 **텍스트가 아니라 실제로 접근 가능한 URL**을 요구한다
 
 ## 5. 제출 전 체크리스트
 
-- [ ] `manifest.json`에서 미사용 `activeTab` 제거 (2-5장)
+- [x] `manifest.json`에서 미사용 `activeTab` 제거 (2-5장, 완료)
 - [ ] Single purpose 설명에 포모도로/통계/PIN 등 부가기능을 "차단 기반 시간관리"의 하위 수단으로 명시적으로 연결
 - [ ] Privacy policy 페이지를 실제 URL로 게시 (4장 내용 포함)
 - [ ] Data usage 탭에서 Web history만 체크 + 3개 인증 전부 체크 (3장)
-- [ ] 각 권한 justification 텍스트박스에 2장의 영문 문단을 우선 붙여넣기(리뷰어 자동번역 오류 방지), 필요시 한글 병기
+- [ ] 각 권한 justification 텍스트박스에 2장의 영문 문단을 우선 붙여넣기(리뷰어 자동번역 오류 방지), 필요시 한글 병기 — `unlimitedStorage`는 텍스트박스가 안 뜨면 Data usage 서술에만 포함해도 무방 (2-6장)
 - [ ] 최초 제출 후 "추가 정보 요청"이 오면 정상적인 절차로 간주하고, 요청받은 구체적 질문에 코드 근거(파일명:라인)로 답변
