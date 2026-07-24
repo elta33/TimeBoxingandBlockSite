@@ -36,7 +36,7 @@ TimeBoxingandBlockSite/
 ├── options-pomodoro.js     # 포모도로 타이머 탭 UI (표시/틱/프리셋/사이클·도메인 고급 설정)
 ├── pomodoro-shared.js      # 사이클별 시간 계산 공용 로직 — background.js(importScripts)/options-pomodoro.js/pomodoro-pip.js 공유
 ├── storage-api.js          # TBBStorage.get/set — sync/local 자동 라우팅 레이어 (전 스크립트 공유)
-├── storage.js              # 설정 페이지 전역 상태 + CRUD 헬퍼 (TBBStorage 위에 구축)
+├── storage.js              # 설정 페이지 전역 상태 + CRUD 헬퍼 + 박스 색 팔레트 유틸 (TBBStorage 위에 구축)
 ├── render-day.js           # 하루 도넛(원형) 타임테이블 SVG 렌더러
 │
 ├── block.html / block.js  # 차단 페이지 (배경 이미지, 인용구, 커스텀 UI)
@@ -137,6 +137,7 @@ page-world.js (MAIN World)
   startTime: "09:00",
   endTime: "12:00",
   mode: "block",
+  color: "var(--tomato)",      // 박스 색상 (없으면 기본 tomato — 구 데이터 호환)
   days: [0, 1, 2, 3, 4],       // 월~금 (weeklyBoxes만)
   customDomains: [              // 이 박스 동안 허용할 도메인
     { domain: "github.com", mode: "allow" }
@@ -147,6 +148,8 @@ page-world.js (MAIN World)
 자정을 넘기는 박스(예: 22:00~02:00)도 지원하며, 뷰에서 두 조각으로 분할 렌더링한다.
 
 박스 **추가**뿐 아니라 **수정**도 지원한다 (`_editingBoxIndex`로 수정 대상을 추적하며, 완료·취소 시 추가 모드로 복귀).
+
+박스마다 색을 지정할 수 있다 — `storage.js`의 `BOX_COLOR_PRESETS` 7색 팔레트 중 선택하며, `resolveBoxColor()`가 `box.color`를 읽고 없으면 기본 tomato로 대체한다(구 데이터 호환). 밝은 색 위에 흰 텍스트가 묻히지 않도록 `isLightBoxColor()`가 렌더링된 RGB의 YIQ 밝기를 계산해 텍스트 대비를 조정한다.
 
 ### 3-5. 포모도로 타이머
 
@@ -383,6 +386,7 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 2. **하루 스케줄 토글** — 비활성화 시 generalList 차단 전체 중단
 3. **현재 활성 박스** + **다음 예정 박스** (최대 2개)
 4. **포모도로 상태** — 타이머가 돌고 있을 때만 노출. 남은 시간을 1초 tick으로 표시하고, PiP 창을 열거나(없으면 생성) 기존 창에 포커스하는 버튼 제공
+5. **강력 차단 토글** — 쇼츠·인스타 강력 차단을 팝업에서 바로 켜고 끔 (`shortsBlockEnabled`/`instaBlockEnabled` 직접 토글, 인스타 하위 옵션은 설정 페이지에만 있음)
 
 ---
 
@@ -420,3 +424,4 @@ HTML에서는 `data-i18n`, `data-i18n-placeholder`, `data-i18n-title`, `data-i18
 - **Base64 이미지 저장**: `chrome.storage.local` 용량 한도(10MB)에 유의가 필요하다.
 - **다크모드 FOUC**: MV3 CSP가 `<head>` 인라인 `<script>`를 차단해 테마를 동기적으로 확정할 수 없다. `theme.js`는 외부 스크립트로 로드되며, chrome.storage 응답 전 깜빡임은 `localStorage` 캐시(`tbb-theme`)를 먼저 읽어 완화한다.
 - **sync 용량 한도**: `chrome.storage.sync`는 아이템당 8KB다. `storage-api.js`가 7500B 안전선을 두고 초과 시 `focusEvents`를 14일치로 자동 축소하며, sync 쓰기 실패 시 local에 폴백 저장한다(`_tbbGet`이 폴백분을 보완해 읽음).
+- **한글 도메인(punycode)**: 도메인은 저장·매칭 모두 punycode(`xn--…`)로 다룬다 — 실제 내비게이션 시 브라우저가 넘기는 hostname이 punycode라 그것과 비교해야 하기 때문. 화면 표시(리스트·통계)에서만 `storage-api.js`의 `domainToDisplay()`가 유니코드로 되돌린다(RFC 3492 Bootstring 디코드 최소 구현). 낱자 한글(`ㅋㅋ.com`)은 IDNA 정규화로 조합용 자모가 되어 홀로 놓이면 모양이 눌리므로, 호환용 자모로 되돌리는 순수 표시 보정을 추가로 거친다. 저장 형식·매칭 로직은 건드리지 않는다.
