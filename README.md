@@ -1,1 +1,1 @@
-Required Notice: Copyright (c) 2026 <https://github.com/elta33>
+Copyright (c) 2026 <https://github.com/elta33>
