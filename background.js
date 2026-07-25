@@ -1,5 +1,5 @@
 // background.js
-importScripts('pomodoro-shared.js', 'storage-api.js');
+importScripts('pomodoro-shared.js', 'storage-api.js', 'pro.js');
 
 const BLOCK_PAGE_PATH = "/block.html";
 
@@ -450,11 +450,13 @@ chrome.alarms.onAlarm.addListener(async alarm => {
   }
 });
 chrome.runtime.onStartup.addListener(() => {
+  TBBPro.ensureGrandfather();
   updateBlockingRules();
   updateShortsCosmetic();
   updateInstaCosmetic();
 });
 chrome.runtime.onInstalled.addListener(async (details) => {
+  await TBBPro.ensureGrandfather(); // 출시 무료 기간 사용자를 영구 무료로 각인(설치/업데이트 양쪽)
   await _migrateToSync();
   await _migrateToSyncV2();
   updateBlockingRules();

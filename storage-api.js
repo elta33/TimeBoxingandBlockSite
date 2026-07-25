@@ -25,7 +25,8 @@ const TBB_SYNC_KEYS = new Set([
   'pomodoroCycleOverrides',
   'pomodoroList',
   'customQuotes',
-  'customLinks'
+  'customLinks',
+  'proEntitlement'
 ]);
 
 // chrome.storage.sync 의 QUOTA_BYTES_PER_ITEM(8192)보다 여유를 둔 안전선.

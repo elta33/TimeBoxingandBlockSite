@@ -129,3 +129,13 @@ CWS는 **텍스트가 아니라 실제로 접근 가능한 URL**을 요구한다
 - [ ] Data usage 탭에서 Web history만 체크 + 3개 인증 전부 체크 (3장)
 - [ ] 각 권한 justification 텍스트박스에 2장의 영문 문단을 우선 붙여넣기(리뷰어 자동번역 오류 방지), 필요시 한글 병기 — `unlimitedStorage`는 텍스트박스가 안 뜨면 Data usage 서술에만 포함해도 무방 (2-6장)
 - [ ] 최초 제출 후 "추가 정보 요청"이 오면 정상적인 절차로 간주하고, 요청받은 구체적 질문에 코드 근거(파일명:라인)로 답변
+
+
+## (참고) 게시 안내 — CWS 제출용 URL 만들기
+
+CWS Developer Dashboard의 "Privacy policy" 필드에는 이 텍스트를 붙여넣을 수 없고, **공개 접근 가능한 HTTPS URL**을 넣어야 합니다. 아래 중 하나로 게시하십시오.
+
+- **GitHub Pages (권장):** 이 저장소에 `docs/privacy-policy.md`(또는 `index.md`)로 넣고 Settings → Pages에서 소스를 지정하면 `https://<사용자명>.github.io/<저장소>/privacy-policy` 형태의 안정적인 URL이 생깁니다.
+- **공개 Notion 페이지:** 페이지 우측 상단 "Share → Publish"로 웹 게시(공개 접근 허용)한 뒤 그 URL 사용.
+
+**주의(재검증 완료):** 로그인 없이 접근 가능한 HTTPS 여야 하며, 리뷰 봇이 크롤링하므로 404·리다이렉트 루프·플레이스홀더 페이지면 반려됩니다. 또한 **수시로 바뀌는 GitHub README 링크가 아니라 안정적인 URL**을 쓰라는 것이 공식 권고입니다(README는 예고 없이 바뀔 수 있음). 로그인이 필요한 Google Docs 링크는 부적합합니다.
