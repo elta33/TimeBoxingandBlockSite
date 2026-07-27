@@ -36,6 +36,7 @@ TimeBoxingandBlockSite/
 ├── options-pomodoro.js     # 포모도로 타이머 탭 UI (표시/틱/프리셋/사이클·도메인 고급 설정)
 ├── pomodoro-shared.js      # 사이클별 시간 계산 공용 로직 — background.js(importScripts)/options-pomodoro.js/pomodoro-pip.js 공유
 ├── storage-api.js          # TBBStorage.get/set — sync/local 자동 라우팅 레이어 (전 스크립트 공유)
+├── pro.js                  # TBBPro — 부분 유료화 feature-flag 인프라 (background importScripts + 각 페이지 로드)
 ├── storage.js              # 설정 페이지 전역 상태 + CRUD 헬퍼 + 박스 색 팔레트 유틸 (TBBStorage 위에 구축)
 ├── render-day.js           # 하루 도넛(원형) 타임테이블 SVG 렌더러
 │
@@ -321,6 +322,17 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 - 이미지-인용구 링크 (`customLinks`): `{ imgName, quote }` 쌍으로 묶어 함께 표시
 - 링크가 없으면 이미지·인용구를 각각 랜덤 선택
 
+### 3-14. Pro 부분 유료화 (feature-flag)
+
+`pro.js`의 `TBBPro`가 "이 사용자가 지금 Pro인가?"를 한 곳에서 판정하는 인프라다. background는 `importScripts`로, 각 페이지는 `<script src="pro.js">`로 로드한다(항상 `storage-api.js` 다음).
+
+- **마스터 스위치 `TBB_PRO_LAUNCH_FREE`** (현재 `true`): 출시 기념 전 기능 무료 기간. `isActive()`/`has()`가 항상 `true`라 게이트를 붙이기 전에도 안전하다.
+- **grandfather 각인**: 무료 기간에 확장을 실행한 사용자는 `onInstalled`/`onStartup`의 `ensureGrandfather()`로 `proEntitlement.grandfathered = true`가 1회 각인된다(멱등). 유료화 후에도 기존 사용자는 Pro를 유지 — 신규 사용자에겐 각인하지 않는 것이 곧 유료벽.
+- **Pro 대상 기능 선언** `TBB_PRO_FEATURES`: 커스텀 배경 업로드, 포모도로 프리셋 무제한·고급 오버라이드, 통계 전체 이력·내보내기, PIN 잠금, PiP Always on Top — 현재는 **선언만** 하고 강제하지 않는다.
+- **유료화 전환 절차**: `TBB_PRO_LAUNCH_FREE`를 `false`로 바꾸는 순간이 과금 시작이며, 그 전에 ① 결제·라이선스 검증 구현(`_tbbComputeActive`의 license 분기) ② 개인정보처리방침·CWS 데이터 공시 갱신 ③ 각 기능 호출부에 `TBBPro.has('…')` 게이트 + UI 자물쇠 ④ manifest version 업 후 재심사 제출이 반드시 함께 가야 한다.
+
+> 현재 상태에서는 어떤 외부 통신도 없고(entitlement는 로컬/sync 스토리지에만 존재) 모든 기능이 무료다.
+
 ---
 
 ## 4. 데이터 스토리지
@@ -347,6 +359,7 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 | `pomodoroList` | sync | `string[]` | 포모도로 차단 도메인 목록 |
 | `customQuotes` | sync | `string[]` | 차단 화면 인용구 |
 | `customLinks` | sync | `object[]` | 이미지-인용구 쌍 링크 `[{ imgName, quote }]` (참조하는 이미지가 sync 안 되는 커스텀 업로드면 다른 기기에서 매칭 안 될 수 있음 — graceful degradation) |
+| `proEntitlement` | sync | `object` | Pro 자격 `{ grandfathered, license, updatedAt }` (기기 간 유지되어야 하므로 sync) |
 | `pomodoroState` | local | `object` | 포모도로 현재 상태 (활성 타이머 — 기기 간 경합 방지 위해 로컬 고정) |
 | `pomodoroActiveDomainOverride` | local | `object` \| `null` | 현재 적용 중인 프리셋의 도메인 커스텀 `{ allow, extra }` (활성 상태라 로컬) |
 | `onboardingDismissed` | local | `boolean` | 온보딩 카드 닫힘 여부 (신규 설치 판별 겸용 — 기기별 노출이라 로컬) |
@@ -425,3 +438,9 @@ HTML에서는 `data-i18n`, `data-i18n-placeholder`, `data-i18n-title`, `data-i18
 - **다크모드 FOUC**: MV3 CSP가 `<head>` 인라인 `<script>`를 차단해 테마를 동기적으로 확정할 수 없다. `theme.js`는 외부 스크립트로 로드되며, chrome.storage 응답 전 깜빡임은 `localStorage` 캐시(`tbb-theme`)를 먼저 읽어 완화한다.
 - **sync 용량 한도**: `chrome.storage.sync`는 아이템당 8KB다. `storage-api.js`가 7500B 안전선을 두고 초과 시 `focusEvents`를 14일치로 자동 축소하며, sync 쓰기 실패 시 local에 폴백 저장한다(`_tbbGet`이 폴백분을 보완해 읽음).
 - **한글 도메인(punycode)**: 도메인은 저장·매칭 모두 punycode(`xn--…`)로 다룬다 — 실제 내비게이션 시 브라우저가 넘기는 hostname이 punycode라 그것과 비교해야 하기 때문. 화면 표시(리스트·통계)에서만 `storage-api.js`의 `domainToDisplay()`가 유니코드로 되돌린다(RFC 3492 Bootstring 디코드 최소 구현). 낱자 한글(`ㅋㅋ.com`)은 IDNA 정규화로 조합용 자모가 되어 홀로 놓이면 모양이 눌리므로, 호환용 자모로 되돌리는 순수 표시 보정을 추가로 거친다. 저장 형식·매칭 로직은 건드리지 않는다.
+
+---
+
+## 10. 라이선스
+
+PolyForm Noncommercial License 1.0.0 (비상업적 용도 한정). 상업적 사용은 [3-14의 Pro 부분 유료화](#3-14-pro-부분-유료화-feature-flag) 체계와 연동될 예정이다.
