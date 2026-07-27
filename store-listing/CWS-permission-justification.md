@@ -2,11 +2,11 @@
 
 TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWithHostAccess`를 함께 요청하는 것에 대한 Chrome Web Store(CWS) 심사 대응 문서. Developer Dashboard의 **Privacy practices** 탭에 그대로 붙여넣을 수 있도록 한국어/영어 텍스트를 같이 준비했다(리뷰어가 자동번역에 의존하는 경우가 많아 영어본을 병기하는 것이 반려 리스크를 줄인다).
 
-> **최종 검토 기준 커밋:** `ae60570`(2026-07-27). `manifest.json`의 permissions 목록이 바뀌면(권한 추가/삭제) 이 문서도 같이 갱신할 것 — 특히 3장의 코드 근거(파일명:라인)는 리팩터링 시 어긋나기 쉽다.
+> **최종 검토 기준 커밋:** `d245fad`(2026-07-27). 이 커밋 기준으로 3장의 모든 코드 근거(파일:라인), DNR 우선순위(100/50/30/10/5), 그리고 "네트워크 호출 전무"(코드베이스 전체에 `fetch`/`XMLHttpRequest`/`eval`/`WebSocket`/`sendBeacon` 0건) 주장을 전수 재검증해 일치를 확인했다. `manifest.json`의 permissions 목록이 바뀌면(권한 추가/삭제) 이 문서도 같이 갱신할 것 — 특히 3장의 코드 근거(파일명:라인)는 리팩터링 시 어긋나기 쉽다.
 >
 > **이번 재검수 기준 매니페스트 권한 전체:** `storage`, `unlimitedStorage`, `declarativeNetRequest`, `declarativeNetRequestWithHostAccess`, `alarms`, `windows`, `scripting`, `tabs` + `host_permissions: ["<all_urls>"]`. (`activeTab`은 제거된 상태 유지, 3-5장.)
 >
-> **이번 재검수에서 반영한 주요 변경:** (1) `pro.js`(TBB Pro 부분 유료화 feature-flag) 신설 — **현재는 "출시 기념 전 기능 무료" 모드라 결제/라이선스 검증도, 외부 통신도 없다.** 따라서 현 제출의 데이터 공시·권한 정당화는 그대로 유효하나, 향후 유료화 전환 시 반드시 재심사가 필요하므로 별도 절(7장)로 명시. (2) 코드 근거 라인 번호를 현재 코드에 맞춰 재대조. (3) **Single purpose 설명(단일 목적) 텍스트를 2장에 신규 작성** — 붙여넣기용 영문/한글 병기.
+> **이번 재검수에서 반영한 주요 변경:** (1) `pro.js`(TBB Pro 부분 유료화 feature-flag) 신설 — **현재는 "출시 기념 전 기능 무료" 모드라 결제/라이선스 검증도, 외부 통신도 없다.** 따라서 현 제출의 데이터 공시·권한 정당화는 그대로 유효하나, 향후 유료화 전환 시 반드시 재심사가 필요하므로 별도 절(7장)로 명시. (2) 코드 근거 라인 번호를 현재 코드에 맞춰 재대조. (3) **Single purpose 설명(단일 목적) 텍스트를 2장에 신규 작성** — 붙여넣기용 영문/한글 병기. (4) **Privacy policy 페이지 게시 완료** — `https://elta33.github.io/TBB-Privacy_Policy/` (GitHub Pages, 5장 5개 항목 전부 포함 확인). 체크리스트 3번 해결. (5) `d245fad` 기준 전 파일:라인 인용·DNR 우선순위·네트워크 무통신 주장을 전수 재검증(오류 없음).
 
 ---
 
@@ -148,6 +148,8 @@ Dashboard의 "Data usage" 섹션은 카테고리별 체크 + 3개 인증 문구�
 
 ## 5. Privacy Policy 페이지에 반드시 포함할 내용
 
+> **✅ 게시 완료 (2026-07-27):** **https://elta33.github.io/TBB-Privacy_Policy/** — GitHub Pages로 게시됨(영문 기본 + 한국어 버전 링크, 로그인 없이 접근 가능한 HTTPS). Dashboard "Privacy policy" 필드에 **이 URL을 입력**한다. 라이브 페이지가 아래 5개 항목을 모두 포함함을 확인했다(무수집 진술 · `<all_urls>` 사유 · 로컬 저장 vs 서버 전송 · `chrome.storage.sync` = Google 계정 인프라 경유 · 문의 이메일 `tbbbusiness33@gmail.com`). 페이지 내용을 바꿀 때는 아래 5개 항목이 계속 충족되는지 재확인할 것.
+
 CWS는 **텍스트가 아니라 실제로 접근 가능한 URL**을 요구한다(GitHub Pages, Notion 공개 페이지, 개인 도메인 등 아무 곳이나 가능). 아래 항목이 빠지면 "host permission을 요청하는데 privacy policy가 그 사용처를 설명하지 않는다"는 사유로 반려될 수 있다.
 
 1. 확장이 수집하는 데이터가 없다는 명시적 진술(위 4장 서술 재사용 가능)
@@ -162,7 +164,7 @@ CWS는 **텍스트가 아니라 실제로 접근 가능한 URL**을 요구한다
 
 - [x] `manifest.json`에서 미사용 `activeTab` 제거 (3-5장, 완료)
 - [x] Single purpose 설명에 포모도로/통계/PIN 등 부가기능을 "차단 기반 시간관리"의 하위 수단으로 명시적으로 연결 (2장에 영문/한글 붙여넣기용 텍스트 작성 완료 — 제출 시 Dashboard에 붙여넣기)
-- [ ] Privacy policy 페이지를 실제 URL로 게시 (5장 내용 포함)
+- [x] Privacy policy 페이지를 실제 URL로 게시 — **https://elta33.github.io/TBB-Privacy_Policy/** (5장 5개 항목 전부 포함 확인, 2026-07-27). Dashboard "Privacy policy" 필드에 이 URL 입력.
 - [ ] Data usage 탭에서 Web history만 체크 + 3개 인증 전부 체크 (4장)
 - [ ] 각 권한 justification 텍스트박스에 3장의 영문 문단을 우선 붙여넣기(리뷰어 자동번역 오류 방지), 필요시 한글 병기 — `unlimitedStorage`는 텍스트박스가 안 뜨면 Data usage 서술에만 포함해도 무방 (3-6장)
 - [ ] Single purpose 필드에 2장 텍스트 붙여넣기(길이 제한 시 "핵심 한 줄"만) — 실제 Dashboard 입력 시점에 처리
@@ -195,6 +197,8 @@ CWS는 **텍스트가 아니라 실제로 접근 가능한 URL**을 요구한다
 ---
 
 ## (참고) 게시 안내 — CWS 제출용 URL 만들기
+
+> **현재 상태: 게시 완료.** `https://elta33.github.io/TBB-Privacy_Policy/` (GitHub Pages, 별도 저장소 `TBB-Privacy_Policy`). 아래 안내는 향후 이전·재게시 시 참고용으로 남겨 둔다.
 
 CWS Developer Dashboard의 "Privacy policy" 필드에는 이 텍스트를 붙여넣을 수 없고, **공개 접근 가능한 HTTPS URL**을 넣어야 합니다. 아래 중 하나로 게시하십시오.
 
