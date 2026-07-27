@@ -2,7 +2,11 @@
 
 TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWithHostAccess`를 함께 요청하는 것에 대한 Chrome Web Store(CWS) 심사 대응 문서. Developer Dashboard의 **Privacy practices** 탭에 그대로 붙여넣을 수 있도록 한국어/영어 텍스트를 같이 준비했다(리뷰어가 자동번역에 의존하는 경우가 많아 영어본을 병기하는 것이 반려 리스크를 줄인다).
 
-> **최종 검토 기준 커밋:** `6e0e6be`(2026-07-24). `manifest.json`의 permissions 목록이 바뀌면(권한 추가/삭제) 이 문서도 같이 갱신할 것 — 특히 2장의 코드 근거(파일명:라인)는 리팩터링 시 어긋나기 쉽다.
+> **최종 검토 기준 커밋:** `ae60570`(2026-07-27). `manifest.json`의 permissions 목록이 바뀌면(권한 추가/삭제) 이 문서도 같이 갱신할 것 — 특히 2장의 코드 근거(파일명:라인)는 리팩터링 시 어긋나기 쉽다.
+>
+> **이번 재검수 기준 매니페스트 권한 전체:** `storage`, `unlimitedStorage`, `declarativeNetRequest`, `declarativeNetRequestWithHostAccess`, `alarms`, `windows`, `scripting`, `tabs` + `host_permissions: ["<all_urls>"]`. (`activeTab`은 제거된 상태 유지, 2-5장.)
+>
+> **이번 재검수에서 반영한 주요 변경:** (1) `pro.js`(TBB Pro 부분 유료화 feature-flag) 신설 — **현재는 "출시 기념 전 기능 무료" 모드라 결제/라이선스 검증도, 외부 통신도 없다.** 따라서 현 제출의 데이터 공시·권한 정당화는 그대로 유효하나, 향후 유료화 전환 시 반드시 재심사가 필요하므로 별도 절(6장)로 명시. (2) 코드 근거 라인 번호를 현재 코드에 맞춰 재대조.
 
 ---
 
@@ -76,7 +80,7 @@ TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWith
 
 ### 2-6. `unlimitedStorage` (신규 추가됨)
 
-**코드 근거:** 차단 화면(`block.html`/`block.js`)에서 사용자가 직접 업로드하는 커스텀 배경 이미지(`customBgImages`)를 Base64로 `chrome.storage.local`에 저장하는데, 이미지 데이터는 금방 `chrome.storage.local`의 기본 용량 상한(약 10MB)을 채운다. `unlimitedStorage`는 이 **로컬 저장 용량 상한만 해제**하는 권한으로, 새로운 데이터 접근 범위(호스트, 탭, 사용자 활동 등)를 추가하지 않는다 — CWS도 통상 이 권한을 "powerful permission"으로 분류하지 않아 별도 justification 텍스트박스가 안 뜨는 경우가 많지만, Data usage 탭 서술에 한 줄 포함해두면 안전하다. (`block.js:246-248`에 저장 실패 시 사용자에게 알림을 띄우는 방어 코드도 이 용량 이슈를 배경으로 추가됨 — 상한 해제와는 별개로 디스크 자체가 부족한 경우까지 대비.)
+**코드 근거:** 차단 화면(`block.html`/`block.js`)에서 사용자가 직접 업로드하는 커스텀 배경 이미지(`customBgImages`)를 Base64로 `chrome.storage.local`에 저장하는데(`block.js:26`, `STORE_IMGS='customBgImages'`), 이미지 데이터는 금방 `chrome.storage.local`의 기본 용량 상한(약 10MB)을 채운다. `unlimitedStorage`는 이 **로컬 저장 용량 상한만 해제**하는 권한으로, 새로운 데이터 접근 범위(호스트, 탭, 사용자 활동 등)를 추가하지 않는다 — CWS도 통상 이 권한을 "powerful permission"으로 분류하지 않아 별도 justification 텍스트박스가 안 뜨는 경우가 많지만, Data usage 탭 서술에 한 줄 포함해두면 안전하다. (`block.js:250-254`의 `saveImages()`가 `chrome.storage.local.set(...).catch()`로 저장 실패 시 콘솔 로그 + 사용자 알림(`alert(T('custImageSaveFailed'))`)을 띄우는 방어 코드도 이 용량 이슈를 배경으로 추가됨 — 상한 해제와는 별개로 디스크 자체가 부족한 경우까지 대비.)
 
 **영문 justification (필요시):**
 > `unlimitedStorage` removes the default ~10MB cap on `chrome.storage.local` so that user-uploaded Base64 background images for the block screen don't silently fail to save. It does not grant access to any new category of data — all image data remains local to the device and is never transmitted.
@@ -85,7 +89,7 @@ TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWith
 
 - `alarms` — `background.js:444`, 1분 간격 타임박스/포모도로 틱(`timeboxTicker`) 갱신. 사용자 데이터 접근 없음.
 - `storage` — 모든 설정을 `chrome.storage.local`/`chrome.storage.sync`에만 저장(`storage-api.js`). 외부 서버 전송 없음.
-- `windows` — 포모도로 PiP(Picture-in-Picture) 창 생성/포커스(`pomodoro-pip.js`).
+- `windows` — 포모도로 PiP(Picture-in-Picture) 창 생성/포커스/정리. `popup.js:341`(`chrome.windows.create`로 PiP 창 생성), `pomodoro-pip.js`(창 위치·포커스 관리), `background.js:480`(`chrome.windows.onRemoved`로 PiP 창 닫힘 감지 후 상태 정리). 확장 자체의 창만 다루며 다른 창의 콘텐츠에는 접근하지 않음.
 
 이 세 권한은 CWS 심사에서 보통 "powerful permission" 카테고리로 분류되지 않아 별도 justification 텍스트박스가 안 뜨는 경우가 많지만, Data usage 탭 서술에서 "왜 필요한가"를 한 줄씩 언급해두면 반려 리스크를 더 줄일 수 있다.
 
@@ -106,6 +110,8 @@ Dashboard의 "Data usage" 섹션은 카테고리별 체크 + 3개 인증 문구�
 
 **서술 예시 (영문):**
 > TBB does not transmit any data off the user's device. All settings (block lists, schedules, statistics) are stored only in `chrome.storage.local`/`chrome.storage.sync` (the latter is Google's own account-sync mechanism, not a third-party server). The extension observes the URL of the page currently being navigated to, compares it against the user's own block list, and either allows navigation or redirects to a local block page — no browsing history is logged, retained, or transmitted anywhere, including to the developer.
+
+> **Pro 유료화 관련 주의 (현 시점 무관, 6장 참고):** `pro.js`가 저장하는 `proEntitlement`(grandfathered 플래그 등)도 전적으로 로컬/`chrome.storage.sync`에만 있으며 현재는 어떤 결제·라이선스 검증 통신도 하지 않는다. 즉 위 "네트워크 통신 전무" 서술은 현 제출에서 여전히 100% 사실이다. **단, 이 서술은 라이선스 검증 서버 통신이 도입되는 순간(6장) 더는 사실이 아니게 되므로, 유료화 배포 전 반드시 이 탭을 재작성해야 한다.**
 
 ---
 
@@ -129,7 +135,32 @@ CWS는 **텍스트가 아니라 실제로 접근 가능한 URL**을 요구한다
 - [ ] Data usage 탭에서 Web history만 체크 + 3개 인증 전부 체크 (3장)
 - [ ] 각 권한 justification 텍스트박스에 2장의 영문 문단을 우선 붙여넣기(리뷰어 자동번역 오류 방지), 필요시 한글 병기 — `unlimitedStorage`는 텍스트박스가 안 뜨면 Data usage 서술에만 포함해도 무방 (2-6장)
 - [ ] 최초 제출 후 "추가 정보 요청"이 오면 정상적인 절차로 간주하고, 요청받은 구체적 질문에 코드 근거(파일명:라인)로 답변
+- [x] **현 제출 시점 확인:** `pro.js`의 `TBB_PRO_LAUNCH_FREE === true` → 결제/라이선스 검증·외부 통신 없음. "네트워크 통신 전무" 서술이 유효함을 재확인 (6장)
+- [ ] **(유료화 전환 시에만)** 6장의 재심사 트리거 4종 완료 여부 확인 — 아직 유료화 안 했으면 이 항목은 건드리지 않는다
 
+---
+
+## 6. Pro 부분 유료화(`pro.js`) — 현 제출 영향 없음 + 유료화 시 재심사 트리거
+
+`pro.js`는 TBB Pro 부분 유료화를 위한 **feature-flag 인프라**다. 지금 당장 CWS 심사 서술을 바꿀 필요는 없지만, "왜 지금은 안 바꿔도 되는지"와 "언제 반드시 바꿔야 하는지"를 못 박아 두어 나중에 무심코 유료화 배포를 하면서 데이터 공시를 빠뜨리는 사고를 막는다.
+
+**현재 상태 (현 제출):**
+- 마스터 스위치 `TBB_PRO_LAUNCH_FREE = true`(`pro.js:23`) — "출시 기념 전 기능 무료" 모드. 모든 사용자가 모든 기능을 무료로 쓰며, 이 기간 실행 사용자는 grandfathered(영구 무료)로 각인된다.
+- 이 모드에서 `_tbbComputeActive()`는 캐시·라이선스와 무관하게 항상 `true`를 반환하므로(`pro.js:62-69`) **결제·라이선스 검증 로직이 실행되지 않으며, 어떤 외부 서버 통신도 발생하지 않는다.**
+- 저장하는 유일한 데이터는 `proEntitlement`(`{ grandfathered, license, updatedAt }` 형태) 하나로, `TBBStorage`를 통해 로컬/계정 sync에만 저장된다(`pro.js:53-59`, `background.js:453·459`의 `ensureGrandfather()` 호출). 새로운 데이터 카테고리도, 외부 전송도 없다.
+- **결론:** 2장 권한 정당화와 3장 데이터 공시(네트워크 통신 전무)는 현 제출에서 100% 그대로 유효하다. 새 권한도 추가되지 않았다(`pro.js`는 기존 `storage`만 사용).
+
+**리뷰어가 물어볼 수 있는 것 대비:** "Pro/결제 기능이 있는데 왜 결제 관련 권한·통신이 없나?"라고 물으면 — "현재 빌드는 전 기능 무료 모드이고 결제 경로가 코드상 비활성(dead)이며, 유료화 시 별도 버전으로 재심사를 받겠다"고 답한다. `pro.js:14-23` 주석이 이 의도를 코드 자체에 남겨 두었다.
+
+**⚠️ 유료화 전환 시 반드시 함께 가야 하는 재심사 트리거 (4종, `pro.js:18-22` 주석과 동일):**
+1. `TBB_PRO_LAUNCH_FREE = false`로 바꾸는 것이 곧 "과금 시작"이다 — 이 커밋 단독으로 배포 금지.
+2. `_tbbComputeActive`의 license 분기(결제·라이선스 검증) 구현. **여기서 외부 서버 통신이 도입될 가능성이 높다** → 도입되는 순간 "네트워크 통신 전무" 전제가 깨진다.
+3. **개인정보처리방침(4장) + CWS Data usage 공시(3장) 갱신** — 라이선스/결제 검증으로 오가는 데이터(주문 토큰, 라이선스 키, 결제 프로세서 식별자 등)의 카테고리·수신자·목적을 새로 기재. 결제 프로세서가 제3자면 "제3자와 공유" 체크 상태도 재검토.
+4. `manifest.json`의 `version` 상향 후 **재심사 제출**. Pro 기능 호출부에 `TBBPro.has('...')` 게이트 + UI 자물쇠도 함께.
+
+> 요약: **지금은 손댈 것이 없다.** 이 절은 미래의 자신(또는 다음 작업자)이 유료화 배포 직전에 다시 펼쳐 볼 체크포인트다.
+
+---
 
 ## (참고) 게시 안내 — CWS 제출용 URL 만들기
 
