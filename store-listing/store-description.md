@@ -8,12 +8,14 @@ Chrome Web Store **Store listing** 탭에 그대로 붙여넣기 위한 텍스�
 
 | 필드 | 값 |
 |------|-----|
-| **Item title** (45자 이내) | `FocusBox: Website Blocker & Timeboxing Planner` |
+| **Item title** (45자 이내) | `FocusBox: Website Blocker + Timebox & Shorts` |
 | **Category** | Productivity / Workflow & Planning |
 | **Default language** | English (en) — 필수 |
 | **Primary language** | Korean (ko) — 로케일 병행 시 |
 
-> 참고: `manifest.json`의 `name`은 `__MSG_appName__` → 현재 en/ko 모두 `FocusBox: WebsiteBlock & TimeBoxing Planner`. 스토어 title과 표기를 맞추려면(WebsiteBlock → Website Blocker) 로케일의 `appName`도 함께 손볼지 결정할 것. **표기 통일은 별도 확인 후 진행**(리터럴 이름 변경이라 사용자 판단 사항).
+> 참고: 스토어 title은 검색 유입 키워드(Website Blocker · Timebox · Shorts)와 차별점(쇼츠/릴스 선별 차단)을 앞세운 **쐐기형 문구**다 — 종합 나열 대신 가장 뾰족한 한 조합으로 문을 연다. `manifest.json`의 `name`(`__MSG_appName__` → 현재 en/ko 모두 `FocusBox: WebsiteBlock & TimeBoxing Planner`)과는 의도적으로 다르며, 설치 후 표시 이름과 스토어 노출 문구는 달라도 무방하다. appName 자체의 표기 통일(WebsiteBlock → Website Blocker 등)은 리터럴 이름 변경이라 **별도 확인 후 진행**(사용자 판단 사항).
+>
+> title 대안(취향/전략에 따라 한 줄 교체): `FocusBox: Block Sites, Shorts & Reels` / `FocusBox: Timebox Website Blocker & Shorts` / (종합형 원안) `FocusBox: Website Blocker & Timeboxing Planner`.
 
 ---
 
@@ -21,13 +23,13 @@ Chrome Web Store **Store listing** 탭에 그대로 붙여넣기 위한 텍스�
 
 **EN (필수):**
 ```
-Block distracting sites and plan real focus time with timeboxing and Pomodoro. Track streaks and stats — 100% private, on-device.
+Block sites on a schedule, hide YouTube Shorts & Reels, and plan real focus with timeboxing + Pomodoro. 100% private, on-device.
 ```
-(약 127자)
+(약 128자)
 
 **KO:**
 ```
-방해되는 사이트를 차단하고, 타임박싱과 포모도로로 진짜 집중 시간을 계획하세요. 스트릭·통계 제공, 데이터는 100% 기기 안에서만.
+사이트는 시간대별로 차단하고, 유튜브 쇼츠·인스타 릴스는 콕 집어 숨기세요. 타임박싱·포모도로로 집중을 계획하고, 데이터는 100% 기기 안에서만.
 ```
 
 ---
@@ -38,6 +40,9 @@ Block distracting sites and plan real focus time with timeboxing and Pomodoro. T
 
 ```
 FocusBox turns "just block sites" into a real focus system: decide WHAT to block, WHEN it applies, and SEE how much you actually focused — without a single byte leaving your device.
+
+■ BLOCK WITH A SCALPEL, NOT JUST A HAMMER
+Most blockers are all-or-nothing on a whole domain. FocusBox adds opt-in toggles to hide YouTube Shorts and trim Instagram down to Stories & DMs — so you keep the sites you still need and silence only the infinite feed that eats your day. Pair it with the scheduler and Shorts go quiet during work hours, then come back after.
 
 ■ WEBSITE BLOCKING, TWO LEVELS
 • Always Block — sites that are off-limits around the clock.
@@ -53,9 +58,6 @@ Work/rest cycles with savable presets, per-cycle time overrides (Advanced Settin
 ■ FOCUS STATS
 Focus streak with a monthly calendar, daily/7-day/30-day focus time, block counts, top blocked domains, an hour-of-day block heatmap, and Pomodoro totals — so you can see the habit forming.
 
-■ STRONGER, PER-SITE BLOCKING (optional)
-Opt-in toggles to hide YouTube Shorts and trim Instagram down to Stories & DMs — for the sites where a plain domain block is too blunt.
-
 ■ NICE TO HAVE
 Dark mode · Lock PIN (protects deletes/resets on this device) · Cross-device sync via your Chrome account · Full data export/import · A draggable to-do panel.
 
@@ -67,6 +69,9 @@ FocusBox makes no network requests. It has no analytics, no accounts, and no ser
 
 ```
 FocusBox는 "사이트 차단"을 진짜 집중 시스템으로 바꿉니다. 무엇을, 언제 차단할지 정하고, 실제로 얼마나 집중했는지까지 확인하세요. 데이터는 단 1바이트도 기기를 벗어나지 않습니다.
+
+■ 도메인 통째가 아니라, 콕 집어 차단
+대부분의 차단 확장은 도메인 전체를 막거나 마는 식입니다. FocusBox는 유튜브 쇼츠를 숨기고, 인스타그램을 스토리·DM만 남기고 정리하는 선별 토글을 더했습니다 — 필요한 사이트는 그대로 두고, 하루를 잡아먹는 무한 피드만 조용히 끕니다. 스케줄러와 함께 쓰면 업무시간엔 쇼츠가 사라지고, 끝나면 다시 돌아옵니다.
 
 ■ 두 단계 웹사이트 차단
 • 상시 차단 — 시간과 무관하게 항상 막을 사이트.
@@ -81,9 +86,6 @@ FocusBox는 "사이트 차단"을 진짜 집중 시스템으로 바꿉니다. �
 
 ■ 집중 통계
 연속 집중 스트릭과 월간 달력, 오늘·7일·30일 집중 시간, 차단 횟수, 상위 차단 도메인, 시간대별 차단 히트맵, 포모도로 누적까지 — 습관이 쌓이는 걸 눈으로 확인하세요.
-
-■ 사이트별 강력 차단 (선택)
-유튜브 쇼츠 숨김, 인스타그램을 스토리·DM만 남기고 정리 — 단순 도메인 차단으로는 부족한 사이트를 위한 옵션.
 
 ■ 그 외
 다크 모드 · 잠금 PIN(이 기기의 삭제/초기화 보호) · Chrome 계정 기기간 동기화 · 전체 데이터 내보내기/불러오기 · 드래그 가능한 할 일 패널.
