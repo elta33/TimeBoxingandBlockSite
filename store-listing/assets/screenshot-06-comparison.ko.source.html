@@ -1,0 +1,112 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1280px;height:800px;overflow:hidden}
+.shot{position:relative;width:1280px;height:800px;background:#10141f;overflow:hidden;font-family:'Manrope',system-ui,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+
+/* 우상단 tomato 톤링 + 액센트 아크 (절반 캔버스 밖) — 슬라이드 1~5와 동일 */
+.ring-tr{position:absolute;top:-132px;right:-118px;width:360px;height:360px;border-radius:50%;border:26px solid rgba(255,99,71,.16)}
+.ring-accent{position:absolute;top:-132px;right:-118px;width:360px;height:360px;border-radius:50%;border:26px solid transparent;border-bottom-color:#ff6347;transform:rotate(-24deg)}
+/* 좌하단 흐린 화이트 링 */
+.ring-bl{position:absolute;bottom:-148px;left:-132px;width:360px;height:360px;border-radius:50%;border:22px solid rgba(255,255,255,.04)}
+
+/* 좌상단 브랜드 락업 — 실제 FocusBox 아이콘 사용 */
+.lockup{position:absolute;top:38px;left:72px;display:flex;align-items:center;gap:11px;z-index:2}
+.lockup img{width:30px;height:30px;display:block;border-radius:8px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.5))}
+.wordmark{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:-.01em;line-height:1}
+.wordmark .w{color:#fff}
+.wordmark .b{color:#ff6347}
+
+/* 캡션 밴드 */
+.caption{position:absolute;top:0;left:0;right:0;height:220px;padding:0 72px 32px;display:flex;flex-direction:column;justify-content:flex-end;z-index:2}
+h1{font-family:'Sora',sans-serif;font-weight:800;font-size:44px;line-height:1.15;color:#fff;letter-spacing:-.015em}
+h1 em{font-style:normal;color:#ff6347}
+p{margin-top:16px;font-family:'Manrope',sans-serif;font-weight:600;font-size:19px;line-height:1.4;color:#8b93a7;max-width:920px}
+
+/* 비교표 — slide 3처럼 실캡처 없는 순수 그래픽. 슬롯 rect(left:72 top:220 w:1136 h:508) 안에 중앙 정렬 */
+.tblwrap{position:absolute;left:72px;top:220px;width:1136px;height:508px;display:flex;align-items:center;justify-content:center}
+.panel{position:relative;width:1040px;border-radius:16px;background:#161b28;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:24px 36px 22px}
+.panel .edge{position:absolute;inset:0;border-radius:16px;border:1px solid rgba(255,255,255,.06);pointer-events:none}
+/* FocusBox 열 강조 카드 (grid 3번째 열 위에 겹침) */
+.hl{position:absolute;left:772px;top:-8px;bottom:52px;width:232px;border-radius:12px 12px 4px 4px;background:rgba(255,99,71,.08);border-top:2px solid #ff6347}
+.grid{position:relative;display:grid;grid-template-columns:504px 232px 232px;align-items:center}
+.h-feat{height:56px;display:flex;align-items:center;font-family:'Sora',sans-serif;font-weight:700;font-size:18px;color:#e8ebf2}
+.h-typ{height:56px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:18px;color:#8b93a7}
+.h-fb{height:56px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:700;font-size:18px;color:#fff}
+.h-fb b{color:#ff6347;font-weight:700}
+.sep{grid-column:1 / -1;height:1px;background:rgba(255,255,255,.06)}
+.feat{height:60px;display:flex;align-items:center;font-weight:500;font-size:16px;color:#d5d9e4}
+.mark{height:60px;display:flex;align-items:center;justify-content:center;font-size:19px}
+.yes{color:#ff6347}
+.yes-n{color:#e8ebf2}
+.no{color:#4b5568}
+.mid{color:#f5a623;font-size:18px}
+.pill{padding:5px 12px;border-radius:999px;border:1px solid #f5a623;color:#f5a623;font-weight:600;font-size:12px;letter-spacing:.02em}
+.legend{position:relative;margin-top:18px;display:flex;gap:20px;font-weight:500;font-size:13px;color:#6b7385}
+</style></head><body>
+<div class="shot">
+  <div class="ring-tr"></div>
+  <div class="ring-accent"></div>
+  <div class="ring-bl"></div>
+
+  <div class="lockup">
+    <img alt="" src="../../icons/icon128.png">
+    <div class="wordmark"><span class="w">Focus</span><span class="b">Box</span></div>
+  </div>
+
+  <div class="caption">
+    <h1>대부분의 차단기가 <em>놓치는</em> 것.</h1>
+    <p>FocusBox가 기본으로 담은 집중 기능을 나란히 비교했습니다.</p>
+  </div>
+
+  <div class="tblwrap">
+    <div class="panel">
+      <div class="edge"></div>
+      <div class="hl"></div>
+      <div class="grid">
+        <div class="h-feat">기능</div>
+        <div class="h-typ">일반 차단기</div>
+        <div class="h-fb">Focus<b>Box</b></div>
+        <div class="sep"></div>
+
+        <div class="feat">사이트를 시간대별로 통째 차단</div>
+        <div class="mark yes-n">&#10003;</div>
+        <div class="mark yes">&#10003;</div>
+        <div class="sep"></div>
+
+        <div class="feat">쇼츠·릴스만 숨기고 사이트는 유지</div>
+        <div class="mark no">&#10007;</div>
+        <div class="mark yes">&#10003;</div>
+        <div class="sep"></div>
+
+        <div class="feat">하루·주간 시각적 타임박스 플래너</div>
+        <div class="mark mid">&#9651;</div>
+        <div class="mark yes">&#10003;</div>
+        <div class="sep"></div>
+
+        <div class="feat">회차별 프리셋 저장 포모도로</div>
+        <div class="mark mid">&#9651;</div>
+        <div class="mark yes">&#10003;</div>
+        <div class="sep"></div>
+
+        <div class="feat">집중 스트릭·통계·차단 히트맵</div>
+        <div class="mark"><span class="pill">유료</span></div>
+        <div class="mark yes">&#10003;</div>
+        <div class="sep"></div>
+
+        <div class="feat">계정·서버 없음 · 100% 기기 내</div>
+        <div class="mark no">&#10007;</div>
+        <div class="mark yes">&#10003;</div>
+      </div>
+      <div class="legend">
+        <span>&#10003; 제공</span>
+        <span>&#9651; 기본형</span>
+        <span>&#10007; 없음</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

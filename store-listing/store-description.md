@@ -109,6 +109,10 @@ FocusBox는 어떤 네트워크 요청도 하지 않습니다. 분석 도구도,
 | 3 | 사이트별 강력 차단 (쇼츠/인스타) | Kill the **Shorts**. Keep the platform. | **쇼츠**만 끄고, 플랫폼은 그대로. |
 | 4 | 포모도로 타이머 + PiP | Focus in cycles. Timer stays **on top**. | 사이클로 집중, 타이머는 **항상 위에**. |
 | 5 | 집중 통계 (스트릭·차트·분포) | Watch the habit **form** — 100% on-device. | **쌓이는** 습관을 눈으로. 100% 기기 안에서. |
+| 6 (선택/교체) | 기능 비교표 (그래픽, 실앱 아님) | What most blockers **leave out**. | 대부분의 차단기가 **놓치는** 것. |
+
+> ⚠️ CWS 스크린샷은 **최대 5장**. **제출 확정: 2번(차단 화면)을 빼고 6번(비교표)을 넣는다.**
+> **노출 순서 1 → 3 → 6 → 4 → 5** (업로드 순 = 노출 순). 2번은 보관하되 미제출. 상세는 `assets/README.md` §3. 6번은 경쟁사 실명 없이 "일반 차단기" 범주 대비다.
 
 서브라인(헤드라인 아래 한 줄):
 
@@ -117,6 +121,7 @@ FocusBox는 어떤 네트워크 요청도 하지 않습니다. 분석 도구도,
 3. Surgical toggles hide short-form feeds without blocking the whole site.
 4. Pomodoro with presets and a floating Picture-in-Picture window.
 5. Streaks, focus time, block stats. No accounts. No servers. No tracking.
+6. A side-by-side look at the focus features FocusBox includes by default.
 
 ### 구성 근거 (메모)
 
