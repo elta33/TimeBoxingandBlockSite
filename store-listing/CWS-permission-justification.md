@@ -16,7 +16,7 @@ TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWith
 2. **권한 기반 트리거로 수동 심사 큐 편입** — `host_permissions`에 `<all_urls>`(또는 이에 준하는 광범위 패턴)가 있거나, `declarativeNetRequestWithHostAccess`/`scripting`/`tabs`처럼 Google이 "powerful permission"으로 분류한 권한이 있으면 자동으로 사람이 보는 심사 큐로 넘어간다. **TBB는 이 조건에 정확히 해당한다.**
 3. **Developer Dashboard "Privacy practices" 탭 작성 요구** — 아래 항목이 비어 있거나 부실하면 자동 검증 단계에서부터 제출이 막히거나(필수 필드 미입력), 사람 심사에서 반려된다.
    - **Single purpose description** (확장 전체의 단일 목적 설명, 1개) — **본 문서 2장에 붙여넣기용 텍스트 작성**
-   - **Permission justification** — 매니페스트에 선언된 "민감" 권한 각각에 대해 별도 텍스트박스가 자동 생성됨(TBB 기준: host permissions, `declarativeNetRequest`/`declarativeNetRequestWithHostAccess`, `scripting`, `tabs`. `activeTab`은 미사용이 확인되어 제거 완료 — 3-5장 참고)
+   - **Permission justification** — 공식 문서 문구는 *"a list of permissions that your extension uses (as declared in your manifest), with a field for you to state the justification for **each** permission"* — 즉 **"민감" 권한만이 아니라 매니페스트에 선언된 모든 권한 각각에 justification 입력 필드가 생긴다.** TBB 기준 총 8개 권한(`storage`, `unlimitedStorage`, `declarativeNetRequest`, `declarativeNetRequestWithHostAccess`, `alarms`, `windows`, `scripting`, `tabs`) + 호스트 권한(`<all_urls>`) = **9개 필드를 전부 채워야 한다.** storage·alarms 같은 "덜 민감한" 권한도 예외 없이 필드가 뜨므로 3장이 9개 전부에 대한 텍스트를 제공한다(`activeTab`은 미사용이 확인되어 제거 완료 — 3-5장 참고).
    - **Data usage disclosure** — 수집/사용하는 데이터 카테고리 체크박스 + "판매하지 않음/핵심 기능과 무관한 용도로 쓰지 않음/신용평가에 쓰지 않음" 인증 체크
    - **Privacy policy** — 반드시 **실제로 호스팅된 URL**이어야 함(텍스트 붙여넣기 불가). 그 페이지 안에 호스트 권한으로 처리하는 데이터에 대한 구체적 언급이 있어야 함
 4. **심사 기간** — 통상 수 시간~수 주. `<all_urls>` + DNR 조합처럼 민감 권한이 섞인 신규 제출은 **최초 제출에서 바로 승인되지 않고 1회 이상의 "추가 정보 요청"을 받는 경우가 흔함**. 이는 정상적인 과정이지 특별히 코드에 문제가 있다는 신호가 아니다.
@@ -32,7 +32,9 @@ TBB(FocusBox)가 `host_permissions: ["<all_urls>"]` + `declarativeNetRequestWith
 
 CWS Developer Dashboard의 **Privacy practices → Single purpose description** 필드에 그대로 붙여넣을 텍스트다. 이 필드는 **하나의 명확한 목적**을 요구하며, 부가기능이 많은 확장일수록 "이 기능들이 왜 전부 하나의 목적인가"를 리뷰어가 되묻는다(1장 5번 반려 사유). 따라서 아래 서술은 **포모도로·통계·PIN·커스터마이징 등 모든 부가기능을 "차단 기반 시간관리"라는 단일 목적의 하위 수단으로 명시적으로 묶는다.** 프레이밍은 "무엇을(WHAT) 차단할지 · 언제(WHEN) 적용할지 · 결과가 어땠는지(RESULT)를 한 워크플로우로 잇는다"이다.
 
-**핵심 한 줄 (영문, 필드 상단 필수):**
+> **입력 방식 (혼동 주의):** Single purpose는 **텍스트 입력 칸 하나**뿐이다. "핵심 한 줄"과 "전체 서술"이 별도 필드로 나뉘어 있는 게 아니다. **권장: 그 하나의 칸에 "핵심 한 줄"을 먼저 쓰고, 이어서 아래 "전체 서술"의 불릿을 같은 칸에 붙여 한 덩어리로 넣는다.** 공식 안내(*"help the reviewers understand the focus of your extension"*)는 장문의 문단이 아니라 **초점이 분명한 짧은 서술**을 선호하므로, 칸이 지나치게 길어지거나 길이 제한에 걸리면 **"핵심 한 줄"만 넣어도 유효**하다(불릿 상세는 Store listing 설명이 이미 담고 있고, 리뷰어가 되물으면 추가 정보로 제출). 즉 "한 줄만" 또는 "한 줄 + 불릿" **둘 다 허용**되며, 한 줄만으로도 심사 통과에 문제없다.
+
+**핵심 한 줄 (영문 — 최소 필수, 이 한 줄만 넣어도 됨):**
 > FocusBox is a focus tool that blocks distracting websites on a schedule the user controls (timeboxing and Pomodoro); every other feature exists only to support that single blocking-based time-management workflow.
 
 **전체 서술 (영문 — 붙여넣기용):**
@@ -113,18 +115,42 @@ CWS Developer Dashboard의 **Privacy practices → Single purpose description** 
 
 ### 3-6. `unlimitedStorage` (신규 추가됨)
 
-**코드 근거:** 차단 화면(`block.html`/`block.js`)에서 사용자가 직접 업로드하는 커스텀 배경 이미지(`customBgImages`)를 Base64로 `chrome.storage.local`에 저장하는데(`block.js:26`, `STORE_IMGS='customBgImages'`), 이미지 데이터는 금방 `chrome.storage.local`의 기본 용량 상한(약 10MB)을 채운다. `unlimitedStorage`는 이 **로컬 저장 용량 상한만 해제**하는 권한으로, 새로운 데이터 접근 범위(호스트, 탭, 사용자 활동 등)를 추가하지 않는다 — CWS도 통상 이 권한을 "powerful permission"으로 분류하지 않아 별도 justification 텍스트박스가 안 뜨는 경우가 많지만, Data usage 탭 서술에 한 줄 포함해두면 안전하다. (`block.js:250-254`의 `saveImages()`가 `chrome.storage.local.set(...).catch()`로 저장 실패 시 콘솔 로그 + 사용자 알림(`alert(T('custImageSaveFailed'))`)을 띄우는 방어 코드도 이 용량 이슈를 배경으로 추가됨 — 상한 해제와는 별개로 디스크 자체가 부족한 경우까지 대비.)
+**코드 근거:** 차단 화면(`block.html`/`block.js`)에서 사용자가 직접 업로드하는 커스텀 배경 이미지(`customBgImages`)를 Base64로 `chrome.storage.local`에 저장하는데(`block.js:26`, `STORE_IMGS='customBgImages'`), 이미지 데이터는 금방 `chrome.storage.local`의 기본 용량 상한(약 10MB)을 채운다. `unlimitedStorage`는 이 **로컬 저장 용량 상한만 해제**하는 권한으로, 새로운 데이터 접근 범위(호스트, 탭, 사용자 활동 등)를 추가하지 않는다. (`block.js:250-254`의 `saveImages()`가 `chrome.storage.local.set(...).catch()`로 저장 실패 시 콘솔 로그 + 사용자 알림(`alert(T('custImageSaveFailed'))`)을 띄우는 방어 코드도 이 용량 이슈를 배경으로 추가됨 — 상한 해제와는 별개로 디스크 자체가 부족한 경우까지 대비.) **`unlimitedStorage`도 매니페스트에 선언된 권한이므로 justification 필드가 뜬다 — 아래 영문을 채운다.**
 
-**영문 justification (필요시):**
+**영문 justification (붙여넣기용):**
 > `unlimitedStorage` removes the default ~10MB cap on `chrome.storage.local` so that user-uploaded Base64 background images for the block screen don't silently fail to save. It does not grant access to any new category of data — all image data remains local to the device and is never transmitted.
 
-### 3-7. `alarms`, `storage`, `windows` (참고용, 통상 민감 권한으로 분류되지 않음)
+### 3-7. `storage`
 
-- `alarms` — `background.js:444`, 1분 간격 타임박스/포모도로 틱(`timeboxTicker`) 갱신. 사용자 데이터 접근 없음.
-- `storage` — 모든 설정을 `chrome.storage.local`/`chrome.storage.sync`에만 저장(`storage-api.js`). 외부 서버 전송 없음.
-- `windows` — 포모도로 PiP(Picture-in-Picture) 창 생성/포커스/정리. `popup.js:341`(`chrome.windows.create`로 PiP 창 생성), `pomodoro-pip.js`(창 위치·포커스 관리), `background.js:480`(`chrome.windows.onRemoved`로 PiP 창 닫힘 감지 후 상태 정리). 확장 자체의 창만 다루며 다른 창의 콘텐츠에는 접근하지 않음.
+**코드 근거:** 모든 사용자 설정(차단 목록·타임박스/포모도로 스케줄·집중 통계·todo 등)을 `chrome.storage.local`/`chrome.storage.sync`에만 저장한다(`storage-api.js`의 `TBBStorage.get/set`이 키별로 두 area를 라우팅). 외부 서버 전송 없음.
 
-이 세 권한은 CWS 심사에서 보통 "powerful permission" 카테고리로 분류되지 않아 별도 justification 텍스트박스가 안 뜨는 경우가 많지만, Data usage 탭 서술에서 "왜 필요한가"를 한 줄씩 언급해두면 반려 리스크를 더 줄일 수 있다.
+**영문 justification (붙여넣기용):**
+> `storage` is used to persist the user's own settings — block lists, time-box and Pomodoro schedules, focus statistics, and to-do items — using `chrome.storage.local` and `chrome.storage.sync` (Chrome's built-in account sync). No data is sent to the developer or any third-party server; storage is the extension's only persistence layer.
+
+**한글 justification:**
+> `storage`는 사용자의 차단 목록, 타임박스/포모도로 스케줄, 집중 통계, 할 일 항목 등 사용자 본인의 설정을 `chrome.storage.local`과 `chrome.storage.sync`(크롬 계정 동기화)에 저장하는 데 사용됩니다. 개발자나 제3자 서버로 전송되는 데이터는 없으며, storage가 이 확장의 유일한 영속 저장 수단입니다.
+
+### 3-8. `alarms`
+
+**코드 근거:** `background.js:444`가 `chrome.alarms.create("timeboxTicker", { periodInMinutes: 1 })`로 1분 간격 틱을 만들고, `onAlarm`에서 현재 시각이 예약된 타임박스/포모도로 작업 페이즈에 들어갔는지 확인해 DNR 차단 규칙을 갱신한다. MV3 서비스워커는 유휴 시 종료되어 `setInterval`류 상주 타이머를 신뢰할 수 없으므로 시간 기반 차단에는 `alarms`가 필수다. 사용자 데이터 접근 없음.
+
+**영문 justification (붙여넣기용):**
+> `alarms` is used to run a once-per-minute tick (`chrome.alarms.create("timeboxTicker", {periodInMinutes: 1})` in `background.js`) that checks whether the current time has entered a scheduled time-box or Pomodoro work phase and updates the blocking rules accordingly. It is required because an MV3 service worker is terminated when idle, so a persistent `setInterval` timer is unreliable for time-based blocking. It accesses no user data.
+
+**한글 justification:**
+> `alarms`는 1분 간격 틱(`background.js`의 `chrome.alarms.create("timeboxTicker", {periodInMinutes: 1})`)을 돌려 현재 시각이 예약된 타임박스나 포모도로 작업 페이즈에 들어갔는지 확인하고 차단 규칙을 갱신하는 데 사용됩니다. MV3 서비스워커는 유휴 시 종료되어 `setInterval` 타이머를 신뢰할 수 없으므로 시간 기반 차단에 `alarms`가 반드시 필요합니다. 사용자 데이터에 접근하지 않습니다.
+
+### 3-9. `windows`
+
+**코드 근거:** 포모도로 PiP(Picture-in-Picture) 타이머 창의 생성/포커스/정리에만 사용한다. `popup.js:341`(`chrome.windows.create`로 PiP 창 생성), `pomodoro-pip.js`(창 위치·포커스 관리), `background.js:480`(`chrome.windows.onRemoved`로 PiP 창이 닫히면 상태 정리). 확장 자체의 창만 다루며 다른 창의 콘텐츠에는 접근하지 않는다.
+
+**영문 justification (붙여넣기용):**
+> `windows` is used only to create, focus, and clean up the extension's own Pomodoro Picture-in-Picture timer window (`chrome.windows.create` in `popup.js`, position/focus handling in `pomodoro-pip.js`, and a `chrome.windows.onRemoved` listener in `background.js` to reset state when the PiP window is closed). It only manages the extension's own window and never accesses the content of any other window.
+
+**한글 justification:**
+> `windows`는 확장 자체의 포모도로 PiP(Picture-in-Picture) 타이머 창을 생성·포커스·정리하는 용도로만 사용됩니다(`popup.js`의 `chrome.windows.create`, `pomodoro-pip.js`의 위치·포커스 관리, `background.js`의 `chrome.windows.onRemoved`로 PiP 창이 닫히면 상태 초기화). 확장 자체의 창만 다루며 다른 창의 콘텐츠에는 접근하지 않습니다.
+
+> **모두 필드가 뜬다:** 위 3개(`storage`/`alarms`/`windows`)도 매니페스트 선언 권한이므로 justification 필드가 각각 생성된다. "덜 민감하니 비워도 된다"는 잘못된 가정으로 두면 필수 필드 미입력으로 제출 자체가 막힐 수 있다 — 각 필드에 위 영문을 붙여넣는다.
 
 ---
 
@@ -175,7 +201,7 @@ CWS는 **텍스트가 아니라 실제로 접근 가능한 URL**을 요구한다
 - [x] Single purpose 설명에 포모도로/통계/PIN 등 부가기능을 "차단 기반 시간관리"의 하위 수단으로 명시적으로 연결 (2장에 영문/한글 붙여넣기용 텍스트 작성 완료 — 제출 시 Dashboard에 붙여넣기)
 - [x] Privacy policy 페이지를 실제 URL로 게시 — **https://elta33.github.io/TBB-Privacy_Policy/** (5장 5개 항목 전부 포함 확인, 2026-07-27). Dashboard "Privacy policy" 필드에 이 URL 입력.
 - [x] Data usage 탭 선택 **확정** — `Web history` 1개만 체크 + 인증 3종 전부 체크 + 서술란은 4장 영문 붙여넣기 (4장 콜아웃 참고). 실제 체크는 Dashboard 제출 시 그대로 적용.
-- [ ] 각 권한 justification 텍스트박스에 3장의 **영문 문단만** 붙여넣기 — **한 언어(영문)면 충분**하다(리뷰어가 영어 기반이라 자동번역 오류를 없애려는 것). 한글은 필수 아님(선택적 fallback). `unlimitedStorage`는 텍스트박스가 안 뜨면 Data usage 서술에만 포함해도 무방 (3-6장)
+- [ ] **9개 권한 justification 필드 전부** 3장의 **영문 문단만** 붙여넣기 — host(`<all_urls>`) + `storage`·`unlimitedStorage`·`declarativeNetRequest`·`declarativeNetRequestWithHostAccess`·`alarms`·`windows`·`scripting`·`tabs`. 매니페스트 선언 권한은 민감도와 무관하게 전부 필드가 뜨므로 **하나도 비우지 말 것**(빈 필드는 제출 차단 사유). **한 언어(영문)면 충분**하다(리뷰어가 영어 기반, 자동번역 오류 제거 목적). 한글은 필수 아님(선택적 fallback).
 - [ ] Single purpose 필드에 2장 **영문** 텍스트 붙여넣기(길이 제한 시 "핵심 한 줄"만) — 실제 Dashboard 입력 시점에 처리
 - [ ] 최초 제출 후 "추가 정보 요청"이 오면 정상적인 절차로 간주하고, 요청받은 구체적 질문에 코드 근거(파일명:라인)로 답변
 - [x] **현 제출 시점 확인:** `pro.js`의 `TBB_PRO_LAUNCH_FREE === true` → 결제/라이선스 검증·외부 통신 없음. "네트워크 통신 전무" 서술이 유효함을 재확인 (7장)
