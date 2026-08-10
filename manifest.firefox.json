@@ -1,0 +1,17 @@
+{
+  "background": {
+    "scripts": [
+      "browser-shim.js",
+      "pomodoro-shared.js",
+      "storage-api.js",
+      "pro.js",
+      "background.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "focusbox@elta33.github.io",
+      "strict_min_version": "128.0"
+    }
+  }
+}

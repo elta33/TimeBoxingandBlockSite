@@ -1,5 +1,10 @@
 // background.js
-importScripts('pomodoro-shared.js', 'storage-api.js', 'pro.js');
+// 의존 파일 로드: 크롬은 service worker라 importScripts로 직접 읽고, 파이어폭스는 event page라
+// importScripts 자체가 없어서 manifest.firefox.json의 background.scripts가 같은 순서로 로드한다.
+// 두 목록의 순서는 항상 일치시켜야 한다(storage-api.js가 background.js보다 먼저).
+if (typeof importScripts === 'function') {
+  importScripts('browser-shim.js', 'pomodoro-shared.js', 'storage-api.js', 'pro.js');
+}
 
 const BLOCK_PAGE_PATH = "/block.html";
 
