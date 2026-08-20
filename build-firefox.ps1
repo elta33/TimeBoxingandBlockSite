@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     파이어폭스용 산출물을 dist/firefox 에 생성한다.
