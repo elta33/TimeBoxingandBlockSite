@@ -74,6 +74,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 리뷰 요청 배너 (차단 관리 탭) — popup.js의 동일 로직과 storage 키(reviewPromptReviewed/
+  // reviewPromptNextAt)를 공유한다. 두 화면이 서로 다른 스크립트 컨텍스트라 로직 자체는
+  // 중복 구현하되(이 프로젝트의 기존 관례 — pomodoro 시간 계산 헬퍼도 파일마다 중복), 상태는
+  // storage로 동기화되므로 한쪽에서 "나중에/리뷰 쓰기"를 누르면 다른 화면에도 반영된다.
+  const reviewPromptBanner = document.getElementById('reviewPromptBanner');
+  if (reviewPromptBanner) {
+    const REVIEW_PROMPT_INTERVAL_MS = 15 * 24 * 60 * 60 * 1000; // 15일 간격
+    chrome.storage.local.get(['reviewPromptReviewed', 'reviewPromptNextAt'], result => {
+      if (result.reviewPromptReviewed) return;
+      if (result.reviewPromptNextAt && Date.now() < result.reviewPromptNextAt) return;
+      reviewPromptBanner.style.display = 'flex';
+    });
+    document.getElementById('reviewPromptWriteBtnOptions')?.addEventListener('click', () => {
+      chrome.storage.local.set({ reviewPromptReviewed: true });
+      chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews` });
+      reviewPromptBanner.style.display = 'none';
+    });
+    document.getElementById('reviewPromptLaterBtnOptions')?.addEventListener('click', () => {
+      chrome.storage.local.set({ reviewPromptNextAt: Date.now() + REVIEW_PROMPT_INTERVAL_MS });
+      reviewPromptBanner.style.display = 'none';
+    });
+  }
+
   // 탭 요약 배너 (스케줄러/포모도로/통계/설정 탭 최초 진입 시 안내, 탭별로 독립적으로 닫힘)
   const tabIntroBanners = document.querySelectorAll('.tab-intro-banner[data-tab-key]');
   if (tabIntroBanners.length) {

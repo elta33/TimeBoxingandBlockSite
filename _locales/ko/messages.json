@@ -317,6 +317,9 @@
   "popupPomoRemaining":    { "message": "$1 남음", "placeholders": { "1": { "content": "$1" } } },
   "popupPomoPipTitle":     { "message": "PiP 창 열기" },
   "popupEmptyStateHint":   { "message": "설정에서 차단할 사이트를 추가해보세요" },
+  "reviewPromptText":      { "message": "여러분의 사용자 평가는 개선에 큰 도움이 됩니다 🙏" },
+  "reviewPromptWriteBtn":  { "message": "리뷰 쓰기" },
+  "reviewPromptLaterBtn":  { "message": "나중에" },
 
   "pipTitle":        { "message": "포모도로 타이머" },
   "pipWorkLabel":    { "message": "작업" },

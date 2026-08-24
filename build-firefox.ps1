@@ -92,7 +92,24 @@ Write-Host "빌드 완료: $out ($fileCount 파일, version $($check.version))"
 if ($Package) {
     $zip = Join-Path $root ("dist\focusbox-firefox-{0}.zip" -f $check.version)
     if (Test-Path $zip) { Remove-Item $zip -Force }
-    Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip
+    # Compress-Archive(및 .NET Framework의 ZipFile.CreateFromDirectory)는 하위 디렉터리
+    # 엔트리를 'icons\icon16.png' 처럼 백슬래시로 기록한다. ZIP 스펙은 '/' 를 요구하므로
+    # 압축 해제 도구에 따라 폴더 구조가 뭉개진다. 엔트리를 직접 써서 '/' 를 보장한다.
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    $archive = [System.IO.Compression.ZipFile]::Open(
+        $zip, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($f in (Get-ChildItem -Path $out -Recurse -File | Sort-Object FullName)) {
+            $rel = $f.FullName.Substring($out.Length + 1).Replace([char]92, '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $archive, $f.FullName, $rel,
+                [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        }
+    } finally {
+        $archive.Dispose()
+    }
     Write-Host "패키지 생성: $zip"
 }
 

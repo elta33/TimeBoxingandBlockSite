@@ -471,6 +471,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     // 신규 설치: 옵션 페이지를 자동으로 열어 온보딩 체크리스트(options-init.js)를 바로 보여준다.
     chrome.runtime.openOptionsPage();
+    // 리뷰 요청 배너(popup.js)는 설치 직후엔 뜨지 않도록 최초 노출 시점을 14일 뒤로 미뤄둔다.
+    // 이 값이 없는 기존(업데이트) 사용자는 popup.js에서 "미설정 = 바로 노출 대상"으로 처리된다.
+    chrome.storage.local.set({ reviewPromptNextAt: Date.now() + 14 * 24 * 60 * 60 * 1000 });
   } else if (details.reason === 'update') {
     // 기존 사용자는 온보딩 체크리스트 기능 자체를 처음 접하는 것이므로,
     // 신규 사용자용 UI가 갑자기 나타나지 않도록 최초 1회 자동으로 닫아둔다.

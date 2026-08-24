@@ -144,10 +144,26 @@
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
     }
 
-    /* ── 강력 차단 기능(쇼츠/인스타) — 팝업 맨 아래 섹션이므로 하단 테두리 제거 ── */
-    #strongBlockSection { border-bottom: none; }
+    /* ── 강력 차단 기능(쇼츠/인스타) ── */
     .p-toggle-row + .p-toggle-row { margin-top: 8px; }
     .p-strong-block-label { font-size: 13.6px; }
+
+    /* ── 리뷰 요청 배너 — 몇 주에 한 번, 아직 리뷰를 남기지 않은 사용자에게만 노출.
+       팝업 맨 아래 섹션이므로 하단 테두리 제거. ── */
+    #reviewPromptSection { border-bottom: none; background: var(--blue-pale); }
+    .p-review-prompt-text { font-size: 13.6px; color: #333; line-height: 1.5; }
+    .p-review-prompt-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .p-review-prompt-btn-primary {
+      font-size: 13.6px; font-weight: 600; padding: 6px 14px; border-radius: 6px;
+      border: none; background: var(--blue-dark); color: #fff; cursor: pointer;
+      transition: opacity 0.12s; font-family: inherit;
+    }
+    .p-review-prompt-btn-primary:hover { opacity: 0.88; }
+    .p-review-prompt-btn-later {
+      font-size: 13px; padding: 6px 10px; border-radius: 6px; border: none;
+      background: none; color: #888; cursor: pointer; font-family: inherit;
+    }
+    .p-review-prompt-btn-later:hover { color: #555; }
 
     /* ══════════════ 다크모드 ══════════════
        options.html과 동일한 방식: <html data-theme="dark">일 때만 적용되는
@@ -180,6 +196,9 @@
     :root[data-theme="dark"] .p-badge-weekly { background: #241a33; color: #b98ff0; }
     :root[data-theme="dark"] .p-empty { color: #555; }
     :root[data-theme="dark"] .p-empty-state-text { color: #7a7a7a; }
+    :root[data-theme="dark"] .p-review-prompt-text { color: #ddd; }
+    :root[data-theme="dark"] .p-review-prompt-btn-later { color: #7a7a7a; }
+    :root[data-theme="dark"] .p-review-prompt-btn-later:hover { color: #ccc; }
   </style>
 </head>
 <body>
@@ -267,6 +286,15 @@
           <div class="p-switch-thumb"></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- 리뷰 요청 배너 — 몇 주에 한 번, 아직 리뷰를 남기지 않은 사용자에게만 노출 -->
+  <div id="reviewPromptSection" class="p-section" style="display:none;">
+    <div class="p-review-prompt-text" data-i18n="reviewPromptText">여러분의 사용자 평가는 개선에 큰 도움이 됩니다 🙏</div>
+    <div class="p-review-prompt-btns">
+      <button id="reviewPromptLaterBtn" class="p-review-prompt-btn-later" data-i18n="reviewPromptLaterBtn">나중에</button>
+      <button id="reviewPromptWriteBtn" class="p-review-prompt-btn-primary" data-i18n="reviewPromptWriteBtn">리뷰 쓰기</button>
     </div>
   </div>
 

@@ -317,6 +317,9 @@
   "popupPomoRemaining":    { "message": "$1 left", "placeholders": { "1": { "content": "$1" } } },
   "popupPomoPipTitle":     { "message": "Open PiP window" },
   "popupEmptyStateHint":   { "message": "Add a site to block from settings" },
+  "reviewPromptText":      { "message": "Your rating helps us keep improving the extension 🙏" },
+  "reviewPromptWriteBtn":  { "message": "Write a review" },
+  "reviewPromptLaterBtn":  { "message": "Later" },
 
   "pipTitle":        { "message": "Pomodoro Timer" },
   "pipWorkLabel":    { "message": "Work" },

@@ -184,6 +184,9 @@ const pomoStatusText  = document.getElementById('pomoStatusText');
 const pomoPipBtn      = document.getElementById('pomoPipBtn');
 const shortsBlockSwitch = document.getElementById('shortsBlockSwitch');
 const instaBlockSwitch  = document.getElementById('instaBlockSwitch');
+const reviewPromptSect     = document.getElementById('reviewPromptSection');
+const reviewPromptWriteBtn = document.getElementById('reviewPromptWriteBtn');
+const reviewPromptLaterBtn = document.getElementById('reviewPromptLaterBtn');
 
 let currentHostname = null;
 let storageData = {};
@@ -191,6 +194,32 @@ let _pomoTickInterval = null;
 
 settingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
 emptyStateOpenBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
+
+// ── 리뷰 요청 배너 ──
+// 이미 리뷰를 쓰러 간 사용자에게는 다시 보여주지 않고, "나중에"를 누르면 이 간격만큼
+// 뒤로 미룬다. 설치 직후에는 아직 안 뜨도록 background.js의 onInstalled에서 최초
+// 노출 시각을 며칠 뒤로 미리 잡아둔다.
+const REVIEW_PROMPT_INTERVAL_MS = 15 * 24 * 60 * 60 * 1000; // 15일 간격
+
+function _maybeShowReviewPrompt() {
+  if (!reviewPromptSect) return;
+  chrome.storage.local.get(['reviewPromptReviewed', 'reviewPromptNextAt'], result => {
+    if (result.reviewPromptReviewed) return;
+    if (result.reviewPromptNextAt && Date.now() < result.reviewPromptNextAt) return;
+    reviewPromptSect.style.display = 'block';
+  });
+}
+
+reviewPromptWriteBtn?.addEventListener('click', () => {
+  chrome.storage.local.set({ reviewPromptReviewed: true });
+  chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews` });
+  reviewPromptSect.style.display = 'none';
+});
+
+reviewPromptLaterBtn?.addEventListener('click', () => {
+  chrome.storage.local.set({ reviewPromptNextAt: Date.now() + REVIEW_PROMPT_INTERVAL_MS });
+  reviewPromptSect.style.display = 'none';
+});
 
 // ── 토글 시각 ──
 function setToggleVisual(disabled) {
@@ -384,6 +413,7 @@ addGeneralBtn.addEventListener('click', () => {
 });
 
 // ── 초기화 ──
+_maybeShowReviewPrompt();
 chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
   const url = tabs[0]?.url || '';
   try {
