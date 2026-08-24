@@ -25,10 +25,38 @@ ytd-mini-guide-entry-renderer[aria-label="쇼츠"],
 ytd-rich-shelf-renderer[is-shorts],
 ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]),
 ytd-reel-shelf-renderer,
-ytd-item-section-renderer:has(ytd-reel-shelf-renderer),
-ytd-search ytd-reel-shelf-renderer,
+
+/* 쇼츠 선반을 감싸는 섹션 래퍼는 "그 섹션이 쇼츠 선반 전용일 때만" 숨긴다.
+   검색 결과에서는 ytd-item-section-renderer 하나가 연속 로딩 배치(일반 영상 수십 개) 전체를
+   담고 그 안에 쇼츠 선반이 끼어 들어오는 구조라, 조건 없이 섹션을 숨기면 같은 배치의 일반
+   검색 결과까지 통째로 사라진다. 그러면 결과 영역 높이가 0으로 접히면서 유튜브가 다음 배치를
+   즉시 요청 → 그것도 숨김 → 반복으로 continuation을 순식간에 소진해 "결과가 없습니다"에
+   도달한다("쇼츠" 같이 선반이 자주 끼는 검색어에서 특히 심함).
+   → 일반 결과 아이템이 하나라도 들어 있는 섹션은 래퍼를 남기고 선반만 숨긴다. */
+ytd-item-section-renderer:has(ytd-reel-shelf-renderer):not(:has(ytd-video-renderer)):not(:has(ytd-playlist-renderer)):not(:has(ytd-channel-renderer)):not(:has(yt-lockup-view-model)),
+
+/* 쇼츠 개별 항목 lockup. 유튜브가 태그 접두사를 ytd-/ytm- 로 섞어 쓰고 v2 변형까지 있어
+   알려진 변형을 모두 겹쳐 둔다. */
 ytd-shorts-lockup-view-model,
-grid-shelf-view-model,
+ytm-shorts-lockup-view-model,
+ytm-shorts-lockup-view-model-v2,
+/* 선반 그리드 래퍼. 태그 이름에 shorts 한정어가 없어 유튜브가 다른 종류의 선반에도
+   같은 태그를 쓰면 일반 콘텐츠까지 날아간다 — 내부에 /shorts/ 링크가 있는 경우로 좁힌다.
+   (개별 lockup은 위 규칙이 이미 숨기므로, 좁힌 탓에 래퍼가 잠깐 늦게 사라져도
+    빈 헤더만 순간 보일 뿐 쇼츠 썸네일이 노출되지는 않는다.) */
+grid-shelf-view-model:has(a[href^="/shorts/"]),
+
+/* 선반이 아니라 일반 영상 결과처럼 목록에 섞여 나오는 개별 쇼츠(검색 결과·추천 사이드바).
+   선반/칩만 숨기면 이 형태는 그대로 남아 "쇼츠 차단을 켰는데 검색 결과엔 쇼츠가 뜨는" 문제가
+   생긴다. href의 "/shorts/" 접두사는 로케일·마크업 버전에 안 흔들리는 유일한 안정값이라
+   사이드바 규칙과 동일하게 href 기준으로 잡는다.
+   ytd-video-renderer는 설명 스니펫 안의 링크가 우연히 매칭되는 걸 피하려고 썸네일/제목
+   앵커(a#thumbnail / a#video-title)로 좁히고, id가 없는 신형 lockup 계열만 느슨하게 매칭한다. */
+ytd-video-renderer:has(a#thumbnail[href^="/shorts/"]),
+ytd-video-renderer:has(a#video-title[href^="/shorts/"]),
+ytd-compact-video-renderer:has(a[href^="/shorts/"]),
+ytd-rich-item-renderer:has(a[href^="/shorts/"]),
+yt-lockup-view-model:has(a[href^="/shorts/"]),
 
 tp-yt-paper-tab:has(a[href*="/shorts"]),
 ytm-pivot-bar-item-renderer:has(a[href^="/shorts"]),

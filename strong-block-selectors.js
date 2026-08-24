@@ -5,16 +5,25 @@
 // 유튜브 검색 결과 상단 필터 칩(#chips > yt-chip-cloud-chip-renderer)은 전체/동영상/Shorts/
 // 라이브 등 모든 칩이 완전히 동일한 클래스·구조를 공유하고, "Shorts"라는 라벨도 href나
 // title/aria-label이 아니라 안쪽 <div>의 순수 텍스트로만 존재해 CSS 속성 선택자로 구분이 안 됨.
+//
+// 주의: 이 칩들은 Polymer가 DOM 노드를 재활용한다 — 검색어를 바꾸거나 필터를 눌러 칩 목록이
+// 갱신될 때 새 요소를 만드는 게 아니라 기존 요소의 텍스트만 갈아끼우는 경우가 있다. 그래서
+// "한 번 검사한 칩은 다시 안 본다"는 식으로 캐싱하면 (a) 예전에 "쇼츠"였던 칩이 "동영상"으로
+// 재활용됐을 때 display:none이 그대로 남아 멀쩡한 필터가 영구히 사라지고, (b) 반대로 예전에
+// 다른 라벨이었던 칩이 "쇼츠"로 재활용되면 숨김이 안 걸린다. 캐시 없이 매번 현재 텍스트로
+// 판정하고, 쇼츠가 아니면 인라인 스타일을 반드시 되돌린다(칩은 몇 개 안 되므로 비용도 무시 가능).
 (function () {
   const SHORTS_CHIP_TEXTS = ['Shorts', '쇼츠'];
 
   function hideShortsChips() {
     document.querySelectorAll('yt-chip-cloud-chip-renderer').forEach(chip => {
-      if (chip.dataset.tbbShortsChecked) return;
-      chip.dataset.tbbShortsChecked = '1';
-      const text = chip.textContent.trim();
-      if (SHORTS_CHIP_TEXTS.includes(text)) {
+      const isShorts = SHORTS_CHIP_TEXTS.includes(chip.textContent.trim());
+      if (isShorts) {
         chip.style.setProperty('display', 'none', 'important');
+      } else if (chip.style.display === 'none') {
+        // 우리가 숨겼던 칩이 다른 라벨로 재활용된 경우에만 원복(유튜브가 직접 건 스타일은
+        // 인라인이 아니므로 여기서 지워도 영향 없음).
+        chip.style.removeProperty('display');
       }
     });
   }

@@ -70,7 +70,9 @@
       transition: background 0.2s; flex-shrink: 0; outline: none;
     }
     .p-switch-track:focus-visible { box-shadow: 0 0 0 2px #bbb; }
-    .p-switch-track.on { background: var(--tomato); }
+    /* on 색은 --tomato-deep으로 통일(options.html의 스위치·다크모드 토글과 동일 톤) — 기본
+       --tomato보다 진해서 off(#ddd/다크 #3a3a3a)와의 명도 차이가 또렷하다. */
+    .p-switch-track.on { background: var(--tomato-deep); }
     .p-switch-thumb {
       position: absolute; top: 2px; left: 2px;
       width: 14px; height: 14px; border-radius: 50%;
@@ -162,7 +164,13 @@
     :root[data-theme="dark"] .p-add-btn:hover { background: #262626; }
     :root[data-theme="dark"] .p-badge-general { background: #2e2812; border-color: #4a3e17; color: #e0b84d; }
     :root[data-theme="dark"] .p-switch-track { background: #3a3a3a; }
+    /* 위 규칙(:root[data-theme="dark"] .p-switch-track, 명세도 3)이 .p-switch-track.on(명세도 2)보다
+       높아 다크모드에서 on 색이 항상 덮어써지던 문제 — 다크 전용으로 한 번 더 명시해 이긴다. */
+    :root[data-theme="dark"] .p-switch-track.on { background: var(--tomato-deep); }
     :root[data-theme="dark"] .p-toggle-lbl { color: #5e5e5e; }
+    /* 위와 같은 명세도 문제(3 vs .p-toggle-lbl.active의 2) — "활성화" 텍스트도 다크모드에서
+       항상 회색으로 덮어써져 tomato로 안 바뀌던 문제라 다크 전용으로 한 번 더 명시. */
+    :root[data-theme="dark"] .p-toggle-lbl.active { color: var(--tomato); }
     :root[data-theme="dark"] .p-box-card { background: #1c1c1c; border-color: #2a2a2a; }
     :root[data-theme="dark"] .p-box-name.dim { color: #d0d0d0; }
     :root[data-theme="dark"] .p-box-row { background: #1c1c1c; }

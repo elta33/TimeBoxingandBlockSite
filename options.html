@@ -533,9 +533,10 @@ button { cursor: pointer; font-family: inherit; }
 .dark-mode-toggle-label { display: inline-flex; align-items: center; gap: 6px; }
 .switch-label input[type="checkbox"] { display: none; }
 .switch-track { width: 40px; height: 22px; background: #ddd; border-radius: 11px; position: relative; transition: background 0.2s; flex-shrink: 0; }
-.switch-label input[type="checkbox"]:checked + .switch-track { background: var(--tomato); }
-/* 다크모드 토글만 예외 — tomato(위험/차단 강조색)가 아니라 앱의 모노크롬 "검정 필" 언어를 따름 */
-#darkModeToggle:checked + .switch-track { background: #111; }
+/* on 색은 --tomato-deep(진한 토마토)로 통일 — 팝업 스위치와 동일 톤을 쓰고, 기본 --tomato보다
+   채도/명도가 낮아 off(#ddd/#3a3a3a)와의 구분이 또렷하다. 예전엔 다크모드 토글만 검정으로
+   예외 처리했는데, 다른 토글과 안 어울려서 같은 색으로 통일함. */
+.switch-label input[type="checkbox"]:checked + .switch-track { background: var(--tomato-deep); }
 .switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 0.2s; }
 .switch-label input[type="checkbox"]:checked + .switch-track .switch-thumb { left: 20px; }
 
@@ -1400,7 +1401,6 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .switch-label { color: #a0a0a0; }
 :root[data-theme="dark"] .sync-status-row-label { color: #a0a0a0; }
 :root[data-theme="dark"] .switch-track { background: #3a3a3a; }
-:root[data-theme="dark"] #darkModeToggle:checked + .switch-track { background: #4a4a4a; }
 :root[data-theme="dark"] .strong-block-toggle-row { background: #242424; }
 :root[data-theme="dark"] .strong-block-toggle-label { color: #f2f2f2; }
 :root[data-theme="dark"] .strong-block-checkbox-label { color: #d0d0d0; }
