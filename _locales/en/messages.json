@@ -77,6 +77,7 @@
   "onboardingStep1":    { "message": "Add sites to block" },
   "onboardingStep2":    { "message": "Create a timebox schedule" },
   "onboardingStep3":    { "message": "Try the Pomodoro timer" },
+  "onboardingStep4":    { "message": "Try making a to-do list" },
   "onboardingOptional": { "message": "Optional" },
   "onboardingGo":       { "message": "Go" },
 
@@ -188,6 +189,7 @@
   "settingsOtherTitle": { "message": "Other Settings" },
   "darkModeLabel":      { "message": "Dark Mode" },
   "syncStatusRowLabel": { "message": "Cross-device sync:" },
+  "syncStatusDesc":     { "message": "Cross-device sync requires being signed in to your browser." },
   "syncStatusOk":       { "message": "Last synced: $1", "placeholders": { "1": { "content": "$1" } } },
   "syncStatusFailed":   { "message": "Sync failed ($1) — saved on this device only", "placeholders": { "1": { "content": "$1" } } },
   "syncStatusNone":     { "message": "No sync recorded yet" },

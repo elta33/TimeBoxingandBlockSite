@@ -150,8 +150,18 @@ button { cursor: pointer; font-family: inherit; }
 .onboarding-step { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #fff; border-radius: 8px; }
 .onboarding-step-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; color: transparent; flex-shrink: 0; transition: background 0.15s, border-color 0.15s, color 0.15s; }
 .onboarding-step.done .onboarding-step-check { background: var(--green); border-color: var(--green); color: #fff; }
-.onboarding-step-text { flex: 1; font-size: 0.92rem; color: #333; }
-.onboarding-step.done .onboarding-step-text { color: #999; text-decoration: line-through; }
+.onboarding-step-text { flex: 1; font-size: 0.92rem; color: #333; position: relative; }
+.onboarding-step.done .onboarding-step-text { color: #999; }
+/* 취소선을 ::after 선으로 그려서 방금 완료된 항목만 왼쪽→오른쪽으로 그어지는 연출을
+   줄 수 있게 한다(todo.js의 todo-strike-sweep과 동일한 기법 재사용). 이미 완료돼 있던
+   항목(페이지 로드 시점)은 애니메이션 없이 바로 100% 너비로 보인다. */
+.onboarding-step.done .onboarding-step-text::after {
+  content: ''; position: absolute; left: 0; top: 50%; height: 1px; width: 100%; background: currentColor;
+}
+.onboarding-step.done .onboarding-step-text.onboarding-strike-sweep::after {
+  width: 0; animation: onboardingStrikeSweep 0.45s ease-out forwards;
+}
+@keyframes onboardingStrikeSweep { from { width: 0; } to { width: 100%; } }
 .onboarding-step-optional-tag { font-size: 0.74rem; color: #888; background: #f0f0f0; border-radius: 4px; padding: 2px 7px; flex-shrink: 0; }
 .onboarding-step-btn { padding: 5px 12px; font-size: 0.82rem; font-weight: 600; border-radius: 6px; border: 1px solid var(--blue-border); background: #fff; color: var(--blue-dark); transition: background 0.12s; flex-shrink: 0; }
 .onboarding-step-btn:hover { background: var(--blue-pale); }
@@ -1575,8 +1585,10 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .todo-cb { accent-color: #e0e0e0; }
 :root[data-theme="dark"] .todo-text { color: #d0d0d0; }
 :root[data-theme="dark"] .todo-item.todo-done .todo-text { color: #555; }
-:root[data-theme="dark"] .todo-del { color: #555; }
-:root[data-theme="dark"] .todo-del:hover { color: var(--tomato); }
+/* 도메인 리스트 삭제 아이콘(.icon-trash-btn)과 같은 --trash-icon을 써서 톤을 통일 —
+   전에는 #555로 따로 박아둬서 다크모드에서 유독 어둡고 눈에 덜 띄었다. */
+:root[data-theme="dark"] .todo-del { color: var(--trash-icon); }
+:root[data-theme="dark"] .todo-del:hover { color: var(--trash-icon-hover); }
 :root[data-theme="dark"] .pomo-advanced-btn.pomo-advanced-btn-active:hover { background: #163a54; }
 
 /* ── 반응형 그리드 ──
@@ -1637,6 +1649,11 @@ button { cursor: pointer; font-family: inherit; }
           <span class="onboarding-step-optional-tag" data-i18n="onboardingOptional">선택</span>
           <span class="onboarding-step-text" data-i18n="onboardingStep3">포모도로 타이머 사용해보기</span>
           <button class="onboarding-step-btn" data-goto="pomodoro" data-i18n="onboardingGo">바로가기</button>
+        </li>
+        <li class="onboarding-step" id="onboardingStep4">
+          <span class="onboarding-step-optional-tag" data-i18n="onboardingOptional">선택</span>
+          <span class="onboarding-step-text" data-i18n="onboardingStep4">할 일 목록 만들어보기</span>
+          <button class="onboarding-step-btn" data-goto="todo" data-i18n="onboardingGo">바로가기</button>
         </li>
       </ul>
     </div>
@@ -2068,6 +2085,7 @@ button { cursor: pointer; font-family: inherit; }
               <span id="syncStatusText"></span>
             </div>
           </div>
+          <p class="sector-desc" style="margin:6px 0 0;" data-i18n="syncStatusDesc">기기간 동기화에는 브라우저 로그인이 필요합니다.</p>
         </div>
       </div>
 

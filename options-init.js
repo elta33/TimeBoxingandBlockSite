@@ -3,16 +3,39 @@
 // options-core.js·options-stats.js가 정의한 함수(loadSettings, renderStats, initViewTabs, _loadPinStatus 등)에 의존하므로 반드시 그 뒤에 로드할 것
 
 // ── 온보딩 체크리스트 (차단 관리 탭) ──
-// 완료 여부는 별도 플래그 없이 실제 storage 상태(리스트/박스 존재 여부)로 매번 판정한다.
+// 완료 여부는 별도 플래그 없이 실제 storage 상태(리스트/박스/할일 존재 여부)로 매번 판정한다.
 // storage.js의 loadSettings()가 호출될 때마다(추가/삭제 등 모든 변경 후) 같이 갱신됨.
+let _onboardingRenderedOnce = false;
+
+// 완료 취소선을 todo.js의 todo-strike-sweep과 동일한 기법(::after 선 + width 0→100%
+// 애니메이션)으로 그린다. 페이지를 열었을 때 이미 완료돼 있던 항목까지 매번 애니메이션이
+// 재생되면 산만하므로, "이번 렌더에서 막 done으로 바뀐 경우"에만(그리고 첫 렌더는 제외) 재생한다.
+function _setOnboardingStepDone(stepId, done, animate) {
+  const li = document.getElementById(stepId);
+  if (!li) return;
+  const wasDone = li.classList.contains('done');
+  li.classList.toggle('done', done);
+  const textEl = li.querySelector('.onboarding-step-text');
+  if (!textEl) return;
+  textEl.classList.remove('onboarding-strike-sweep');
+  if (done && !wasDone && animate) {
+    void textEl.offsetWidth; // 클래스 재부여 시 애니메이션이 확실히 재생되도록 리플로우 강제
+    textEl.classList.add('onboarding-strike-sweep');
+  }
+}
+
 function _renderOnboardingChecklist() {
   const card = document.getElementById('onboardingCard');
   if (!card || card.dataset.dismissed === '1') return;
-  TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes'], result => {
+  TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'todoItems'], result => {
     const hasSites = (result.generalList?.length > 0) || (result.permanentList?.length > 0);
     const hasBoxes = (result.dailyBoxes?.length > 0) || (result.weeklyBoxes?.length > 0);
-    document.getElementById('onboardingStep1')?.classList.toggle('done', hasSites);
-    document.getElementById('onboardingStep2')?.classList.toggle('done', hasBoxes);
+    const hasTodo  = (result.todoItems?.length > 0);
+    const animate = _onboardingRenderedOnce;
+    _setOnboardingStepDone('onboardingStep1', hasSites, animate);
+    _setOnboardingStepDone('onboardingStep2', hasBoxes, animate);
+    _setOnboardingStepDone('onboardingStep4', hasTodo, animate);
+    _onboardingRenderedOnce = true;
   });
 }
 
@@ -37,13 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const goto = btn.dataset.goto;
         if (goto === 'block') { document.getElementById('generalDomainInput')?.focus(); return; }
+        // todo 패널은 특정 탭에 속하지 않는 전역 플로팅 패널(todo.js)이라 탭 전환 대신 직접 펼침
+        if (goto === 'todo') { if (typeof _todoOpenPopup === 'function') _todoOpenPopup(); return; }
         document.querySelector(`.main-tab[data-tab="${goto}"]`)?.click();
       });
     });
     // 박스 저장 경로가 여러 곳(메인 폼/요일 팝업 등)에 흩어져 있어 개별 호출부마다
     // 체크리스트 갱신을 넣는 대신, storage 변경 자체를 구독해 어디서 저장하든 반영되게 함.
     chrome.storage.onChanged.addListener((changes) => {
-      if (changes.generalList || changes.permanentList || changes.dailyBoxes || changes.weeklyBoxes) {
+      if (changes.generalList || changes.permanentList || changes.dailyBoxes || changes.weeklyBoxes || changes.todoItems) {
         _renderOnboardingChecklist();
       }
     });

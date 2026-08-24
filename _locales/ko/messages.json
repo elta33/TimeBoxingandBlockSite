@@ -77,6 +77,7 @@
   "onboardingStep1":    { "message": "차단할 사이트 추가하기" },
   "onboardingStep2":    { "message": "타임박스 스케줄 만들기" },
   "onboardingStep3":    { "message": "포모도로 타이머 사용해보기" },
+  "onboardingStep4":    { "message": "할 일 목록 만들어보기" },
   "onboardingOptional": { "message": "선택" },
   "onboardingGo":       { "message": "바로가기" },
 
@@ -188,6 +189,7 @@
   "settingsOtherTitle": { "message": "기타 설정" },
   "darkModeLabel":      { "message": "다크 모드" },
   "syncStatusRowLabel": { "message": "기기간 동기화 알림:" },
+  "syncStatusDesc":     { "message": "기기간 동기화에는 브라우저 로그인이 필요합니다." },
   "syncStatusOk":       { "message": "마지막 동기화: $1", "placeholders": { "1": { "content": "$1" } } },
   "syncStatusFailed":   { "message": "동기화 실패($1) — 이 기기에만 저장됨", "placeholders": { "1": { "content": "$1" } } },
   "syncStatusNone":     { "message": "동기화 기록 없음" },
