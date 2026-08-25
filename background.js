@@ -474,14 +474,13 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     // 리뷰 요청 배너(popup.js)는 설치 직후엔 뜨지 않도록 최초 노출 시점을 14일 뒤로 미뤄둔다.
     // 이 값이 없는 기존(업데이트) 사용자는 popup.js에서 "미설정 = 바로 노출 대상"으로 처리된다.
     chrome.storage.local.set({ reviewPromptNextAt: Date.now() + 14 * 24 * 60 * 60 * 1000 });
-  } else if (details.reason === 'update') {
-    // 기존 사용자는 온보딩 체크리스트 기능 자체를 처음 접하는 것이므로,
-    // 신규 사용자용 UI가 갑자기 나타나지 않도록 최초 1회 자동으로 닫아둔다.
-    const { onboardingDismissed } = await chrome.storage.local.get(['onboardingDismissed']);
-    if (onboardingDismissed === undefined) {
-      chrome.storage.local.set({ onboardingDismissed: true });
-    }
   }
+
+  // update 분기를 두지 않는다. 온보딩 체크리스트는 별도 완료 플래그 없이 실제 storage
+  // 상태로 매번 판정하므로(options-init.js), 업데이트 후에도 이미 끝낸 항목은 취소선이
+  // 그대로 유지되고 새로 추가된 항목만 미완료로 보인다. 여기서 onboardingDismissed를
+  // 대신 세팅하면 "닫지 않은" 사용자의 체크리스트까지 통째로 숨겨져 새 항목을 못 본다.
+  // 닫은 사용자는 onboardingDismissed=true가 이미 있으니 그대로 숨겨진다.
 });
 
 // PiP 창이 닫히면 저장된 ID 제거
