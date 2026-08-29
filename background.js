@@ -261,33 +261,22 @@ function _statsTodayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function _statsUpdateStreak(streak, dateStr) {
-  const s = streak || { current: 0, longest: 0, lastDate: '' };
-  if (s.lastDate === dateStr) return s;
-  const prev = new Date(dateStr);
-  prev.setDate(prev.getDate() - 1);
-  const yesterStr = prev.toISOString().slice(0, 10);
-  const cur = (s.lastDate === yesterStr) ? s.current + 1 : 1;
-  return { current: cur, longest: Math.max(s.longest, cur), lastDate: dateStr };
-}
-
 async function _statsLogPomoSession(durationMins) {
   const dateStr = _statsTodayStr();
-  const data = await TBBStorage.get(['focusEvents', 'focusStreak']);
-  let events = data.focusEvents || [];
-  let day = events.find(e => e.date === dateStr);
-  if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
-  day.pomoSessions.push({ ts: Math.floor(Date.now() / 1000), durationMins });
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
-  events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
-  const streak = _statsUpdateStreak(data.focusStreak || null, dateStr);
-  await TBBStorage.set({ focusEvents: events, focusStreak: streak });
+  // 이 기기 샤드에만 기록한다(보관 기간 정리는 updateFocusEvents가 처리)
+  await TBBStorage.updateFocusEvents(events => {
+    let day = events.find(e => e.date === dateStr);
+    if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
+    day.pomoSessions.push({ ts: Math.floor(Date.now() / 1000), durationMins });
+    return events;
+  });
+  await TBBStorage.refreshStreak(); // 연속일은 기록에서 계산 — 저장값을 증가시키지 않는다
 }
 
 // 1분 알람마다 활성 타임박스 안에 있으면 오늘 focusMins +1
 async function _statsLogBoxMinute() {
   const data = await TBBStorage.get([
-    'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'focusEvents', 'focusStreak'
+    'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled'
   ]);
   const dailyEnabled = data.dailyScheduleEnabled !== false;
   const dailyBoxes   = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : [];
@@ -302,15 +291,15 @@ async function _statsLogBoxMinute() {
   if (!inBox) return;
 
   const dateStr = _statsTodayStr();
-  let events = data.focusEvents || [];
-  let day = events.find(e => e.date === dateStr);
-  if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [], focusMins: 0 }; events.push(day); }
-  day.focusMins = (day.focusMins || 0) + 1;
-
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
-  events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
-  const streak = _statsUpdateStreak(data.focusStreak || null, dateStr);
-  await TBBStorage.set({ focusEvents: events, focusStreak: streak });
+  // 이 기기가 실제로 집중한 분만 자기 샤드에 더한다. 다른 기기 값은 건드리지 않으므로
+  // 예전처럼 두 기기가 서로의 기록을 지우는 일이 없다.
+  await TBBStorage.updateFocusEvents(events => {
+    let day = events.find(e => e.date === dateStr);
+    if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [], focusMins: 0 }; events.push(day); }
+    day.focusMins = (day.focusMins || 0) + 1;
+    return events;
+  });
+  await TBBStorage.refreshStreak();
 }
 
 // 포모도로 페이즈 자동 전환 (1분 알람 틱마다 체크)
@@ -352,6 +341,9 @@ const _SYNC_MIGRATION_FLAG = '_syncMigrationDone_v1';
 
 // focusEvents는 기기마다 독립적으로 쌓여있을 수 있어 날짜 단위로 병합.
 // blocks/pomoSessions는 ts 기준 dedupe, focusMins는 이중 집계를 피하려 max 채택(완벽한 병합은 아님).
+// 여기서 만든 값은 구버전 단일 키('focusEvents')에 그대로 남는다 — 이후 기록은 기기별 샤드로
+// 가고, 읽을 때 이 키까지 함께 합산되므로 샤드로 옮기지 않아야 이중 집계가 생기지 않는다.
+// (storage-api.js의 focusEvents 샤딩 주석 참고)
 function _mergeFocusEvents(localEvents, syncEvents) {
   const byDate = new Map();
   (syncEvents || []).forEach(e => byDate.set(e.date, {
@@ -432,8 +424,21 @@ async function _migrateToSyncV2() {
   await chrome.storage.local.set({ [_SYNC_MIGRATION_FLAG_V2]: true });
 }
 
+// sync 쪽 변경은 "다른 계정/기기 데이터가 통째로 들어온 것"일 수 있어 데이터셋 합의 상태를
+// 다시 확인해야 한다. 브라우저가 여러 키를 나눠 전달할 수 있으므로 잠깐 모아서 한 번만 본다
+// (데이터셋 id가 설정 키보다 늦게 도착하면 멀쩡한 값을 충돌로 오인할 수 있기 때문).
+let _syncLinkCheckTimer = null;
+function _scheduleSyncLinkCheck() {
+  if (_syncLinkCheckTimer) clearTimeout(_syncLinkCheckTimer);
+  _syncLinkCheckTimer = setTimeout(() => {
+    _syncLinkCheckTimer = null;
+    TBBStorage.ensureSyncLink().then(updateBlockingRules).catch(() => {});
+  }, 1500);
+}
+
 // 데이터 변경 및 타이머 연동
-chrome.storage.onChanged.addListener((changes) => {
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync') _scheduleSyncLinkCheck();
   updateBlockingRules();
   updateShortsCosmetic();
   updateInstaCosmetic();
@@ -456,6 +461,8 @@ chrome.alarms.onAlarm.addListener(async alarm => {
 });
 chrome.runtime.onStartup.addListener(() => {
   TBBPro.ensureGrandfather();
+  TBBStorage.gcLegacyFocusEvents(); // 보관 기간이 지난 구버전 통계 단일 키 정리
+  TBBStorage.ensureSyncLink();
   updateBlockingRules();
   updateShortsCosmetic();
   updateInstaCosmetic();
@@ -464,6 +471,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await TBBPro.ensureGrandfather(); // 출시 무료 기간 사용자를 영구 무료로 각인(설치/업데이트 양쪽)
   await _migrateToSync();
   await _migrateToSyncV2();
+  await TBBStorage.gcLegacyFocusEvents();
+  await TBBStorage.ensureSyncLink();
   updateBlockingRules();
   updateShortsCosmetic();
   updateInstaCosmetic();

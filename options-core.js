@@ -1579,7 +1579,14 @@ function importSettings(file) {
     const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'instaBlockEnabled', 'instaShowFollowedPosts', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides', 'focusEvents', 'focusStreak', 'todoItems', 'customQuotes', 'customLinks', 'customBgImages']);
     const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
     if (Object.keys(safe).length === 0) { alert(T('noDataToRestore')); return; }
-    TBBStorage.set(safe, () => {
+    // 통계는 기기별 샤드로 나뉘어 저장되고 내보내기 파일은 그 합산본이라, 일반 set으로 쓰면
+    // 기존 샤드와 겹쳐 이중 집계가 된다. 전용 경로로 "완전 대체"해야 한다.
+    const focusEvents = safe.focusEvents;
+    delete safe.focusEvents;
+    const restore = focusEvents !== undefined
+      ? TBBStorage.replaceFocusEvents(focusEvents)
+      : Promise.resolve();
+    restore.then(() => TBBStorage.set(safe)).then(() => {
       alert(T('importSuccess'));
       loadSettings();
     });

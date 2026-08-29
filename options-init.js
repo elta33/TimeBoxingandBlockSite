@@ -144,9 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => renderStats(btn.dataset.period));
   });
 
-  // focusEvents 변경 시 통계 탭이 열려있으면 실시간 재렌더링 (local/sync 양쪽 다 반영)
+  // 통계 변경 시 통계 탭이 열려있으면 실시간 재렌더링 (local/sync 양쪽 다 반영).
+  // 기기별 샤드 키로 오기 때문에 changes.focusEvents만 봐서는 감지되지 않는다.
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (!changes.focusEvents) return;
+    if (!TBBStorage.isFocusEventsChange(changes)) return;
     const statsPanel = document.getElementById('tab-stats');
     if (statsPanel && statsPanel.classList.contains('active')) {
       renderStats(_statsPeriod);
@@ -287,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     textEl.textContent = parts.join(' · ');
   }
   chrome.storage.local.get(['_syncStatus'], result => _renderSyncStatus(result._syncStatus));
+  initSyncUi(); // 설정 충돌 배너 / 비교 모달 / 불러오기·합치기 버튼 (options-sync.js)
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes._syncStatus) _renderSyncStatus(changes._syncStatus.newValue);
   });

@@ -15,28 +15,15 @@ function _statsTodayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function _statsUpdateStreak(streak, dateStr) {
-  const s = streak || { current: 0, longest: 0, lastDate: '' };
-  if (s.lastDate === dateStr) return s;
-  const prev = new Date(dateStr);
-  prev.setDate(prev.getDate() - 1);
-  const yesterStr = prev.toISOString().slice(0, 10);
-  const cur = (s.lastDate === yesterStr) ? s.current + 1 : 1;
-  return { current: cur, longest: Math.max(s.longest, cur), lastDate: dateStr };
-}
-
 function _statsLogPomoSession(durationMins) {
   const dateStr = _statsTodayStr();
-  TBBStorage.get(['focusEvents', 'focusStreak'], data => {
-    let events = data.focusEvents || [];
+  // 이 기기 샤드에만 기록하고, 연속일은 그 기록에서 계산한다 (storage-api.js 참고)
+  TBBStorage.updateFocusEvents(events => {
     let day = events.find(e => e.date === dateStr);
     if (!day) { day = { date: dateStr, blocks: [], pomoSessions: [] }; events.push(day); }
     day.pomoSessions.push({ ts: Math.floor(Date.now() / 1000), durationMins });
-    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
-    events = events.filter(e => e.date >= cutoff.toISOString().slice(0, 10));
-    const streak = _statsUpdateStreak(data.focusStreak || null, dateStr);
-    TBBStorage.set({ focusEvents: events, focusStreak: streak });
-  });
+    return events;
+  }).then(() => TBBStorage.refreshStreak());
 }
 
 function _statsFormatMins(mins) {
@@ -655,10 +642,11 @@ function renderStats(period) {
     btn.classList.toggle('active', btn.dataset.period === _statsPeriod);
   });
 
-  const keys = ['focusEvents', 'focusStreak', 'pomodoroSettings'];
-  TBBStorage.get(keys, data => {
+  const keys = ['focusEvents', 'pomodoroSettings'];
+  TBBStorage.get(keys, async data => {
     const allEvents = data.focusEvents || [];
-    const streak    = data.focusStreak || { current: 0, longest: 0, lastDate: '' };
+    // 연속일은 저장값이 아니라 합산된 기록에서 계산한다. 이미 읽어둔 배열을 넘겨 중복 조회를 피함.
+    const streak    = await TBBStorage.getStreak(allEvents);
     const todayStr  = _statsTodayStr();
 
     // 집중 시간 카드 (기간별 합산)
