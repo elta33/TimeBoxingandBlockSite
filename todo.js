@@ -165,7 +165,18 @@ function _todoAnimateShrinkThenRemove(el, onDone, duration = 200) {
 // 도메인 리스트 / 포모도로 프리셋 / 타임박스 삭제 버튼과 동일한 쓰레기통 아이콘
 // (options-core.js의 TRASH_ICON_SVG와 동일 — todo.js는 그게 없는 block.html에서도
 // 동작해야 하므로 자체 상수로 둔다).
-const TODO_TRASH_ICON_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+const TODO_TRASH_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
+// AMO 린터의 innerHTML 경고를 피하려고 문자열 대신 파싱된 노드를 붙인다(위 SVG는 정적 상수라
+// 실제 주입 위험은 없음). options-core.js의 _svgNode와 동일한 목적이지만, 두 파일이
+// options.html에 함께 로드되므로 최상위 이름이 겹치지 않도록 따로 둔다.
+//
+// ※ 넘기는 마크업에 xmlns가 반드시 있어야 한다. 없으면 namespaceURI가 null인 요소가 만들어져
+//   크기 0x0으로 조용히 안 보인다(예외도 안 남).
+function _todoSvgNode(markup) {
+  const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  return document.importNode(doc.documentElement, true);
+}
 
 function _makeTodoRow(id, text, done) {
   const row = document.createElement('div');
@@ -185,7 +196,7 @@ function _makeTodoRow(id, text, done) {
 
   const del = document.createElement('button');
   del.className = 'todo-del';
-  del.innerHTML = TODO_TRASH_ICON_SVG;
+  del.appendChild(_todoSvgNode(TODO_TRASH_ICON_SVG));
   del.title = T('delete');
   del.addEventListener('click', e => { e.stopPropagation(); _todoDelete(id); });
 

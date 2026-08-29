@@ -229,13 +229,27 @@ function timeToMins(timeStr) {
 
 // ── 공통: 쓰레기통 삭제 아이콘 (도메인 리스트 / 포모도로 프리셋 / 타임박스
 // 주간뷰 박스 삭제 버튼이 전부 이 아이콘을 공유) ──
-const TRASH_ICON_SVG = '<svg viewBox="0 0 24 24" width="29" height="29" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+const TRASH_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="29" height="29" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
+// 위 SVG는 이 파일에 하드코딩된 정적 문자열이라 innerHTML로 넣어도 실제 주입 위험은 없지만,
+// AMO 린터가 innerHTML 대입을 일괄로 "Unsafe assignment" 경고 처리한다. 심사에서 불필요한
+// 지적을 만들지 않으려고 파싱된 노드를 붙이는 방식으로 바꿨다.
+// (todo.js에도 같은 목적의 _todoSvgNode가 따로 있다 — 두 파일이 options.html에 함께 로드되므로
+//  이름을 공유하지 않는다.)
+//
+// ※ 넘기는 마크업에 xmlns가 반드시 있어야 한다. innerHTML은 HTML 파서가 SVG 네임스페이스를
+//   자동으로 붙여주지만 XML 파싱은 그러지 않아서, xmlns가 없으면 namespaceURI가 null인 요소가
+//   만들어지고 크기 0x0으로 조용히 안 보인다(예외도 안 난다).
+function _svgNode(markup) {
+  const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  return document.importNode(doc.documentElement, true);
+}
 function _makeTrashButton(title, onClick, extraClass) {
   const btn = document.createElement('button');
   btn.className = 'icon-trash-btn' + (extraClass ? ' ' + extraClass : '');
   btn.title = title;
   btn.setAttribute('aria-label', title);
-  btn.innerHTML = TRASH_ICON_SVG;
+  btn.appendChild(_svgNode(TRASH_ICON_SVG));
   btn.onclick = onClick;
   return btn;
 }
@@ -624,7 +638,7 @@ function buildBoxCard(box, boxIndex, isWeek) {
     if (_pinEnabled) {
       delBtn.textContent = '🔒';
     } else {
-      delBtn.innerHTML = TRASH_ICON_SVG;
+      delBtn.appendChild(_svgNode(TRASH_ICON_SVG));
     }
     delBtn.title = T('deleteBoxTitle');
     delBtn.onclick = (e) => {

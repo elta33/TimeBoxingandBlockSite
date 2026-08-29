@@ -82,7 +82,7 @@ build-firefox.cmd -Package   # + AMO 제출용 zip
 - [x] 버전 `1.0.1`로 상향 (`manifest.json`)
 - [x] 배경 이미지 압축 완료 — 45MB → 2.1MB (가로 2560px, JPEG 품질 85). 패키지 44MB → 2.2MB
 - [ ] **CWS `1.0.1` 업데이트 제출** — SPA 차단 버그 수정이 크롬 사용자에게도 필요하다. AMO보다 먼저 또는 동시에
-- [ ] `gecko.id` 확정. 현재 `focusbox@elta33.github.io`로 넣어뒀다. **AMO에 한 번 등록하면 사실상 변경 불가**(변경 시 별개 확장으로 취급되고 `storage.sync` 데이터도 끊긴다). 도메인을 따로 쓸 계획이 있으면 제출 전에 바꿀 것
+- [x] **`gecko.id` = `focusbox@elta33.github.io` 확정** (2026-08-20). 실제 이메일이 아니라 형식만 맞으면 되는 식별자다(MDN: 올바른 형식의 문자열이면 무엇이든 가능, 실제 주소를 쓰면 스팸 위험). 확장 ID는 `about:debugging`에 공개 노출되므로 개인 이메일은 쓰지 않는다. **AMO 등록 후에는 변경 불가** — 바꾸면 별개 확장으로 취급되고 `storage.sync` 데이터도 끊긴다
 - [ ] `strict_min_version` 확정. 현재 `128.0` (= `world: "MAIN"`과 DNR 동적 규칙이 안정적으로 들어간 버전)
 - [ ] 스토어 리스팅: `store-listing/` 자산 대부분 재활용 가능. 스크린샷의 크롬 UI 크롬(chrome) 부분이 보이면 파이어폭스 기준으로 다시 캡처
 - [ ] 권한 사유 설명: `store-listing/CWS-permission-justification.md`를 AMO 리뷰어 노트용으로 옮겨 적는다. AMO는 사람 리뷰 비중이 높아 `<all_urls>`와 DNR 사용 이유를 명확히 쓰는 편이 심사가 빠르다
