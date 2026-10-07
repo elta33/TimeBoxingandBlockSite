@@ -203,6 +203,9 @@ const REVIEW_PROMPT_INTERVAL_MS = 15 * 24 * 60 * 60 * 1000; // 15일 간격
 
 function _maybeShowReviewPrompt() {
   if (!reviewPromptSect) return;
+  // 이 플랫폼의 스토어 리뷰 주소가 아직 없으면(예: AMO 등록 전 파이어폭스 빌드) 배너를
+  // 아예 띄우지 않는다 — 눌러도 아무 일 없는 배너를 보여주는 것보다 안 보이는 게 낫다.
+  if (!tbbReviewUrl()) return;
   chrome.storage.local.get(['reviewPromptReviewed', 'reviewPromptNextAt'], result => {
     if (result.reviewPromptReviewed) return;
     if (result.reviewPromptNextAt && Date.now() < result.reviewPromptNextAt) return;
@@ -211,8 +214,11 @@ function _maybeShowReviewPrompt() {
 }
 
 reviewPromptWriteBtn?.addEventListener('click', () => {
+  // 스토어 주소는 review-url.js 하나에서만 관리한다(크롬=CWS / 파이어폭스=AMO 런타임 분기).
+  // 탭을 못 열었으면 "리뷰 완료"로 기록하지 않는다 — 그래야 다음 주기에 배너가 다시 떠서
+  // 안내 기회를 잃지 않는다.
+  if (!tbbOpenReviewPage()) return;
   chrome.storage.local.set({ reviewPromptReviewed: true });
-  chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews` });
   reviewPromptSect.style.display = 'none';
 });
 

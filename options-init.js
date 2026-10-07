@@ -79,7 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 중복 구현하되(이 프로젝트의 기존 관례 — pomodoro 시간 계산 헬퍼도 파일마다 중복), 상태는
   // storage로 동기화되므로 한쪽에서 "나중에/리뷰 쓰기"를 누르면 다른 화면에도 반영된다.
   const reviewPromptBanner = document.getElementById('reviewPromptBanner');
-  if (reviewPromptBanner) {
+  if (reviewPromptBanner && tbbReviewUrl()) {
+    // tbbReviewUrl()이 비어 있으면(예: AMO 등록 전 파이어폭스 빌드) 배너를 아예 띄우지
+    // 않는다 — 눌러도 아무 일 없는 배너를 보여주는 것보다 안 보이는 게 낫다.
     const REVIEW_PROMPT_INTERVAL_MS = 15 * 24 * 60 * 60 * 1000; // 15일 간격
     chrome.storage.local.get(['reviewPromptReviewed', 'reviewPromptNextAt'], result => {
       if (result.reviewPromptReviewed) return;
@@ -87,8 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
       reviewPromptBanner.style.display = 'flex';
     });
     document.getElementById('reviewPromptWriteBtnOptions')?.addEventListener('click', () => {
+      // 스토어 주소는 review-url.js 하나에서만 관리한다(크롬=CWS / 파이어폭스=AMO 런타임 분기).
+      if (!tbbOpenReviewPage()) return;
       chrome.storage.local.set({ reviewPromptReviewed: true });
-      chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews` });
       reviewPromptBanner.style.display = 'none';
     });
     document.getElementById('reviewPromptLaterBtnOptions')?.addEventListener('click', () => {
