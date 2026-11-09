@@ -16,7 +16,8 @@ const TBB_SYNC_KEYS = new Set([
   'weekStartMonday',
   'shortsBlockEnabled',
   'instaBlockEnabled',
-  'instaShowFollowedPosts',
+  'whitelistModeEnabled',
+  'whitelistList',
   'focusEvents',
   'focusStreak',
   'todoItems',
@@ -555,7 +556,8 @@ async function _tbbRefreshStreak() {
 const TBB_SETTINGS_KEYS = [
   'permanentList', 'generalList', 'dailyBoxes', 'weeklyBoxes',
   'dailyScheduleEnabled', 'weekStartMonday',
-  'shortsBlockEnabled', 'instaBlockEnabled', 'instaShowFollowedPosts',
+  'shortsBlockEnabled', 'instaBlockEnabled',
+  'whitelistModeEnabled', 'whitelistList',
   'todoItems', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides',
   'pomodoroList', 'customQuotes', 'customLinks'
 ];
@@ -567,7 +569,7 @@ const TBB_SETTINGS_KEYS = [
 // 가져오면 이 기기에 없는 이미지를 가리키는 항목이 쌓인다. 그것만이면 무해하지만
 // block.js가 "링크에 묶인 인용구"를 자유 인용구 후보에서 빼기 때문에(applyBgAndQuote),
 // 영영 뽑히지 않을 이미지에 묶인 인용구가 차단 화면에서 조용히 사라진다.
-const TBB_MERGEABLE_KEYS = ['generalList', 'permanentList', 'customQuotes'];
+const TBB_MERGEABLE_KEYS = ['generalList', 'permanentList', 'whitelistList', 'customQuotes'];
 const TBB_SETTINGS_KEY_SET = new Set(TBB_SETTINGS_KEYS);
 
 const TBB_DATASET_KEY = '_syncDatasetId'; // sync

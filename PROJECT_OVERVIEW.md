@@ -30,7 +30,8 @@ TimeBoxingandBlockSite/
 │
 ├── popup.html / popup.js  # 툴바 아이콘 클릭 시 나타나는 팝업
 ├── options.html            # 전체 설정 페이지 (5개 탭)
-├── options-core.js         # PIN 잠금 + 도메인 리스트 유틸 + 타임박스 스케줄러 + 내보내기/불러오기
+├── pin-lock.js             # PIN 잠금 해제 모달 + 2단계(평문 입력) 흐름 (options.html·popup.html 공용)
+├── options-core.js         # PIN 상태·2단계 설정 UI + 도메인 리스트 유틸 + 타임박스 스케줄러 + 내보내기/불러오기
 ├── options-stats.js        # 통계 탭 렌더링 (바 차트/상위 도메인/포모도로 통계/시간대 분포/스트릭 달력)
 ├── options-init.js         # 옵션 페이지 부트스트랩 (DOMContentLoaded — 온보딩, 탭 전환, 다크모드, PIN, 동기화 배지)
 ├── options-pomodoro.js     # 포모도로 타이머 탭 UI (표시/틱/프리셋/사이클·도메인 고급 설정)
@@ -47,7 +48,6 @@ TimeBoxingandBlockSite/
 │
 ├── strong-block-selectors.css      # 쇼츠·인스타 요소 코스메틱 숨김 (속성/구조 선택자)
 ├── strong-block-selectors.js       # CSS로 못 잡는 텍스트 기반 요소 숨김 (쇼츠 칩, 인스타 추천 헤더 등)
-├── strong-block-insta-caughtup.css # 인스타 "모두 확인했습니다" 카드 숨김 (팔로우 게시물 표시 옵션 off일 때만 등록)
 │
 ├── pomodoro-pip.html / pomodoro-pip.js  # Picture-in-Picture 포모도로 창
 │
@@ -77,11 +77,15 @@ TimeBoxingandBlockSite/
 |------|------|---------|--------------|
 | 상시 차단 (`permanentList`) | 항상 | 100 | `?domain=…&reason=permanent` |
 | 포모도로 차단 (`pomodoroList`) | 포모도로 work 페이즈 중 | 30 | `?domain=…&reason=pomodoro` |
-| 커스텀 허용 (`customDomains`) | 활성 타임박스 내 예외 | 50 | — (allow) |
+| 커스텀 허용 (`customDomains`) | 활성 타임박스 내 예외 (화이트리스트 모드에선 미적용) | 15 | — (allow) |
+| 화이트리스트 모드 (`whitelistList`) | 토글 on — 등록 호스트 외 모든 http(s) | 20 | 규칙 1개(`regexFilter` + `excludedRequestDomains`), `regexSubstitution`으로 `?reason=whitelist&domain=<호스트>` |
+| 화이트리스트 경로 항목 | 화이트리스트 모드 + 경로 포함 항목(예: `youtube.com/watch?v=…`) | 25 | — (allow) |
 | 일반 차단 (`generalList`) | 활성 타임박스 시간 내 | 10 | `?domain=…&reason=general` |
 | 강력 차단 (쇼츠/인스타) | 토글 on | 5 (최하위) | 사이트 홈으로 redirect (block.html 아님) |
 
-> **DNR 제약 우회:** Chrome DNR에서 `allow` 액션은 `block` 액션만 무력화하고 `redirect`는 무력화하지 못한다. 따라서 "커스텀 허용 → 일반 차단 리다이렉트" 충돌은 우선순위 규칙이 아닌 **차단 규칙 자체를 등록하지 않는** 방식으로 해결한다. 같은 이유로 두 군데에서 같은 패턴을 쓴다 — generalList는 `finalAllowSet`으로, 포모도로 프리셋의 허용 예외는 `pomodoroActiveDomainOverride.allow`로 규칙 생성을 건너뛴다.
+> **화이트리스트 모드:** 켜져 있는 동안 상시(100)·일반(10) 차단 규칙은 아예 생성하지 않는다(목록 데이터는 보존, 옵션 페이지에선 접힌 채 흐리게 표시). 포모도로(30)는 그대로 더 높아서 화이트리스트에 있는 사이트도 작업 시간엔 막히고, 쇼츠/인스타(5)는 화이트리스트로 허용된 사이트 안에서만 동작한다. 호스트 항목은 서브도메인 포함 사이트 전체, 경로 항목은 그 주소로 시작하는 페이지만 허용한다.
+
+> **allow vs redirect:** Chrome DNR은 우선순위가 높은 `allow`가 낮은 `redirect`를 이긴다(공식 문서 matching algorithm — 같은 우선순위일 때만 액션 순서 allow > block > redirect로 정렬). 경로 예외(`youtube.com/watch?v=…`)는 이 allow 규칙으로 `youtube.com` 일반 차단을 뚫는다. 도메인이 정확히 같은 예외는 `finalAllowSet`으로 일반 차단 규칙 자체도 등록하지 않는다(이중 안전장치). 커스텀 허용은 15라서 일반(10)·쇼츠/인스타(5)만 이기고 포모도로(30)·상시(100)에는 진다. 포모도로 프리셋 허용(`pomodoroActiveDomainOverride.allow`)은 allow 규칙을 만들면 그보다 낮은 화이트리스트/일반 차단까지 풀리므로 규칙 생성을 건너뛰는 방식을 유지한다.
 
 규칙은 `updateBlockingRules()`가 생성하며, 실제 차단 판정(SPA 경로)은 `shouldUrlBeBlocked()`가 같은 우선순위 로직을 JS로 재현한다. 도메인 매칭은 정확히 일치하거나 서브도메인(`.example.com`)일 때 성립한다.
 
@@ -119,7 +123,6 @@ page-world.js (MAIN World)
 
 - CSS(`strong-block-selectors.css`): 속성·구조 선택자로 잡히는 요소 — `document_start`부터 즉시 적용되어 무지연
 - JS(`strong-block-selectors.js`): 순수 텍스트로만 구분되는 요소(쇼츠 검색 필터 칩, 인스타 "추천 게시물" 헤더) — `MutationObserver` + rAF 디바운스로 처리(CSS보다 늦어 노출 시간 최소화가 한계)
-- 인스타 하위 옵션 `instaShowFollowedPosts`: 팔로우 계정 게시물을 홈에 남긴다. off일 때만 `strong-block-insta-caughtup.css`("모두 확인했습니다" 카드 숨김)를 등록 목록에 포함 — JS 조건 분기 대신 파일 자체를 넣고 빼 CSS 무지연 이점을 유지
 - 토글 변경 시 이미 열린 유튜브·인스타 탭은 `chrome.tabs.reload`로 자동 새로고침 (기존 content script가 옛 상태로 돌고 있어서)
 
 ### 3-4. 타임박스 스케줄러
@@ -188,7 +191,7 @@ page-world.js (MAIN World)
 
 적용 시 `_applyPomoBlockOverride()`가 `extra`를 라이브 `pomodoroList`에 병합하고, 활성 오버라이드를 `pomodoroActiveDomainOverride`에 기록한다. 다른 프리셋으로 전환하면 이전 `extra`를 먼저 롤백해 잔여물이 남지 않는다.
 
-`allow` 도메인은 `pomodoroList`에서 지우지 않고 **DNR 규칙 생성 시에만 건너뛴다** — 프리셋 없이 되돌아오면 다시 차단되어야 하고, `allow` 액션은 `redirect`를 이길 수 없기 때문이다(3-1의 `finalAllowSet`과 같은 이유).
+`allow` 도메인은 `pomodoroList`에서 지우지 않고 **DNR 규칙 생성 시에만 건너뛴다** — 프리셋 없이 되돌아오면 다시 차단되어야 하고, allow 규칙(계급 30 초과)으로 만들면 그보다 낮은 화이트리스트/일반 차단까지 같이 풀리기 때문이다.
 
 **포모도로 고급 설정 (`pomodoroCycleOverrides`):**
 
@@ -270,7 +273,8 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 삭제·수정·초기화 등 파괴적 조작을 PIN(4자 이상, 최대 20자)으로 보호한다.
 
 - PIN은 무작위 salt + SHA-256 해시로 저장 (`lockPin: { hash, salt, enabled }`) — 평문은 저장하지 않음
-- 보호 대상 액션: 개별 박스 수정·삭제(주간 뷰 + 도넛 뷰 양쪽), 박스 전체 삭제, 하루 스케줄 비활성화, PIN 해제
+- 보호 대상 액션: 개별 박스 수정·삭제(주간 뷰 + 도넛 뷰 양쪽), 박스 전체 삭제, 하루 스케줄 비활성화(옵션 페이지 + 팝업), PIN 해제, 2단계 잠금 끄기(평문 추가·수정·삭제는 잠금 없음)
+- **2단계 잠금**(선택, 기본 꺼짐): PIN 다음에 지정한 평문을 직접 따라 입력해야 해제된다. 붙여넣기·드롭은 막혀 있고, 평문은 설정 탭의 2단계 잠금 카드에서 여러 개 추가·수정·삭제하고(최소 1개), 해제할 때 무작위로 하나가 나온다. PIN을 해제하면 2단계도 꺼진다(평문은 유지).
 - 잠긴 조작을 시도하면 `_openPinModal()`이 모달을 띄우고, 검증 성공 시에만 콜백 실행 (실패 시 shake 애니메이션)
 - PIN 미설정 시 모든 조작 허용 (기본값)
 - PIN 설정·변경·비활성화 UI는 **설정** 탭에 위치
@@ -349,7 +353,8 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 | `weekStartMonday` | sync | `boolean` | 주 시작 요일 (false=일요일) |
 | `shortsBlockEnabled` | sync | `boolean` | 유튜브 쇼츠 강력 차단 on/off |
 | `instaBlockEnabled` | sync | `boolean` | 인스타그램 강력 차단 on/off |
-| `instaShowFollowedPosts` | sync | `boolean` | 인스타 강력 차단 시 팔로우 계정 게시물은 홈에 남김 (하위 옵션) |
+| `whitelistModeEnabled` | sync | `boolean` | 화이트리스트 모드 on/off (켜면 상시/일반 차단 일시 정지) |
+| `whitelistList` | sync | `string[]` | 화이트리스트 목록 (호스트 또는 경로 포함 주소) |
 | `focusEvents` | sync | `DayEvent[]` | 일별 집중 활동 이력 (최대 30일, sync 용량 초과 시 14일로 자동 축소) |
 | `focusStreak` | sync | `object` | `{ current, longest, lastDate }` |
 | `todoItems` | sync | `object[]` | 할일 항목 `[{ id, text, done }]` |
@@ -368,6 +373,8 @@ todoTrigger (드래그 가능한 플로팅 아이콘)
 | `pomodoroPipPos` | local | `object` | PiP 창 위치 `{ left, top }` (기기별 값) |
 | `customBgImages` | local | `object[]` | 차단 화면 배경 이미지 `[{ name, builtin?, data? }]` (Base64 — sync 용량 초과 확정이라 로컬 고정) |
 | `lockPin` | local | `object` | PIN 잠금 정보 `{ hash, salt, enabled }` (기기별로 다르게 쓰고 싶다는 사용자 판단으로 로컬 유지) |
+| `lockTwoStepEnabled` | local | `boolean` | 2단계 잠금 on/off (기본 false) |
+| `lockTwoStepPhrases` | local | `string[]` | 2단계 평문 목록(해제 때 무작위 하나). 없으면 로케일 기본 문구(`lockPhraseDefault`) |
 | `todoTriggerPos` | local | `object` | Todo 아이콘 위치 `{ left, top }` (기기별 값) |
 | `darkModeEnabled` | local | `boolean` | 다크모드 활성화 여부 (사용자 요청으로 로컬 유지, 최초 진입 시 시스템 설정으로 초기화) |
 | `_syncMigrationDone_v1` / `_syncMigrationDone_v2` | local | `boolean` | local→sync 1회성 마이그레이션 완료 플래그 (v1: 차단설정·통계, v2: 투두·포모도로 설정/프리셋·차단화면 문구/링크) |
@@ -431,7 +438,7 @@ HTML에서는 `data-i18n`, `data-i18n-placeholder`, `data-i18n-title`, `data-i18
 
 ## 9. 알려진 설계 제약
 
-- **DNR `allow` vs `redirect`**: Chrome DNR은 `allow`가 `redirect`를 이길 수 없다. 커스텀 허용 도메인은 규칙 우선순위가 아닌 generalList 등록 필터링으로 구현해야 한다.
+- **DNR `allow` vs `redirect`**: 우선순위가 높은 `allow`는 낮은 `redirect`를 이긴다. 대신 allow는 자기보다 낮은 모든 차단을 풀어버리므로, 어느 계급까지 풀릴지 우선순위 숫자로 정확히 정해야 한다(커스텀 허용 15, 화이트리스트 경로 25). `shouldUrlBeBlocked()`도 같은 결론을 내도록 `allowRuleHit`으로 맞춘다.
 - **SPA 차단 폴백**: content.js는 초기 로드 시에도 `requestBlockCheck(location.href)`를 호출해 DNR 리다이렉트 실패를 보완한다.
 - **포모도로 경쟁 조건**: background alarms와 UI tick이 동시에 페이즈 전환을 시도할 수 있어 `advancedAt` 필드로 10초 이내 중복 전환을 가드한다.
 - **Base64 이미지 저장**: `chrome.storage.local` 용량 한도(10MB)에 유의가 필요하다.

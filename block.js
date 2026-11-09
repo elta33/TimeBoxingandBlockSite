@@ -146,6 +146,8 @@ function setSubtitleWithKeyword(el, preKey, keywordKey, postKey) {
     setSubtitleWithKeyword(el, 'blockReasonGeneralPre', 'blockReasonGeneralKeyword', 'blockReasonGeneralPost');
   } else if (_reason === 'permanent') {
     setSubtitleWithKeyword(el, 'blockReasonPermanentPre', 'blockReasonPermanentKeyword', 'blockReasonPermanentPost');
+  } else if (_reason === 'whitelist') {
+    setSubtitleWithKeyword(el, 'blockReasonWhitelistPre', 'blockReasonWhitelistKeyword', 'blockReasonWhitelistPost');
   } else if (_reason === 'pomodoro') {
     if (h1) h1.textContent = T('blockTitlePomodoro');
     setSubtitleWithKeyword(el, 'blockReasonPomodoroPre', 'blockReasonPomodoroKeyword', 'blockReasonPomodoroPost');
@@ -162,7 +164,7 @@ document.getElementById('openSettings')?.addEventListener('click', () => {
 // 남은 차단 시간 표시
 // ─────────────────────────────────────────────
 (function applyRemainingTime() {
-  if (_reason === 'permanent' || _reason === 'pomodoro') return;
+  if (_reason === 'permanent' || _reason === 'pomodoro' || _reason === 'whitelist') return;
 
   function timeToMins(t) {
     const [h, m] = t.split(':').map(Number);

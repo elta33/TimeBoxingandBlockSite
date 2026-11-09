@@ -6,10 +6,32 @@ function cleanDomain(d) {
   const host = sepIdx === -1 ? domain : domain.slice(0, sepIdx);
   const tail = sepIdx === -1 ? '' : domain.slice(sepIdx);
   try {
-    return new URL('https://' + host).hostname + tail;
+    return _canonicalVideoUrl(new URL('https://' + host).hostname, tail);
   } catch (_) {
     return domain;
   }
+}
+
+// 유튜브 영상 링크는 공유 버튼이 붙이는 si·t·list 같은 부가 파라미터나 youtu.be 단축 주소 때문에
+// "그 주소로 시작하는 페이지" 비교가 어긋나기 쉽다(예외/화이트리스트에 넣어도 실제 방문 주소와 앞부분이
+// 달라 허용이 안 됨). 영상을 가리키는 최소 형태(youtube.com/watch?v=ID, youtube.com/shorts/ID)로 맞춘다.
+// 저장된 값이 아니라 읽을 때마다 적용되므로 예전에 저장된 링크도 그대로 고쳐진다.
+// background.js / options-core.js / popup.js의 cleanDomain과 함께 세 곳 동일하게 유지할 것.
+function _canonicalVideoUrl(host, tail) {
+  const h = host.replace(/^(www\.|m\.)/, '');
+  if (h === 'youtu.be' && tail) {
+    const id = tail.slice(1).split(/[/?#]/)[0];
+    if (id) return 'youtube.com/watch?v=' + id;
+  }
+  if (h === 'youtube.com' && tail) {
+    try {
+      const u = new URL('https://youtube.com' + tail);
+      const v = u.searchParams.get('v');
+      if (u.pathname === '/watch' && v) return 'youtube.com/watch?v=' + v;
+      if (/^\/shorts\/[^/]+$/.test(u.pathname)) return 'youtube.com' + u.pathname;
+    } catch (_) {}
+  }
+  return host + tail;
 }
 
 function timeToMins(t) {
@@ -63,7 +85,21 @@ function matchesDomain(hostname, entry) {
   return hostname === clean || hostname.endsWith('.' + clean);
 }
 
-function getDomainStatus(hostname, permanentList, generalList) {
+// 화이트리스트의 경로 항목(youtube.com/watch?v=…)은 사이트 전체가 아니라 그 주소로 시작하는
+// 페이지만 허용하므로(background.js shouldUrlBeBlocked의 matches와 같은 규칙) 경로까지 비교한다.
+function matchesWhitelistEntry(hostname, urlTail, entry) {
+  const clean = cleanDomain(entry);
+  const sep = clean.search(/[/?#]/);
+  if (sep === -1) return matchesDomain(hostname, clean);
+  if (!matchesDomain(hostname, clean.slice(0, sep))) return false;
+  const tail = clean.slice(sep);
+  return urlTail.startsWith(tail) &&
+    (urlTail.length === tail.length || '/?&=#'.includes(urlTail[tail.length]));
+}
+
+// 화이트리스트 모드에선 상시/일반 목록이 일시 정지되므로(background.js) 그 상태를 먼저 본다.
+function getDomainStatus(hostname, permanentList, generalList, whitelistOn, whitelistList) {
+  if (whitelistOn) return whitelistList.some(d => matchesWhitelistEntry(hostname, currentUrlTail, d)) ? 'whitelist' : null;
   if (permanentList.some(d => matchesDomain(hostname, d))) return 'permanent';
   if (generalList.some(d => matchesDomain(hostname, d))) return 'general';
   return null;
@@ -189,6 +225,7 @@ const reviewPromptWriteBtn = document.getElementById('reviewPromptWriteBtn');
 const reviewPromptLaterBtn = document.getElementById('reviewPromptLaterBtn');
 
 let currentHostname = null;
+let currentUrlTail = ''; // 현재 탭 주소의 경로+쿼리+해시 (화이트리스트 경로 항목 비교용)
 let storageData = {};
 let _pomoTickInterval = null;
 
@@ -235,21 +272,35 @@ function setToggleVisual(disabled) {
   scheduleSection.classList.toggle('disabled', disabled);
 }
 
-function toggleSchedule() {
-  const nowDisabled = !switchTrack.classList.contains('on');
+function applyScheduleToggle(nowDisabled) {
   setToggleVisual(nowDisabled);
   const enabled = !nowDisabled;
   storageData.dailyScheduleEnabled = enabled;
   TBBStorage.set({ dailyScheduleEnabled: enabled });
 }
 
+function toggleSchedule() {
+  const nowDisabled = !switchTrack.classList.contains('on');
+  // 옵션 페이지의 같은 토글과 동일하게, PIN이 있으면 켜고 끄는 양쪽 다 잠금 해제를 거친다.
+  chrome.storage.local.get(['lockPin'], ({ lockPin }) => {
+    if (lockPin?.enabled && lockPin?.hash) {
+      _openPinModal(T(nowDisabled ? 'pinActionDisable' : 'pinModalConfirm'), () => applyScheduleToggle(nowDisabled));
+    } else {
+      applyScheduleToggle(nowDisabled);
+    }
+  });
+}
+
+chrome.storage.local.get(['lockPin'], ({ lockPin }) => {
+  document.getElementById('scheduleLockIcon').style.display = (lockPin?.enabled && lockPin?.hash) ? 'inline' : 'none';
+});
+
 switchTrack.addEventListener('click', toggleSchedule);
 switchTrack.addEventListener('keydown', e => {
   if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleSchedule(); }
 });
 
-// ── 강력 차단 토글(쇼츠/인스타) — 옵션 페이지의 인스타 하위 체크박스(팔로우 게시물 노출)는
-// 팝업에서 다루지 않는다: 여기선 켜고 끄는 스위치 두 개만 노출한다. ──
+// ── 강력 차단 토글(쇼츠/인스타) ──
 function setupStrongBlockSwitch(track, storageKey) {
   function setVisual(on) {
     track.classList.toggle('on', on);
@@ -276,21 +327,28 @@ function renderAll() {
     generalList   = [],
     dailyBoxes    = [],
     weeklyBoxes   = [],
+    whitelistList = [],
+    whitelistModeEnabled = false,
     dailyScheduleEnabled
   } = storageData;
   const scheduleEnabled = dailyScheduleEnabled !== false;
 
   // 빈 상태 안내: 차단 리스트·스케줄이 전부 비어있는 최초 사용자에게만 노출
   const isEmptyState = permanentList.length === 0 && generalList.length === 0
-    && dailyBoxes.length === 0 && weeklyBoxes.length === 0;
+    && dailyBoxes.length === 0 && weeklyBoxes.length === 0 && !whitelistModeEnabled;
   emptyStateSect.style.display = isEmptyState ? 'flex' : 'none';
 
   setToggleVisual(!scheduleEnabled);
 
   // 현재 페이지 상태
   if (currentHostname) {
-    const status = getDomainStatus(currentHostname, permanentList, generalList);
-    if (status === 'permanent') {
+    const status = getDomainStatus(currentHostname, permanentList, generalList, whitelistModeEnabled, whitelistList);
+    if (status === 'whitelist') {
+      domainStatusEl.textContent = T('popupWhitelistAllowed');
+      domainStatusEl.className = 'p-domain-badge p-badge-whitelist';
+      domainStatusEl.style.display = 'inline-block';
+      addBtnsEl.style.display = 'none';
+    } else if (status === 'permanent') {
       domainStatusEl.textContent = T('popupPermanentBlocked');
       domainStatusEl.className = 'p-domain-badge p-badge-permanent';
       domainStatusEl.style.display = 'inline-block';
@@ -426,13 +484,14 @@ chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
     const urlObj = new URL(url);
     if (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') {
       currentHostname = urlObj.hostname.replace(/^www\./, '');
+      currentUrlTail = urlObj.pathname + urlObj.search + urlObj.hash;
       currentDomainEl.textContent = domainToDisplay(currentHostname);
       currentPageSect.style.display = 'block';
     }
   } catch (_) {}
 
   TBBStorage.get(
-    ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState'],
+    ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'whitelistModeEnabled', 'whitelistList'],
     result => {
       storageData = result;
       renderAll();

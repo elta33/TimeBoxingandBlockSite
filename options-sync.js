@@ -9,6 +9,7 @@
 const SYNC_COMPARE_ROWS = [
   { key: 'generalList',           labelKey: 'syncItemGeneralList',    type: 'domains' },
   { key: 'permanentList',         labelKey: 'syncItemPermanentList',  type: 'domains' },
+  { key: 'whitelistList',         labelKey: 'syncItemWhitelistList',  type: 'domains' },
   { key: 'dailyBoxes',            labelKey: 'syncItemDailyBoxes',     type: 'boxes'   },
   { key: 'weeklyBoxes',           labelKey: 'syncItemWeeklyBoxes',    type: 'boxes'   },
   { key: 'todoItems',             labelKey: 'syncItemTodoItems',      type: 'count'   },
@@ -22,7 +23,7 @@ const SYNC_COMPARE_ROWS = [
   { key: 'weekStartMonday',       labelKey: 'syncItemWeekStart',      type: 'onoff' },
   { key: 'shortsBlockEnabled',    labelKey: 'syncItemShortsBlock',    type: 'onoff' },
   { key: 'instaBlockEnabled',     labelKey: 'syncItemInstaBlock',     type: 'onoff' },
-  { key: 'instaShowFollowedPosts', labelKey: 'syncItemInstaFollowed', type: 'onoff' }
+  { key: 'whitelistModeEnabled',  labelKey: 'syncItemWhitelistMode',  type: 'onoff' }
 ];
 
 const SYNC_PREVIEW_ITEMS = 3;       // 비교 모달의 한 줄 요약에 이름을 직접 보여줄 개수

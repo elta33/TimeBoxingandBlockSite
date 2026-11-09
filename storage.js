@@ -44,9 +44,13 @@ function isLightBoxColor(colorValue) {
 // ── 전체 설정 로드 (렌더링 진입점) ──
 function loadSettings(onDone) {
   const boxKey = getBoxKey();
-  TBBStorage.get(['generalList', 'permanentList', boxKey], function(result) {
+  TBBStorage.get(['generalList', 'permanentList', 'whitelistList', boxKey], function(result) {
     renderList('generalList',   result.generalList   || [], 'generalList',   'generalWarn');
     renderList('permanentList', result.permanentList || [], 'permanentList', 'permanentWarn');
+    const whitelist = result.whitelistList || [];
+    renderList('whitelistList', whitelist, 'whitelistList', 'whitelistWarn');
+    document.getElementById('whitelistEmptyHint')?.classList.toggle('show', whitelist.length === 0);
+    updateBlockPausedCounts((result.permanentList || []).length, (result.generalList || []).length);
     renderBoxes(result[boxKey] || []);
     if (onDone) onDone();
   });
@@ -131,7 +135,7 @@ function clearAll(storageKey, confirmMsg, inputIdsToClear, options) {
   };
 
   let targets = [];
-  if (storageKey === 'generalList' || storageKey === 'permanentList') {
+  if (storageKey === 'generalList' || storageKey === 'permanentList' || storageKey === 'whitelistList') {
     targets = Array.from(document.querySelectorAll(`#${storageKey} .custom-domain-item`));
   } else if (storageKey === 'dailyBoxes' || storageKey === 'weeklyBoxes') {
     const wrap = document.getElementById('timetableWrap');

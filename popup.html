@@ -6,6 +6,7 @@
   <script src="browser-shim.js"></script>
   <script src="theme.js"></script>
   <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/components.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -16,6 +17,12 @@
       background: #fff;
       margin: 0;
     }
+
+    /* PIN 모달은 뷰포트 기준이라, 팝업 내용이 짧을 때 창이 모달보다 작아지지 않게 잠깐 늘린다. */
+    body.pin-modal-open { min-height: 420px; }
+    .pin-modal-footer button { border-radius: 7px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; }
+    .pin-modal-footer .btn { border: none; background: #111; color: #fff; }
+    .pin-modal-footer .btn-ghost { border: 1px solid #ddd; background: none; color: #555; }
 
     /* ── 헤더 ── */
     .p-header {
@@ -60,6 +67,7 @@
     }
     .p-badge-permanent { background: var(--tomato-pale); border: 1px solid var(--tomato-light); color: var(--tomato-text); }
     .p-badge-general   { background: #fffbe6; border: 1px solid #ffe58f; color: #875500; }
+    .p-badge-whitelist { background: var(--green-pale); border: 1px solid var(--green-pale-border); color: var(--green); }
 
     /* ── 하루 스케줄 토글 ── */
     .p-toggle-row { display: flex; align-items: center; justify-content: space-between; }
@@ -171,6 +179,8 @@
        styles/tokens.css의 다크 오버라이드로 이미 자동 처리됨. */
     :root[data-theme="dark"] { color-scheme: dark; }
     :root[data-theme="dark"] body { background: #121212; color: #e0e0e0; }
+    :root[data-theme="dark"] .pin-modal-footer .btn { background: #3a3a3a; color: #ececec; }
+    :root[data-theme="dark"] .pin-modal-footer .btn-ghost { border-color: #3a3a3a; color: #aaa; }
     :root[data-theme="dark"] .p-header { border-bottom-color: #262626; }
     :root[data-theme="dark"] .p-settings-btn { color: #6a6a6a; }
     :root[data-theme="dark"] .p-settings-btn:hover { color: #d8d8d8; }
@@ -241,7 +251,7 @@
   <!-- 하루 스케줄 토글 -->
   <div class="p-section">
     <div class="p-toggle-row">
-      <span data-i18n="popupDaySchedule">하루 스케줄</span>
+      <span><span id="scheduleLockIcon" style="display:none;">🔒 </span><span data-i18n="popupDaySchedule">하루 스케줄</span></span>
       <div class="p-switch-wrap">
         <div id="switchTrack" class="p-switch-track" role="switch" aria-checked="false" tabindex="0">
           <div class="p-switch-thumb"></div>
@@ -268,7 +278,7 @@
     </div>
   </div>
 
-  <!-- 강력 차단 기능(쇼츠/인스타) — 옵션 페이지의 팔로우 게시물 노출 체크박스는 팝업에서 제외 -->
+  <!-- 강력 차단 기능(쇼츠/인스타) -->
   <div id="strongBlockSection" class="p-section">
     <div class="p-section-label" data-i18n="strongBlockTitle">강력 차단 기능</div>
     <div class="p-toggle-row">
@@ -302,6 +312,7 @@
   <script src="storage-api.js"></script>
   <script src="pro.js"></script>
   <script src="review-url.js"></script>
+  <script src="pin-lock.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -206,3 +206,37 @@
   to   { transform: scale(0.35); opacity: 0; }
 }
 .todo-item-remove { animation: todoItemShrink 0.2s ease-in forwards; transform-origin: center center; pointer-events: none; }
+
+/* ── PIN 잠금 해제 모달 (options.html + popup.html, 동작은 pin-lock.js) ──
+   .pin-modal-overlay는 옵션 페이지의 다른 모달(동기화 확인 등)도 같이 쓴다. */
+@keyframes popupIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.pin-modal-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }
+.pin-modal { background: #fff; border-radius: 16px; padding: 28px 24px 22px; width: 300px; box-shadow: 0 8px 40px rgba(0,0,0,0.25); animation: popupIn 0.18s ease; }
+.pin-modal-lock-icon { text-align: center; font-size: 2rem; margin-bottom: 10px; }
+.pin-modal-title { text-align: center; font-size: 1rem; font-weight: 700; color: #111; margin-bottom: 4px; }
+.pin-modal-sub { text-align: center; font-size: 0.82rem; color: #999; margin-bottom: 16px; }
+.pin-modal-input { width: 100%; box-sizing: border-box; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 1.1rem; font-family: inherit; text-align: center; letter-spacing: 0.12em; outline: none; transition: border-color 0.15s; }
+.pin-modal-input:focus { border-color: #333; }
+@keyframes pinShake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)} }
+.pin-modal-input.pin-shake { animation: pinShake 0.35s ease; }
+.pin-modal-error { min-height: 18px; text-align: center; font-size: 0.8rem; color: var(--tomato); font-weight: 600; margin-top: 7px; }
+.pin-modal-footer { display: flex; gap: 8px; margin-top: 16px; }
+.pin-modal-footer .btn-ghost { flex: 1; padding: 10px; }
+.pin-modal-footer .btn { flex: 1; padding: 10px; }
+#pinModalOverlay { overflow-y: auto; padding: 12px; }
+#pinModalOverlay .pin-modal { width: min(300px, 100%); margin: auto; }
+.pin-modal-phrase {
+  margin-bottom: 10px; padding: 10px 12px; border-radius: 8px; background: #f5f5f5;
+  font-size: 0.92rem; font-weight: 600; color: #222; text-align: center;
+  white-space: pre-wrap; word-break: break-word; user-select: none;
+}
+.pin-modal-input.pin-modal-phrase-input { font-size: 0.95rem; letter-spacing: normal; }
+:root[data-theme="dark"] .pin-modal { background: #242424; }
+:root[data-theme="dark"] .pin-modal-title { color: #f2f2f2; }
+:root[data-theme="dark"] .pin-modal-sub { color: #7a7a7a; }
+:root[data-theme="dark"] .pin-modal-input { background: #242424; color: #e4e4e4; border-color: #3a3a3a; }
+:root[data-theme="dark"] .pin-modal-input:focus { border-color: #888; }
+:root[data-theme="dark"] .pin-modal-phrase { background: #1c1c1c; color: #e0e0e0; }

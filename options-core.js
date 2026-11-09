@@ -4,6 +4,7 @@
 
 let stagingCustomDomains = [];
 let dailyScheduleEnabled = true;
+let whitelistModeEnabled = false;
 let weekViewClockInterval = null;
 let _editingBoxIndex = null; // 수정 중인 박스 인덱스 (null이면 새 박스 추가 모드)
 
@@ -86,12 +87,6 @@ const boxColorPickerCtl = setupBoxColorPicker('boxColorPicker', (color) => {
 
 // ── PIN 잠금 ──
 let _pinEnabled = false;
-let _pendingPinAction = null;
-
-async function _hashPin(pin, salt) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + pin));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 function _loadPinStatus() {
   chrome.storage.local.get(['lockPin'], result => {
@@ -102,29 +97,108 @@ function _loadPinStatus() {
   });
 }
 
+// PIN 등록/해제 시 화면 전환. 첫 렌더·다른 탭에 있을 때는 애니메이션 없이 바로 최종 상태로 간다.
+// 입력 폼이 페이드아웃한 뒤, 폼 높이가 바뀌는 것과 동시에 2단계 잠금 영역이 PIN 폼 아래에서
+// 서랍처럼 내려온다(해제는 반대로 말려 올라감). 바깥 요소가 높이로 보이는 범위를 자르고 안쪽 내용을
+// 같은 만큼 위로 밀어 두기 때문에, 그 자리에서 펼쳐지는 대신 위에서 미끄러져 나오는 것처럼 보인다.
+const PIN_SWAP_MS = 340;
+let _pinUiShown = null; // 마지막으로 화면에 반영한 PIN 상태 (null: 첫 렌더 전)
+let _pinSwapRun = 0;    // 연출 회차 — 도중에 상태가 또 바뀌면 이전 회차의 후속 단계는 버린다
+let _pinSwapBusy = false;
+let _pinSwapAnims = [];
+
+function _renderPinStatus(on) {
+  const status = document.getElementById('pinStatusText');
+  status.textContent = T(on ? 'pinStatusActive' : 'pinStatusInactive');
+  status.classList.toggle('pin-active', on);
+}
+
+function _cancelPinSwapAnims() {
+  _pinSwapAnims.forEach(a => a.cancel());
+  _pinSwapAnims = [];
+}
+
+function _setPinUiFinal(on) {
+  const wrap    = document.getElementById('pinFormSwap');
+  const section = document.getElementById('pinTwoStepSection');
+  _cancelPinSwapAnims();
+  _renderPinStatus(on);
+  document.getElementById('pinSetupSection').style.display  = on ? 'none' : 'block';
+  document.getElementById('pinChangeSection').style.display = on ? 'block' : 'none';
+  wrap.style.overflow = '';
+  section.style.overflow = '';
+  section.style.display = on ? 'flow-root' : 'none'; // flow-root: 안쪽 margin까지 높이에 포함
+}
+
+async function _animatePinSwap(on) {
+  const run = ++_pinSwapRun;
+  const alive = () => run === _pinSwapRun;
+  const wrap    = document.getElementById('pinFormSwap');
+  const section = document.getElementById('pinTwoStepSection');
+  const inner   = document.getElementById('pinTwoStepInner');
+  const from    = document.getElementById(on ? 'pinSetupSection' : 'pinChangeSection');
+  const to      = document.getElementById(on ? 'pinChangeSection' : 'pinSetupSection');
+  const play = (el, frames, options) => {
+    const a = el.animate(frames, options);
+    _pinSwapAnims.push(a);
+    return a.finished.catch(() => {}); // cancel()은 finished를 reject시킨다
+  };
+  _pinSwapBusy = true;
+
+  await play(from, [{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: 'ease-out', fill: 'forwards' });
+  if (!alive()) return;
+
+  const startHeight = wrap.offsetHeight;
+  from.style.display = 'none';
+  to.style.display = 'block';
+  _renderPinStatus(on);
+  const endHeight = wrap.offsetHeight;
+  section.style.display = 'flow-root';
+  const drawerHeight = section.offsetHeight;
+  _cancelPinSwapAnims(); // from을 붙잡아 둔 fill 해제 (이제 display:none이 대신함)
+
+  wrap.style.overflow = 'hidden';
+  section.style.overflow = 'hidden';
+  const timing = { duration: PIN_SWAP_MS, easing: 'ease-in-out', fill: 'forwards' };
+  const closed = { height: '0px' }, open = { height: drawerHeight + 'px' };
+  const hidden = { transform: `translateY(${-drawerHeight}px)`, opacity: 0 }, shown = { transform: 'translateY(0)', opacity: 1 };
+  play(document.getElementById('pinStatusText'), [{ opacity: 0 }, { opacity: 1 }], { duration: PIN_SWAP_MS, easing: 'ease-out' });
+  // options.html의 popupIn과 같은 등장(살짝 작게 + 투명 → 원래 크기)
+  play(to, [{ opacity: 0, transform: 'scale(0.95)' }, { opacity: 1, transform: 'scale(1)' }], { duration: PIN_SWAP_MS, easing: 'ease-out' });
+  await Promise.all([
+    play(wrap, [{ height: startHeight + 'px' }, { height: endHeight + 'px' }], timing),
+    play(section, on ? [closed, open] : [open, closed], timing),
+    play(inner, on ? [hidden, shown] : [shown, hidden], timing),
+  ]);
+  if (!alive()) return;
+  _pinSwapBusy = false;
+  _setPinUiFinal(on); // fill 해제 + overflow/display 정리
+}
+
 function _updatePinUI() {
-  const badge   = document.getElementById('pinStatusBadge');
-  const setup   = document.getElementById('pinSetupSection');
-  const change  = document.getElementById('pinChangeSection');
-  if (!badge) return;
-  if (_pinEnabled) {
-    badge.className = 'pin-status-badge pin-active';
-    badge.textContent = T('pinStatusActive');
-    if (setup)  setup.style.display  = 'none';
-    if (change) change.style.display = 'block';
-  } else {
-    badge.className = 'pin-status-badge pin-inactive';
-    badge.textContent = T('pinStatusInactive');
-    if (setup)  setup.style.display  = 'block';
-    if (change) change.style.display = 'none';
-  }
+  if (!document.getElementById('pinStatusText')) return;
   _applyScheduleToggleLockVisual();
   _applyStaticButtonLockVisuals();
+  const changed = _pinUiShown !== null && _pinUiShown !== _pinEnabled;
+  _pinUiShown = _pinEnabled;
+  if (!changed && _pinSwapBusy) return; // 연출 중 PIN 값만 바뀐 경우(같은 on/off)는 그대로 진행
+  const visible = document.getElementById('pinFormSwap').offsetParent !== null;
+  if (changed && visible && !_pinSwapBusy && !_wlReduceMotion()) {
+    _animatePinSwap(_pinEnabled);
+    return;
+  }
+  // 연출 도중 다시 바뀐 경우도 중간 상태에서 되감지 않고 최종 상태로 점프(화이트리스트 전환과 같은 방식)
+  _pinSwapRun++;
+  _pinSwapBusy = false;
+  _setPinUiFinal(_pinEnabled);
 }
 
 function _applyScheduleToggleLockVisual() {
   const icon = document.getElementById('schedLockIcon');
   if (icon) icon.style.display = _pinEnabled ? 'inline' : 'none';
+  // 화이트리스트 모드는 끌 때(차단이 느슨해지는 쪽)만 PIN을 묻기 때문에, 켜져 있을 때만 자물쇠를 보인다.
+  const wlIcon = document.getElementById('whitelistLockIcon');
+  if (wlIcon) wlIcon.style.display = (_pinEnabled && whitelistModeEnabled) ? 'inline' : 'none';
 }
 
 function _applyStaticButtonLockVisuals() {
@@ -140,53 +214,176 @@ function _applyStaticButtonLockVisuals() {
   }
 }
 
-function _openPinModal(actionLabel, onSuccess) {
-  const overlay   = document.getElementById('pinModalOverlay');
-  const input     = document.getElementById('pinModalInput');
-  const confirmBtn = document.getElementById('pinModalConfirmBtn');
-  const errorEl   = document.getElementById('pinModalError');
-  if (!overlay) return;
-  _pendingPinAction = onSuccess;
-  if (confirmBtn) confirmBtn.textContent = actionLabel;
-  if (input)    { input.value = ''; input.classList.remove('pin-shake'); }
-  if (errorEl)  errorEl.textContent = '';
-  overlay.style.display = 'flex';
-  setTimeout(() => input?.focus(), 60);
-}
+// ── 2단계 잠금 설정 (설정 탭 PIN 패널 안, 해제 흐름은 pin-lock.js) ──
+// 평문 목록을 도메인 리스트와 같은 행 디자인으로 보여준다. 추가/수정은 타임박스 "주소 추가"와
+// 같은 팝오버 하나를 버튼 위치에 맞춰 재사용한다.
+// 2단계를 끌 때만 잠금 해제를 거친다. 평문 추가·수정·삭제는 사용자 결정으로 묻지 않는다.
+function initTwoStepLockUi() {
+  const toggle   = document.getElementById('pinTwoStepToggle');
+  const status   = document.getElementById('pinTwoStepStatus');
+  const ul       = document.getElementById('pinPhraseList');
+  const addBtn   = document.getElementById('pinPhraseAddBtn');
+  const listWarn = document.getElementById('pinPhraseListWarn');
+  const popover  = document.getElementById('pinPhrasePopover');
+  const input    = document.getElementById('pinPhraseInput');
+  const saveBtn  = document.getElementById('pinPhraseSaveBtn');
+  const popWarn  = document.getElementById('pinPhraseWarn');
+  if (!toggle || !popover) return;
 
-function _closePinModal() {
-  const overlay = document.getElementById('pinModalOverlay');
-  if (overlay) overlay.style.display = 'none';
-  const input = document.getElementById('pinModalInput');
-  if (input) input.value = '';
-  const errorEl = document.getElementById('pinModalError');
-  if (errorEl) errorEl.textContent = '';
-  _pendingPinAction = null;
-}
+  let phrases = [];
+  let renderedKey = null;
+  let listWarnTimer = null;
+  let popoverAnchor = null;
+  let popoverTarget = null; // 수정 중인 평문 (null이면 새 평문 추가)
 
-async function _attemptPinUnlock() {
-  const input   = document.getElementById('pinModalInput');
-  const errorEl = document.getElementById('pinModalError');
-  const pin = input?.value || '';
-  if (!pin) return;
-  chrome.storage.local.get(['lockPin'], async result => {
-    const lp = result.lockPin;
-    if (!lp?.hash || !lp?.salt) return;
-    const hash = await _hashPin(pin, lp.salt);
-    if (hash === lp.hash) {
-      const action = _pendingPinAction;
-      _closePinModal();
-      if (action) action();
-    } else {
-      if (errorEl) errorEl.textContent = T('pinErrWrong');
-      if (input) {
-        input.classList.remove('pin-shake');
-        void input.offsetWidth;
-        input.classList.add('pin-shake');
-        input.value = '';
-        setTimeout(() => { input.classList.remove('pin-shake'); input.focus(); }, 360);
-      }
+  function buildRow(phrase) {
+    const li = document.createElement('li');
+    li.className = 'custom-domain-item';
+    const text = document.createElement('span');
+    text.className = 'domain-text';
+    text.textContent = phrase;
+    text.title = phrase;
+    li.appendChild(text);
+
+    const controls = document.createElement('div');
+    controls.className = 'custom-domain-controls';
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn-ghost btn-sm';
+    editBtn.textContent = T('pinPhraseEditBtn');
+    editBtn.addEventListener('click', () => requestPopover(editBtn, phrase));
+    controls.appendChild(editBtn);
+    controls.appendChild(_makeTrashButton(T('delete'), () => deletePhrase(phrase, li)));
+    li.appendChild(controls);
+    return li;
+  }
+
+  // 저장 콜백과 storage.onChanged가 둘 다 여기로 오므로, 내용이 같으면 다시 그리지 않는다
+  // (다시 그리면 막 재생 시작한 추가 애니메이션의 대상 행이 통째로 교체됨).
+  function syncList(next) {
+    phrases = next;
+    const key = JSON.stringify(next);
+    if (key === renderedKey) return;
+    renderedKey = key;
+    ul.textContent = '';
+    next.forEach(phrase => ul.appendChild(buildRow(phrase)));
+  }
+
+  function render() {
+    chrome.storage.local.get(['lockTwoStepEnabled', 'lockTwoStepPhrases', 'lockTwoStepPhrase'], r => {
+      const enabled = !!r.lockTwoStepEnabled;
+      toggle.checked = enabled;
+      status.textContent = T(enabled ? 'pinTwoStepOn' : 'pinTwoStepOff');
+      status.classList.toggle('active', enabled);
+      ul.classList.toggle('is-off', !enabled);
+      syncList(tbbLockPhrasesOf(r));
+    });
+  }
+
+  function savePhrases(next, after) {
+    chrome.storage.local.set({ lockTwoStepPhrases: next }, () => {
+      chrome.storage.local.remove('lockTwoStepPhrase'); // 단일 평문 시절의 키 정리
+      syncList(next);
+      if (after) after();
+    });
+  }
+
+  function shake(el) {
+    el.classList.remove('pin-shake');
+    void el.offsetWidth;
+    el.classList.add('pin-shake');
+    setTimeout(() => el.classList.remove('pin-shake'), 360);
+  }
+
+  function rejectLastDelete(li) {
+    listWarn.textContent = T('pinPhraseErrLast');
+    listWarn.style.display = 'inline-block';
+    shake(li);
+    shake(listWarn);
+    clearTimeout(listWarnTimer);
+    listWarnTimer = setTimeout(() => hideWarn('pinPhraseListWarn'), 2500);
+  }
+
+  function deletePhrase(phrase, li) {
+    if (phrases.length <= 1) { rejectLastDelete(li); return; }
+    animateShrinkAndRemove(li, () => {
+      // 축소 애니메이션 도중 다른 행까지 지워 마지막 하나가 된 경우: 지우지 않고 행을 되돌린다.
+      if (phrases.length <= 1) { renderedKey = null; syncList(phrases); return; }
+      savePhrases(phrases.filter(p => p !== phrase));
+    });
+  }
+
+  const onOutsideMouseDown = e => {
+    if (popover.contains(e.target) || popoverAnchor?.contains(e.target)) return;
+    closePopover();
+  };
+  function closePopover() {
+    popover.classList.remove('open');
+    popoverAnchor = null;
+    document.removeEventListener('mousedown', onOutsideMouseDown);
+  }
+  function showPopoverWarn(message) {
+    popWarn.textContent = message;
+    popWarn.style.display = 'block';
+  }
+  function openPopover(anchor, target) {
+    popoverAnchor = anchor;
+    popoverTarget = target;
+    input.value = target === null ? '' : target;
+    saveBtn.textContent = T(target === null ? 'add' : 'pinPhraseSaveBtn');
+    popWarn.style.display = 'none';
+    popover.classList.add('open');
+    // position:fixed라 뷰포트 좌표를 직접 계산한다. 버튼들이 카드 오른쪽 끝에 있어 오른쪽을 맞추고,
+    // 화면 아래로 넘치면 위로 뒤집는다.
+    const btn = anchor.getBoundingClientRect();
+    const box = popover.getBoundingClientRect();
+    const below = btn.bottom + 6;
+    popover.style.top  = (below + box.height > window.innerHeight ? btn.top - box.height - 6 : below) + 'px';
+    popover.style.left = Math.max(12, btn.right - box.width) + 'px';
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+    document.addEventListener('mousedown', onOutsideMouseDown);
+  }
+  function requestPopover(anchor, target) {
+    if (popoverAnchor === anchor) { closePopover(); return; }
+    closePopover();
+    openPopover(anchor, target);
+  }
+  function savePopover() {
+    const phrase = input.value.trim();
+    if (!phrase) { showPopoverWarn(T('pinPhraseErrEmpty')); return; }
+    const normalized = _normalizeLockPhrase(phrase);
+    if (phrases.some(p => p !== popoverTarget && _normalizeLockPhrase(p) === normalized)) {
+      showPopoverWarn(T('pinPhraseErrDuplicate'));
+      return;
     }
+    if (popoverTarget === null) {
+      savePhrases([...phrases, phrase], () => { closePopover(); animateNewListItem(ul); });
+      return;
+    }
+    const index = phrases.indexOf(popoverTarget);
+    if (index === -1) { closePopover(); return; }
+    const next = [...phrases];
+    next[index] = phrase;
+    savePhrases(next, () => { closePopover(); animateGrowElements(ul.children[index]); });
+  }
+
+  toggle.addEventListener('change', () => {
+    if (toggle.checked) { chrome.storage.local.set({ lockTwoStepEnabled: true }); return; }
+    toggle.checked = true; // 잠금 해제 전까지 원래 상태 유지
+    _openPinModal(T('pinActionDisable'), () => chrome.storage.local.set({ lockTwoStepEnabled: false }));
+  });
+  addBtn.addEventListener('click', () => requestPopover(addBtn, null));
+  saveBtn.addEventListener('click', savePopover);
+  input.addEventListener('input', () => { popWarn.style.display = 'none'; });
+  input.addEventListener('keydown', e => {
+    if (e.isComposing) return;
+    if (e.key === 'Enter')  savePopover();
+    if (e.key === 'Escape') closePopover();
+  });
+
+  render();
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && (changes.lockTwoStepEnabled || changes.lockTwoStepPhrases || changes.lockTwoStepPhrase)) render();
   });
 }
 
@@ -197,10 +394,32 @@ function cleanDomain(d) {
   const host = sepIdx === -1 ? domain : domain.slice(0, sepIdx);
   const tail = sepIdx === -1 ? '' : domain.slice(sepIdx);
   try {
-    return new URL('https://' + host).hostname + tail;
+    return _canonicalVideoUrl(new URL('https://' + host).hostname, tail);
   } catch (_) {
     return domain;
   }
+}
+
+// 유튜브 영상 링크는 공유 버튼이 붙이는 si·t·list 같은 부가 파라미터나 youtu.be 단축 주소 때문에
+// "그 주소로 시작하는 페이지" 비교가 어긋나기 쉽다(예외/화이트리스트에 넣어도 실제 방문 주소와 앞부분이
+// 달라 허용이 안 됨). 영상을 가리키는 최소 형태(youtube.com/watch?v=ID, youtube.com/shorts/ID)로 맞춘다.
+// 저장된 값이 아니라 읽을 때마다 적용되므로 예전에 저장된 링크도 그대로 고쳐진다.
+// background.js / options-core.js / popup.js의 cleanDomain과 함께 세 곳 동일하게 유지할 것.
+function _canonicalVideoUrl(host, tail) {
+  const h = host.replace(/^(www\.|m\.)/, '');
+  if (h === 'youtu.be' && tail) {
+    const id = tail.slice(1).split(/[/?#]/)[0];
+    if (id) return 'youtube.com/watch?v=' + id;
+  }
+  if (h === 'youtube.com' && tail) {
+    try {
+      const u = new URL('https://youtube.com' + tail);
+      const v = u.searchParams.get('v');
+      if (u.pathname === '/watch' && v) return 'youtube.com/watch?v=' + v;
+      if (/^\/shorts\/[^/]+$/.test(u.pathname)) return 'youtube.com' + u.pathname;
+    } catch (_) {}
+  }
+  return host + tail;
 }
 
 // ── 경고 표시 / 숨김 ──
@@ -277,6 +496,7 @@ function renderList(elementId, items, storageKey, warnId) {
 // 끝에서 _applyDomainFilter를 호출해, 추가/삭제 후 재렌더링돼도 검색어 필터가 유지되게 한다.
 const DOMAIN_SEARCH_MAP = {
   permanentList: 'permanentSearchInput',
+  whitelistList: 'whitelistSearchInput',
   generalList: 'generalSearchInput',
   stagingCustomList: 'stagingSearchInput',
   popup_stagingCustomList: 'popup_stagingSearchInput',
@@ -301,42 +521,108 @@ function _initDomainSearchInputs() {
   });
 }
 
-// ── 공통: 도메인 추가 입력의 기본 도메인 드롭다운(인기 검색어 스타일) ──
-// 상시/일반/포모도로 차단 "추가" 입력에 커서가 가면(포커스) 비어있을 때 기본 도메인을
-// 보여주고, 클릭하면 그 도메인이 바로 등록된다. 입력 중이면(글자가 들어오면) 드롭다운을 치운다.
+// ── 공통: 도메인 추가 입력의 빠른 추가 드롭다운(인기 검색어 스타일) ──
+// "추가" 입력에 커서가 가면(포커스/클릭) 비어있을 때 후보를 보여주고, 클릭하면 바로 등록된다.
+// 입력 중이면(글자가 들어오면) 드롭다운을 치운다. 후보는 열 때마다 새로 계산해서, 이미 그
+// 리스트에 들어 있는(또는 기존 항목이 이미 덮는) 주소는 빼고 보여준다.
+//   source 'defaults' — 상시/일반/포모도로: 자주 막는 사이트 고정 목록
+//   source 'openTabs' — 화이트리스트: 지금 열려 있는 탭(차단 화면에 막혀 있는 탭 포함)의 사이트
 const DOMAIN_SUGGEST_DEFAULTS = ['youtube.com', 'youtube.com/shorts', 'instagram.com', 'x.com'];
 const DOMAIN_SUGGEST_MAP = [
-  { inputId: 'permanentDomainInput', addBtnId: 'addPermanentBtn', dropdownId: 'permanentDomainSuggest' },
-  { inputId: 'generalDomainInput',   addBtnId: 'addGeneralBtn',   dropdownId: 'generalDomainSuggest' },
-  { inputId: 'pomoDomainInput',      addBtnId: 'addPomoBtn',      dropdownId: 'pomoDomainSuggest' }
+  { inputId: 'permanentDomainInput', addBtnId: 'addPermanentBtn', dropdownId: 'permanentDomainSuggest', storageKey: 'permanentList', source: 'defaults' },
+  { inputId: 'generalDomainInput',   addBtnId: 'addGeneralBtn',   dropdownId: 'generalDomainSuggest',   storageKey: 'generalList',   source: 'defaults' },
+  { inputId: 'pomoDomainInput',      addBtnId: 'addPomoBtn',      dropdownId: 'pomoDomainSuggest',      storageKey: 'pomodoroList',  source: 'defaults' },
+  { inputId: 'whitelistDomainInput', addBtnId: 'addWhitelistBtn', dropdownId: 'whitelistDomainSuggest', storageKey: 'whitelistList', source: 'openTabs', headerKey: 'whitelistSuggestHeader' }
 ];
 
+// candidate가 list에 이미 있거나, list의 호스트 항목이 이미 덮고 있으면(서브도메인·하위 경로) true.
+// 경로가 붙은 항목(youtube.com/shorts)은 그 주소 하나만 뜻하므로 정확히 같을 때만 덮는다고 본다.
+function _isDomainCovered(candidate, list) {
+  const c = cleanDomain(candidate);
+  const sep = c.search(/[/?#]/);
+  const cHost = sep === -1 ? c : c.slice(0, sep);
+  return list.some(entry => {
+    const e = cleanDomain(entry);
+    if (e === c) return true;
+    if (e.search(/[/?#]/) !== -1) return false;
+    return cHost === e || cHost.endsWith('.' + e);
+  });
+}
+
+// 열린 탭들의 사이트(호스트) 목록. 차단 화면(block.html)으로 막혀 있는 탭은 원래 사이트를
+// domain 파라미터에서 꺼낸다 — 화이트리스트 방식에서 "방금 막힌 사이트"를 바로 허용하기 좋게.
+function _openTabHosts() {
+  return new Promise(resolve => {
+    if (!chrome.tabs?.query) { resolve([]); return; }
+    const blockPage = chrome.runtime.getURL('block.html');
+    chrome.tabs.query({}, tabs => {
+      const hosts = [];
+      const push = h => { if (h && !hosts.includes(h)) hosts.push(h); };
+      (tabs || []).forEach(t => {
+        const url = t.url || t.pendingUrl || '';
+        try {
+          if (url.startsWith(blockPage)) {
+            const d = new URL(url).searchParams.get('domain');
+            if (d) push(cleanDomain(d).split(/[/?#]/)[0]);
+            return;
+          }
+          const u = new URL(url);
+          if (u.protocol === 'http:' || u.protocol === 'https:') push(u.hostname.replace(/^www\./, ''));
+        } catch (_) {}
+      });
+      resolve(hosts);
+    });
+  });
+}
+
 function _initDomainSuggestions() {
-  DOMAIN_SUGGEST_MAP.forEach(({ inputId, addBtnId, dropdownId }) => {
+  DOMAIN_SUGGEST_MAP.forEach(({ inputId, addBtnId, dropdownId, storageKey, source, headerKey }) => {
     const input = document.getElementById(inputId);
     const dropdown = document.getElementById(dropdownId);
     if (!input || !dropdown) return;
+    let openSeq = 0; // 빠르게 포커스를 옮겼을 때 늦게 도착한 이전 계산 결과가 덮어쓰지 않게
 
-    DOMAIN_SUGGEST_DEFAULTS.forEach(domain => {
-      const item = document.createElement('div');
-      item.className = 'domain-suggest-item';
-      item.textContent = domain;
-      // click이 아니라 mousedown + preventDefault: click을 쓰면 그 전에 input이 blur되어
-      // 드롭다운이 먼저 닫혀버려 클릭이 씹힌다. mousedown에서 기본 동작(blur)을 막는다.
-      item.addEventListener('mousedown', e => {
-        e.preventDefault();
-        input.value = domain;
-        dropdown.classList.remove('open');
-        document.getElementById(addBtnId)?.click();
+    const open = async () => {
+      if (input.value.trim()) return;
+      const seq = ++openSeq;
+      const candidates = source === 'openTabs' ? await _openTabHosts() : DOMAIN_SUGGEST_DEFAULTS;
+      TBBStorage.get([storageKey], result => {
+        if (seq !== openSeq || document.activeElement !== input || input.value.trim()) return;
+        const list = result[storageKey] || [];
+        const items = candidates.filter(c => !_isDomainCovered(c, list));
+        dropdown.innerHTML = '';
+        if (items.length === 0) { dropdown.classList.remove('open'); return; }
+        if (headerKey) {
+          const header = document.createElement('div');
+          header.className = 'domain-suggest-header';
+          header.textContent = T(headerKey);
+          header.addEventListener('mousedown', e => e.preventDefault());
+          dropdown.appendChild(header);
+        }
+        items.forEach(domain => {
+          const item = document.createElement('div');
+          item.className = 'domain-suggest-item';
+          item.textContent = domainToDisplay(domain);
+          // click이 아니라 mousedown + preventDefault: click을 쓰면 그 전에 input이 blur되어
+          // 드롭다운이 먼저 닫혀버려 클릭이 씹힌다. mousedown에서 기본 동작(blur)을 막는다.
+          item.addEventListener('mousedown', e => {
+            e.preventDefault();
+            input.value = domain;
+            dropdown.classList.remove('open');
+            document.getElementById(addBtnId)?.click();
+          });
+          dropdown.appendChild(item);
+        });
+        dropdown.classList.add('open');
       });
-      dropdown.appendChild(item);
-    });
+    };
+    const close = () => { openSeq++; dropdown.classList.remove('open'); };
 
-    input.addEventListener('focus', () => {
-      if (!input.value.trim()) dropdown.classList.add('open');
-    });
-    input.addEventListener('input', () => dropdown.classList.remove('open'));
-    input.addEventListener('blur', () => dropdown.classList.remove('open'));
+    input.addEventListener('focus', open);
+    // 후보를 하나 추가한 뒤에도 포커스는 입력에 남아 있어 focus가 다시 안 온다 — 클릭으로도 다시 연다.
+    input.addEventListener('click', () => { if (!dropdown.classList.contains('open')) open(); });
+    input.addEventListener('input', close);
+    input.addEventListener('blur', close);
   });
 }
 
@@ -1543,6 +1829,9 @@ document.getElementById('addGeneralBtn').onclick   = () => addToList('generalDom
 document.getElementById('addPermanentBtn').onclick = () => addToList('permanentDomainInput', 'permanentList', 'permanentList', 'permanentWarn');
 document.getElementById('clearGeneralBtn').onclick   = () => clearAll('generalList',   T('clearGeneralConfirm'),   ['generalDomainInput']);
 document.getElementById('clearPermanentBtn').onclick = () => clearAll('permanentList', T('clearPermanentConfirm'), ['permanentDomainInput']);
+// 화이트리스트는 호스트(사이트 전체)와 경로 포함 주소(그 페이지만) 둘 다 받는다 — background.js splitWhitelist.
+document.getElementById('addWhitelistBtn').onclick = () => addToList('whitelistDomainInput', 'whitelistList', 'whitelistList', 'whitelistWarn');
+document.getElementById('clearWhitelistBtn').onclick = () => clearAll('whitelistList', T('clearWhitelistConfirm'), ['whitelistDomainInput']);
 document.getElementById('clearBoxesBtn').onclick = () => {
   if (_pinEnabled) {
     _openPinModal(T('clearAll'), () => {
@@ -1569,7 +1858,7 @@ function clearDaySelection() {
 }
 
 function exportSettings() {
-  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'instaBlockEnabled', 'instaShowFollowedPosts', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides', 'focusEvents', 'focusStreak', 'todoItems', 'customQuotes', 'customLinks'];
+  const KEYS = ['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'instaBlockEnabled', 'whitelistModeEnabled', 'whitelistList', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides', 'focusEvents', 'focusStreak', 'todoItems', 'customQuotes', 'customLinks'];
   // 배경 이미지(customBgImages)는 Base64라 용량이 커서 사용자가 명시적으로 선택했을 때만 포함.
   const includeImages = document.getElementById('exportIncludeImages')?.checked;
   if (includeImages) KEYS.push('customBgImages');
@@ -1590,7 +1879,7 @@ function importSettings(file) {
     let data;
     try { data = JSON.parse(e.target.result); }
     catch { alert(T('invalidJson')); return; }
-    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'instaBlockEnabled', 'instaShowFollowedPosts', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides', 'focusEvents', 'focusStreak', 'todoItems', 'customQuotes', 'customLinks', 'customBgImages']);
+    const ALLOWED = new Set(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'weekStartMonday', 'shortsBlockEnabled', 'instaBlockEnabled', 'whitelistModeEnabled', 'whitelistList', 'pomodoroList', 'pomodoroSettings', 'pomodoroPresets', 'pomodoroCycleOverrides', 'focusEvents', 'focusStreak', 'todoItems', 'customQuotes', 'customLinks', 'customBgImages']);
     const safe = Object.fromEntries(Object.entries(data).filter(([k]) => ALLOWED.has(k)));
     if (Object.keys(safe).length === 0) { alert(T('noDataToRestore')); return; }
     // 통계는 기기별 샤드로 나뉘어 저장되고 내보내기 파일은 그 합산본이라, 일반 set으로 쓰면
@@ -1612,6 +1901,219 @@ function applyDailyScheduleVisual() {
   const wrap = document.getElementById('timetableWrap');
   if (!wrap) return;
   wrap.classList.toggle('daily-disabled', !dailyScheduleEnabled);
+}
+
+// ── 화이트리스트 방식 전환 연출 (차단 관리 탭) ──
+// 켤 때: ① 상시/일반 카드가 제자리에서 접히며 흐려지고(하루 스케줄 비활성화와 같은 filter)
+//        ② 오른쪽 열로 이동(FLIP, 2:1 그리드라 폭도 같이 줄어듦)하는 동안 왼쪽에 화이트리스트
+//        카드가 박스 생성 때와 같은 domain-item-grow로 확장되며 나타난다.
+// 끌 때: 역순 — 화이트리스트가 domain-item-remove로 축소(펼쳐보기 중인 카드는 동시에 접힘)
+//        → 카드가 원래 자리로 이동 → 펼쳐지며 밝아짐.
+// 접힘과 이동을 동시에 하지 않는 이유: 카드 높이가 변하는 도중엔 아래 카드의 레이아웃 위치도
+// 같이 움직여서, 시작 시점에 고정된 FLIP 오프셋과 어긋나 카드가 튀어 보인다.
+const WL_COLLAPSE_MS = 240;
+const WL_MOVE_MS = 380;
+const WL_MOVE_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+const WL_GROW_DELAY_MS = 140; // 상시 카드가 비켜나기 시작한 뒤에 확장 — 같은 자리에서 겹쳐 보이지 않게
+let _wlRun = 0;          // 연출 회차 — 도중에 다시 토글되면 이전 회차의 후속 단계는 버린다
+let _wlBusy = false;
+let _wlAnims = [];
+
+function _wlCards() {
+  return ['permanentSector', 'generalSector'].map(id => document.getElementById(id)).filter(Boolean);
+}
+
+function _wlReduceMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function _wlCancelAnims() {
+  _wlAnims.forEach(a => a.cancel());
+  _wlAnims = [];
+}
+
+function _wlResetGrow(wl) {
+  wl.classList.remove('domain-item-grow', 'domain-item-remove');
+  wl.style.animationDelay = '';
+  wl.style.animationFillMode = '';
+}
+
+function _wlSetPeek(card, open) {
+  card.classList.toggle('is-peek', open);
+  card.querySelector('.block-paused-note')?.setAttribute('aria-expanded', String(open));
+}
+
+function _wlSetFinal(on) {
+  const grid = document.getElementById('blockGrid');
+  const wl = document.getElementById('whitelistSector');
+  const cards = _wlCards();
+  _wlCancelAnims();
+  grid.classList.toggle('whitelist-on', on);
+  _wlResetGrow(wl);
+  // 페이지 첫 로드 등 연출 없이 바로 가는 경우엔 filter/제목 여백 CSS 트랜지션도 끈다
+  // (안 끄면 켜진 상태로 열 때마다 카드가 0.3초에 걸쳐 어두워지는 게 보임).
+  cards.forEach(card => {
+    card.classList.add('wl-instant');
+    card.classList.toggle('is-dimmed', on);
+    card.classList.toggle('is-collapsed', on);
+    _wlSetPeek(card, false);
+    const body = card.querySelector('.block-sector-body');
+    if (body) { body.style.overflow = ''; body._wlAnim = null; }
+  });
+  void grid.offsetWidth;
+  cards.forEach(card => card.classList.remove('wl-instant'));
+}
+
+// 카드 본문 하나 접기/펼치기 (높이+투명도). 펼칠 땐 호출 전에 본문이 이미 보이는 상태(display)여야
+// 실제 높이를 잴 수 있다. 접을 땐 fill:forwards로 0 높이를 붙잡아 두므로, 호출부가 숨김 클래스를
+// 건 뒤 _wlReleaseBody로 풀어야 한다(fill 없이 끝나면 클래스가 붙기 전 한 프레임 원래 높이로 튐).
+function _wlAnimateBody(body, collapse, onDone) {
+  if (body._wlAnim) body._wlAnim.cancel();
+  const frames = [{ height: body.scrollHeight + 'px', opacity: 1 }, { height: '0px', opacity: 0 }];
+  if (!collapse) frames.reverse();
+  body.style.overflow = 'hidden';
+  const a = body.animate(frames, { duration: WL_COLLAPSE_MS, easing: 'ease-in-out', fill: collapse ? 'forwards' : 'none' });
+  body._wlAnim = a;
+  _wlAnims.push(a);
+  a.onfinish = () => {
+    if (!collapse) { body._wlAnim = null; body.style.overflow = ''; }
+    onDone();
+  };
+}
+
+function _wlReleaseBody(body) {
+  if (body?._wlAnim) { body._wlAnim.cancel(); body._wlAnim = null; }
+}
+
+function _wlAnimateBodies(cards, collapse, onDone) {
+  let pending = cards.length;
+  if (pending === 0) { onDone(); return; }
+  const finishOne = () => { if (--pending === 0) onDone(); };
+  cards.forEach(card => {
+    const body = card.querySelector('.block-sector-body');
+    if (body) _wlAnimateBody(body, collapse, finishOne); else finishOne();
+  });
+}
+
+// FLIP 이동: mutate() 전후 위치·폭 차이만큼 되돌려 놓은 상태에서 풀어준다. 높이는 건드리지 않는다
+// (이동 단계에선 카드가 이미 접혀 있어 높이 변화가 없음). 폭은 scale 대신 width로 보간해 글자가 안 찌그러진다.
+function _wlFlipMove(cards, mutate, onDone) {
+  const before = cards.map(c => c.getBoundingClientRect());
+  mutate();
+  let pending = cards.length;
+  if (pending === 0) { onDone(); return; }
+  const finishOne = () => { if (--pending === 0) onDone(); };
+  cards.forEach((card, i) => {
+    const after = card.getBoundingClientRect();
+    const dx = before[i].left - after.left;
+    const dy = before[i].top - after.top;
+    const widthChanged = Math.abs(before[i].width - after.width) >= 0.5;
+    if (!dx && !dy && !widthChanged) { finishOne(); return; }
+    const from = { transform: `translate(${dx}px, ${dy}px)` };
+    const to = { transform: 'none' };
+    if (widthChanged) { from.width = before[i].width + 'px'; to.width = after.width + 'px'; }
+    const a = card.animate([from, to], { duration: WL_MOVE_MS, easing: WL_MOVE_EASE });
+    _wlAnims.push(a);
+    a.onfinish = finishOne;
+  });
+}
+
+function applyWhitelistModeVisual(on, animate) {
+  const grid = document.getElementById('blockGrid');
+  const wl = document.getElementById('whitelistSector');
+  if (!grid || !wl) return;
+  const run = ++_wlRun;
+  const alreadyThere = !_wlBusy && grid.classList.contains('whitelist-on') === on;
+  // 다른 탭에 있으면(display:none) 위치를 잴 수 없고 보이지도 않으니 바로 최종 상태로.
+  // 연출 도중 다시 토글된 경우도 중간 상태에서 거꾸로 되감는 대신 최종 상태로 점프한다.
+  if (!animate || alreadyThere || _wlReduceMotion() || _wlBusy || grid.offsetParent === null) {
+    _wlBusy = false;
+    _wlSetFinal(on);
+    return;
+  }
+  _wlBusy = true;
+  _wlCancelAnims(); // 진행 중이던 펼쳐보기 연출 정리
+  const cards = _wlCards();
+  const stale = () => run !== _wlRun;
+  const finish = () => { if (stale()) return; _wlAnims = []; _wlBusy = false; };
+
+  if (on) {
+    cards.forEach(c => c.classList.add('is-dimmed'));
+    _wlAnimateBodies(cards, true, () => {
+      if (stale()) return;
+      cards.forEach(c => c.classList.add('is-collapsed'));
+      _wlCancelAnims(); // forwards로 붙잡아 둔 접힘 애니메이션 해제 (이제 is-collapsed가 대신함)
+      _wlFlipMove(cards, () => grid.classList.add('whitelist-on'), finish);
+      wl.style.animationDelay = WL_GROW_DELAY_MS + 'ms';
+      wl.style.animationFillMode = 'backwards'; // 지연 동안엔 시작 프레임(축소·투명)으로 숨겨 둠
+      animateGrowElements(wl);
+      const onGrowEnd = e => {
+        if (e.target !== wl) return; // 자식 요소(도메인 항목 등)의 animationend 버블링 무시
+        wl.removeEventListener('animationend', onGrowEnd);
+        _wlResetGrow(wl);
+      };
+      wl.addEventListener('animationend', onGrowEnd);
+    });
+  } else {
+    // ① 화이트리스트 축소 + 펼쳐보기 중인 카드 접기를 동시에 → 둘 다 끝나면 ② 이동 → ③ 펼침
+    const peeked = cards.filter(c => c.classList.contains('is-peek'));
+    let waits = 2;
+    const moveBack = () => {
+      if (--waits > 0 || stale()) return;
+      _wlFlipMove(cards, () => {
+        grid.classList.remove('whitelist-on');
+        _wlResetGrow(wl);
+      }, () => {
+        if (stale()) return;
+        _wlAnims = [];
+        cards.forEach(c => c.classList.remove('is-collapsed', 'is-dimmed'));
+        _wlAnimateBodies(cards, false, finish);
+      });
+    };
+    _wlAnimateBodies(peeked, true, () => {
+      if (stale()) return;
+      peeked.forEach(c => { _wlSetPeek(c, false); _wlReleaseBody(c.querySelector('.block-sector-body')); });
+      moveBack();
+    });
+    animateShrinkAndRemove(wl, moveBack);
+  }
+}
+
+// ── 일시 정지된 목록 펼쳐보기 (읽기 전용) ──
+// 화이트리스트 방식에서 접힌 상시/일반 카드의 "N개 · 일시 정지됨" 버튼으로 목록만 잠깐 확인한다.
+// 추가 입력/삭제 버튼은 CSS(.is-peek)로 감춘다 — 일시 정지 중인 목록을 고치는 건 차단 목록
+// 방식으로 돌아와서 하도록.
+function toggleBlockListPeek(card) {
+  if (_wlBusy || !card.classList.contains('is-collapsed')) return;
+  const body = card.querySelector('.block-sector-body');
+  const opening = !card.classList.contains('is-peek');
+  if (opening) {
+    _wlSetPeek(card, true);
+    if (body && !_wlReduceMotion()) _wlAnimateBody(body, false, () => {});
+    return;
+  }
+  if (!body || _wlReduceMotion()) { _wlReleaseBody(body); _wlSetPeek(card, false); return; }
+  card.querySelector('.block-paused-note')?.setAttribute('aria-expanded', 'false');
+  _wlAnimateBody(body, true, () => {
+    _wlSetPeek(card, false);
+    _wlReleaseBody(body);
+  });
+}
+
+function initBlockListPeek() {
+  _wlCards().forEach(card => {
+    card.querySelector('.block-paused-note')?.addEventListener('click', () => toggleBlockListPeek(card));
+  });
+}
+
+// 접힌 카드 제목 옆 "N개 · 일시 정지됨" 문구 갱신 (loadSettings가 목록을 그릴 때마다 호출)
+function updateBlockPausedCounts(permanentCount, generalCount) {
+  const set = (id, n) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = T('listPausedCount', [String(n)]);
+  };
+  set('permanentPausedText', permanentCount);
+  set('generalPausedText', generalCount);
 }
 
 function updateDailyToggleVisibility() {

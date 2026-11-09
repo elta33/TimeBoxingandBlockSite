@@ -98,6 +98,43 @@ body {
 .strong-block-banner { margin-bottom: 20px; }
 .strong-block-banner-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
 .strong-block-banner-grid .strong-block-toggle-row { height: 100%; }
+
+/* ── 화이트리스트 방식 ──
+   차단 목록 방식: .block-side가 display:contents라 상시/일반 카드가 .block-grid 2열에 그대로 놓인다.
+   화이트리스트 방식: 2:1 그리드의 왼쪽(넓은) 열에 화이트리스트, 오른쪽 열(.block-side)에 상시/일반이
+   위아래로 쌓이고, 상시/일반은 제목 줄만 남기고 접힌 채 흐려진다(하루 스케줄 비활성화 도넛과 같은 filter).
+   접힌 카드의 "N개 · 일시 정지됨" 버튼을 누르면 목록을 읽기 전용으로 펼쳐볼 수 있다(.is-peek).
+   전환 연출은 options-core.js applyWhitelistModeVisual. */
+.whitelist-mode-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 24px; margin-bottom: 20px; }
+.whitelist-mode-label { display: flex; align-items: center; font-size: 1.05rem; font-weight: 700; color: #111; }
+.block-mode-group { margin: 0; }
+.block-side { display: contents; }
+.whitelist-sector { display: none; }
+.block-grid.whitelist-on { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.block-grid.whitelist-on .whitelist-sector { display: block; }
+.block-grid.whitelist-on .block-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.block-list-sector { transition: filter 0.3s; }
+.block-list-sector .sector-title { transition: margin-bottom 0.24s ease, padding-bottom 0.24s ease, border-bottom-color 0.24s ease; }
+.block-list-sector.wl-instant, .block-list-sector.wl-instant .sector-title { transition: none; }
+.block-list-sector.is-dimmed { filter: saturate(0.15) brightness(0.85); }
+.block-list-sector.is-dimmed:not(.is-peek) .sector-title { margin-bottom: 0; padding-bottom: 0; border-bottom-color: transparent; }
+.block-list-sector.is-dimmed .sector-title .btn-danger { display: none; }
+.block-list-sector.is-collapsed .block-sector-body { display: none; }
+.block-list-sector.is-collapsed.is-peek .block-sector-body { display: block; }
+/* 펼쳐보기는 읽기 전용: 추가 입력과 삭제 버튼을 감춘다(검색은 긴 목록 확인용으로 남김). */
+.block-list-sector.is-peek .input-row,
+.block-list-sector.is-peek .icon-trash-btn { display: none; }
+.block-paused-note {
+  display: none; align-items: center; gap: 4px; flex-shrink: 0;
+  border: none; border-radius: 999px; padding: 4px 10px; background: #f0f0f0; cursor: pointer;
+  font: inherit; font-size: 0.85rem; font-weight: 600; color: #777; white-space: nowrap; transition: background 0.12s;
+}
+.block-paused-note:hover { background: #e6e6e6; }
+.block-paused-note::after { content: '▾'; font-size: 0.8em; transition: transform 0.2s; }
+.block-list-sector.is-peek .block-paused-note::after { transform: rotate(180deg); }
+.block-list-sector.is-dimmed .block-paused-note { display: inline-flex; }
+.whitelist-empty-hint { display: none; margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; background: #f5f5f5; font-size: 0.85rem; font-weight: 600; color: var(--tomato); }
+.whitelist-empty-hint.show { display: block; }
 /* 설정 탭: 왼쪽 칸(백업/복원 + 기타 설정)을 하나의 grid item으로 묶어 세로로
    쌓음 — 옆 칸(잠금 PIN)이 훨씬 길어도 grid row 높이에 안 끌려가고 두 섹터가
    붙어서 나온다(예전엔 grid auto-flow로 다음 행에 배치돼 PIN 섹터 높이만큼
@@ -123,12 +160,13 @@ body {
 .domain-input-wrap input[type="text"] { width: 100%; box-sizing: border-box; }
 .domain-suggest-dropdown {
   display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
-  background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;
+  background: #fff; border: 1px solid #ddd; border-radius: 8px; max-height: 260px; overflow-y: auto;
   box-shadow: 0 4px 14px rgba(0,0,0,0.1);
 }
 .domain-suggest-dropdown.open { display: block; }
 .domain-suggest-item { padding: 8px 12px; font-size: 0.85rem; color: #333; cursor: pointer; transition: background 0.1s; }
 .domain-suggest-item:hover { background: #f5f5f5; }
+.domain-suggest-header { padding: 7px 12px; font-size: 0.75rem; font-weight: 700; color: #999; border-bottom: 1px solid #f0f0f0; cursor: default; }
 
 /* ── 기본 버튼 ── */
 button { cursor: pointer; font-family: inherit; }
@@ -516,10 +554,6 @@ button { cursor: pointer; font-family: inherit; }
   box-shadow: 0 8px 40px rgba(0,0,0,0.22);
   animation: popupIn 0.18s ease;
 }
-@keyframes popupIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
-}
 .day-popup-body {
   display: grid;
   grid-template-columns: 320px 1fr;
@@ -565,13 +599,6 @@ button { cursor: pointer; font-family: inherit; }
   background: #f5f5f5; padding: 12px 16px; border-radius: 8px; margin-top: 10px;
 }
 .strong-block-toggle-label { display: flex; align-items: center; font-size: 1.05rem; font-weight: 600; color: #222; }
-.strong-block-checkbox-label {
-  display: flex; align-items: center; gap: 6px; font-size: 0.95rem; font-weight: 500; color: #333;
-  cursor: pointer; user-select: none; flex-shrink: 0;
-}
-.strong-block-checkbox-label input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--tomato); cursor: pointer; margin: 0; }
-.strong-block-checkbox-label input[type="checkbox"]:disabled { cursor: not-allowed; }
-.strong-block-checkbox-label:has(input:disabled) { opacity: 0.45; cursor: not-allowed; }
 #timetableWrap.daily-disabled .donut-container { filter: saturate(0.15) brightness(0.85); transition: filter 0.3s; }
 
 /* ── 통계 탭 ── */
@@ -1089,11 +1116,30 @@ button { cursor: pointer; font-family: inherit; }
 .pin-input-group { display: flex; flex-direction: column; gap: 8px; }
 .pin-input-group input[type="password"] { padding: 9px 12px; border: 1px solid #ddd; border-radius: 7px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.15s; }
 .pin-input-group input[type="password"]:focus { border-color: #999; }
-.pin-status-badge { display: flex; align-items: center; gap: 7px; padding: 9px 12px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 16px; }
-.pin-status-badge.pin-active { background: var(--blue-pale); color: var(--blue-dark); font-weight: 600; }
-.pin-status-badge.pin-inactive { background: #f5f5f5; color: #aaa; }
+.pin-status-text { white-space: nowrap; }
+.pin-status-text.pin-active { color: var(--blue-dark); font-weight: 600; }
+#pinFormSwap { display: flow-root; }
 .pin-form-error { color: var(--tomato); font-size: 0.78rem; margin-top: 5px; font-weight: 600; display: none; }
 .pin-btns-row { display: flex; gap: 8px; margin-top: 10px; }
+/* 2단계 잠금: PIN 패널 안의 하위 영역으로, PIN이 설정된 동안만 보인다. 평문 목록은 도메인 리스트(.custom-domain-item) 디자인을 그대로
+   쓰고, 꺼져 있으면 하루 스케줄 비활성화 도넛과 같은 filter로 어둡게 한다. 추가/수정 팝오버는 타임박스 "주소 추가"와 같은 형태. */
+.pin-two-step { margin-top: 18px; padding-top: 16px; border-top: 1px solid #efefef; }
+.pin-two-step-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 1.1rem; font-weight: 700; color: #111; }
+.pin-two-step-status { color: #bbb; transition: color 0.2s; }
+.pin-two-step-status.active { color: var(--tomato-deep); font-weight: 600; }
+.pin-phrase-list { transition: filter 0.3s; }
+.pin-phrase-list.is-off { filter: saturate(0.15) brightness(0.85); }
+.custom-domain-item.pin-shake, .warn-text.pin-shake { animation: pinShake 0.35s ease; }
+.pin-phrase-popover {
+  display: none; position: fixed; z-index: 200; width: 300px; padding: 10px 12px;
+  background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+}
+.pin-phrase-popover.open { display: block; }
+.pin-phrase-popover-row { display: flex; align-items: center; gap: 6px; }
+.pin-phrase-popover input { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid var(--panel-border); border-radius: 6px; font-size: 0.88rem; font-family: inherit; outline: none; background: transparent; color: inherit; }
+.pin-phrase-popover .btn { flex-shrink: 0; padding: 7px 12px; }
+.pin-phrase-warn { display: none; margin-top: 5px; font-size: 0.78rem; font-weight: 600; color: var(--tomato); }
 
 /* ── 잠긴 버튼 공통 ── */
 .tbox-del.tbox-del-locked { background: rgba(0,0,0,0.62) !important; color: #fff !important; font-size: 0.95rem; letter-spacing: -0.02em; opacity: 0.85; }
@@ -1177,19 +1223,6 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .sync-compare-danger { background: var(--tomato); color: #fff; }
 :root[data-theme="dark"] .sync-compare-danger:hover { background: var(--tomato-hover); }
 
-.pin-modal-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }
-.pin-modal { background: #fff; border-radius: 16px; padding: 28px 24px 22px; width: 300px; box-shadow: 0 8px 40px rgba(0,0,0,0.25); animation: popupIn 0.18s ease; }
-.pin-modal-lock-icon { text-align: center; font-size: 2rem; margin-bottom: 10px; }
-.pin-modal-title { text-align: center; font-size: 1rem; font-weight: 700; color: #111; margin-bottom: 4px; }
-.pin-modal-sub { text-align: center; font-size: 0.82rem; color: #999; margin-bottom: 16px; }
-.pin-modal-input { width: 100%; box-sizing: border-box; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 1.1rem; font-family: inherit; text-align: center; letter-spacing: 0.12em; outline: none; transition: border-color 0.15s; }
-.pin-modal-input:focus { border-color: #333; }
-@keyframes pinShake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)} }
-.pin-modal-input.pin-shake { animation: pinShake 0.35s ease; }
-.pin-modal-error { min-height: 18px; text-align: center; font-size: 0.8rem; color: var(--tomato); font-weight: 600; margin-top: 7px; }
-.pin-modal-footer { display: flex; gap: 8px; margin-top: 16px; }
-.pin-modal-footer .btn-ghost { flex: 1; padding: 10px; }
-.pin-modal-footer .btn { flex: 1; padding: 10px; }
 
 /* ── 스트릭 달력(통계 탭에 고정 배치, 이전엔 호버 팝오버였음) ──
    solved.ac 스트릭 달력 참고: 좌우 분할이 아니라 상단에 큰 숫자, 그 아래 전체
@@ -1500,8 +1533,12 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .sync-status-row-label { color: #a0a0a0; }
 :root[data-theme="dark"] .switch-track { background: #3a3a3a; }
 :root[data-theme="dark"] .strong-block-toggle-row { background: #242424; }
+:root[data-theme="dark"] .whitelist-mode-label { color: #f2f2f2; }
+:root[data-theme="dark"] .block-paused-note { color: #9a9a9a; background: #2a2a2a; }
+:root[data-theme="dark"] .block-paused-note:hover { background: #333; }
+:root[data-theme="dark"] .domain-suggest-header { color: #8a8a8a; border-bottom-color: #333; }
+:root[data-theme="dark"] .whitelist-empty-hint { background: #242424; }
 :root[data-theme="dark"] .strong-block-toggle-label { color: #f2f2f2; }
-:root[data-theme="dark"] .strong-block-checkbox-label { color: #d0d0d0; }
 
 :root[data-theme="dark"] .stats-heading { color: #f2f2f2; }
 :root[data-theme="dark"] .stats-period-tabs { border-color: #333; }
@@ -1629,14 +1666,12 @@ button { cursor: pointer; font-family: inherit; }
 :root[data-theme="dark"] .pomo-advanced-domain-empty { color: #5e5e5e; }
 
 :root[data-theme="dark"] .pin-section-label { color: #a0a0a0; }
+:root[data-theme="dark"] .pin-two-step { border-top-color: #2e2e2e; }
+:root[data-theme="dark"] .pin-two-step-head { color: #f2f2f2; }
+:root[data-theme="dark"] .pin-two-step-status { color: #5e5e5e; }
+:root[data-theme="dark"] .pin-two-step-status.active { color: var(--tomato); }
 :root[data-theme="dark"] .pin-input-group input[type="password"] { border-color: #3a3a3a; }
-:root[data-theme="dark"] .pin-status-badge.pin-inactive { background: #242424; color: #6a6a6a; }
 :root[data-theme="dark"] .sync-status-badge.sync-none { background: #242424; color: #6a6a6a; }
-:root[data-theme="dark"] .pin-modal { background: #242424; }
-:root[data-theme="dark"] .pin-modal-title { color: #f2f2f2; }
-:root[data-theme="dark"] .pin-modal-sub { color: #7a7a7a; }
-:root[data-theme="dark"] .pin-modal-input { background: #242424; color: #e4e4e4; border-color: #3a3a3a; }
-:root[data-theme="dark"] .pin-modal-input:focus { border-color: #888; }
 
 :root[data-theme="dark"] .scal-days span { color: #555; }
 :root[data-theme="dark"] .scal-months span { color: #5e5e5e; }
@@ -1691,6 +1726,7 @@ button { cursor: pointer; font-family: inherit; }
   .app-header { overflow-x: auto; }
   .tab-panel { padding: 20px 16px; }
   .block-grid,
+  .block-grid.whitelist-on,
   .strong-block-banner-grid,
   .scheduler-grid,
   .stats-group-grid,
@@ -1777,53 +1813,94 @@ button { cursor: pointer; font-family: inherit; }
             <input type="checkbox" id="instaBlockToggle">
             <span class="switch-track"><span class="switch-thumb"></span></span>
           </label>
-          <label class="strong-block-checkbox-label">
-            <input type="checkbox" id="instaShowFollowedToggle">
-            <span data-i18n="instaShowFollowedToggleLabel">팔로우한 계정 게시물 표시</span>
-            <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipInstaShowFollowed">팔로우한 계정의 게시물을 홈 화면에서 숨기지 않습니다.</span></span>
-          </label>
         </div>
       </div>
     </div>
 
-    <div class="block-grid">
+    <div class="sector whitelist-mode-bar">
+      <span class="whitelist-mode-label">
+        <span data-i18n="blockModeLabel">차단 방식</span>
+        <span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipWhitelistMode">화이트리스트 방식에선 상시/일반 차단 목록이 일시 정지되고, 화이트리스트에 등록한 사이트를 제외한 모든 사이트가 차단됩니다.</span></span>
+      </span>
+      <div class="toggle-group block-mode-group" role="radiogroup">
+        <input type="radio" name="blockMode" id="blockModeBlocklist" value="blocklist" checked>
+        <label for="blockModeBlocklist"><span id="whitelistLockIcon" style="display:none;">🔒 </span><span data-i18n="blockModeBlocklist">차단 목록 방식</span></label>
+        <input type="radio" name="blockMode" id="blockModeWhitelist" value="whitelist">
+        <label for="blockModeWhitelist" data-i18n="blockModeWhitelist">화이트리스트 방식</label>
+      </div>
+    </div>
 
-      <div class="sector">
+    <!-- 화이트리스트 모드: 꺼져 있으면 .block-side가 display:contents라 상시/일반이 그리드 2열에 그대로
+         놓이고, 켜지면 왼쪽에 화이트리스트, 오른쪽 .block-side 안에 상시/일반이 위아래로 쌓인다
+         (전환 연출은 options-core.js applyWhitelistModeVisual). -->
+    <div class="block-grid" id="blockGrid">
+
+      <div class="sector whitelist-sector" id="whitelistSector">
         <div class="sector-title">
-          <span data-i18n="permanentBlockTitle">상시 차단 도메인</span>
-          <button id="clearPermanentBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
+          <span data-i18n="whitelistTitle">화이트리스트 도메인</span>
+          <button id="clearWhitelistBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
         </div>
-        <p class="sector-desc"><span data-i18n="permanentBlockDesc">스케줄 무관, 항상 차단됩니다.</span> <span id="permanentWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
+        <p class="sector-desc"><span data-i18n="whitelistDesc">등록된 사이트를 제외한 모든 사이트가 차단됩니다.</span> <span id="whitelistWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
         <div class="domain-search-row">
-          <input type="text" id="permanentSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
+          <input type="text" id="whitelistSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
         </div>
         <div class="input-row">
           <div class="domain-input-wrap">
-            <input type="text" id="permanentDomainInput" data-i18n-placeholder="placeholderNetflix" placeholder="예: netflix.com">
-            <div class="domain-suggest-dropdown" id="permanentDomainSuggest"></div>
+            <input type="text" id="whitelistDomainInput" data-i18n-placeholder="placeholderGithub" placeholder="예: github.com">
+            <div class="domain-suggest-dropdown" id="whitelistDomainSuggest"></div>
           </div>
-          <button id="addPermanentBtn" class="btn btn-sm" data-i18n="add">추가</button>
+          <button id="addWhitelistBtn" class="btn btn-sm" data-i18n="add">추가</button>
         </div>
-        <ul id="permanentList" class="domain-list"></ul>
+        <p class="whitelist-empty-hint" id="whitelistEmptyHint" data-i18n="whitelistEmptyHint">아직 등록된 사이트가 없어서 지금은 모든 사이트가 차단됩니다.</p>
+        <ul id="whitelistList" class="domain-list"></ul>
       </div>
 
-      <div class="sector">
-        <div class="sector-title">
-          <span><span data-i18n="generalBlockTitle">일반 차단 도메인</span><span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipGeneralBlock">타임박스 스케줄러의 차단 박스 활성화 시간대에만 차단됩니다.</span></span></span>
-          <button id="clearGeneralBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
-        </div>
-        <p class="sector-desc"><span data-i18n="generalBlockDesc">차단 박스가 활성화된 시간대에 적용됩니다.</span> <span id="generalWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
-        <div class="domain-search-row">
-          <input type="text" id="generalSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
-        </div>
-        <div class="input-row">
-          <div class="domain-input-wrap">
-            <input type="text" id="generalDomainInput" data-i18n-placeholder="placeholderYoutube" placeholder="예: youtube.com">
-            <div class="domain-suggest-dropdown" id="generalDomainSuggest"></div>
+      <div class="block-side">
+
+        <div class="sector block-list-sector" id="permanentSector">
+          <div class="sector-title">
+            <span data-i18n="permanentBlockTitle">상시 차단 도메인</span>
+            <button type="button" class="block-paused-note" aria-expanded="false"><span class="block-paused-text" id="permanentPausedText"></span></button>
+            <button id="clearPermanentBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
           </div>
-          <button id="addGeneralBtn" class="btn btn-sm" data-i18n="add">추가</button>
+          <div class="block-sector-body">
+            <p class="sector-desc"><span data-i18n="permanentBlockDesc">스케줄 무관, 항상 차단됩니다.</span> <span id="permanentWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
+            <div class="domain-search-row">
+              <input type="text" id="permanentSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
+            </div>
+            <div class="input-row">
+              <div class="domain-input-wrap">
+                <input type="text" id="permanentDomainInput" data-i18n-placeholder="placeholderNetflix" placeholder="예: netflix.com">
+                <div class="domain-suggest-dropdown" id="permanentDomainSuggest"></div>
+              </div>
+              <button id="addPermanentBtn" class="btn btn-sm" data-i18n="add">추가</button>
+            </div>
+            <ul id="permanentList" class="domain-list"></ul>
+          </div>
         </div>
-        <ul id="generalList" class="domain-list"></ul>
+
+        <div class="sector block-list-sector" id="generalSector">
+          <div class="sector-title">
+            <span><span data-i18n="generalBlockTitle">일반 차단 도메인</span><span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipGeneralBlock">타임박스 스케줄러의 차단 박스 활성화 시간대에만 차단됩니다.</span></span></span>
+            <button type="button" class="block-paused-note" aria-expanded="false"><span class="block-paused-text" id="generalPausedText"></span></button>
+            <button id="clearGeneralBtn" class="btn-danger btn-sm" data-i18n="clearAll">전체 초기화</button>
+          </div>
+          <div class="block-sector-body">
+            <p class="sector-desc"><span data-i18n="generalBlockDesc">차단 박스가 활성화된 시간대에 적용됩니다.</span> <span id="generalWarn" class="warn-text" data-i18n="alreadyExists">이미 있습니다.</span></p>
+            <div class="domain-search-row">
+              <input type="text" id="generalSearchInput" data-i18n-placeholder="placeholderDomainSearch" placeholder="등록된 도메인 검색">
+            </div>
+            <div class="input-row">
+              <div class="domain-input-wrap">
+                <input type="text" id="generalDomainInput" data-i18n-placeholder="placeholderYoutube" placeholder="예: youtube.com">
+                <div class="domain-suggest-dropdown" id="generalDomainSuggest"></div>
+              </div>
+              <button id="addGeneralBtn" class="btn btn-sm" data-i18n="add">추가</button>
+            </div>
+            <ul id="generalList" class="domain-list"></ul>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -2209,9 +2286,9 @@ button { cursor: pointer; font-family: inherit; }
           <span data-i18n="pinSectionTitle">잠금 PIN</span>
           <span class="sector-title-note" data-i18n="pinSectionNote">PIN을 설정하면 박스 삭제·초기화·스케줄 비활성화에 인증이 필요합니다.</span>
         </div>
-        <p class="sector-desc" data-i18n="pinSectionDesc">PIN은 이 기기(로컬)에서만 유효합니다.</p>
-        <div id="pinStatusBadge" class="pin-status-badge pin-inactive" data-i18n="pinStatusInactive">PIN 미설정 — 잠금 비활성화</div>
+        <p class="sector-desc"><span data-i18n="pinSectionDesc">PIN은 이 기기(로컬)에서만 유효합니다.</span> · <span id="pinStatusText" class="pin-status-text" data-i18n="pinStatusInactive">PIN 비활성화</span></p>
 
+        <div id="pinFormSwap">
         <div id="pinSetupSection">
           <div class="pin-section-label" data-i18n="pinSetupLabel">새 PIN 설정</div>
           <div class="pin-input-group">
@@ -2233,6 +2310,32 @@ button { cursor: pointer; font-family: inherit; }
           <div class="pin-btns-row">
             <button class="btn" id="pinChangeBtn" style="flex:1;" data-i18n="pinChangeBtn">변경</button>
             <button class="btn-danger" id="pinRemoveBtn" style="flex:1;padding:10px 16px;" data-i18n="pinRemoveBtn">PIN 해제</button>
+          </div>
+        </div>
+        </div>
+
+        <div id="pinTwoStepSection" style="display:none;">
+          <div class="pin-two-step" id="pinTwoStepInner">
+            <div class="pin-two-step-head">
+              <span><span data-i18n="pinTwoStepLabel">2단계 잠금</span><span class="info-tip"><button type="button" class="info-tip-icon" data-i18n-aria-label="infoTipAriaLabel" aria-label="도움말">?</button><span class="info-tip-popover" data-i18n="tipPinTwoStep">PIN을 입력한 뒤, 평문을 직접 따라 입력해야 잠금이 풀립니다. 평문이 여러 개면 그중 하나가 무작위로 나오고, 붙여넣기는 할 수 없습니다.</span></span></span>
+              <button type="button" class="btn btn-sm" id="pinPhraseAddBtn" data-i18n="pinPhraseAddBtn">평문 추가</button>
+            </div>
+            <p class="sector-desc"><span data-i18n="pinTwoStepDesc">잠금을 풀 때 PIN 다음에 평문을 따라 입력합니다.</span> <span id="pinPhraseListWarn" class="warn-text"></span></p>
+            <div class="schedule-toggle-row" style="margin-bottom:0;">
+              <label class="switch-label">
+                <input type="checkbox" id="pinTwoStepToggle">
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span id="pinTwoStepStatus" class="pin-two-step-status" data-i18n="pinTwoStepOff">비활성화</span>
+              </label>
+            </div>
+            <ul id="pinPhraseList" class="domain-list pin-phrase-list"></ul>
+            <div class="pin-phrase-popover" id="pinPhrasePopover">
+              <div class="pin-phrase-popover-row">
+                <input type="text" id="pinPhraseInput" maxlength="100" autocomplete="off" spellcheck="false" data-i18n-placeholder="pinModalPhrasePlaceholder" placeholder="평문 입력">
+                <button type="button" class="btn btn-sm" id="pinPhraseSaveBtn" data-i18n="pinPhraseSaveBtn">저장</button>
+              </div>
+              <div class="pin-phrase-warn" id="pinPhraseWarn"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -2337,20 +2440,6 @@ button { cursor: pointer; font-family: inherit; }
         <button id="syncCompareCancelBtn" class="btn btn-ghost" data-i18n="cancelEdit">취소</button>
         <button id="syncCompareMergeBtn" class="btn btn-sm" data-i18n="syncMergeBtn">리스트 합치기</button>
         <button id="syncCompareApplyBtn" class="btn btn-sm sync-compare-danger" data-i18n="syncApplyBtn">이 기기에 덮어쓰기</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="pinModalOverlay" class="pin-modal-overlay" style="display:none;">
-    <div class="pin-modal">
-      <div class="pin-modal-lock-icon">🔒</div>
-      <div class="pin-modal-title" data-i18n="pinModalTitle">잠금 해제</div>
-      <div class="pin-modal-sub" data-i18n="pinModalSub">PIN을 입력하세요</div>
-      <input type="password" id="pinModalInput" class="pin-modal-input" data-i18n-placeholder="pinModalPlaceholder" placeholder="PIN" maxlength="20" autocomplete="off">
-      <div id="pinModalError" class="pin-modal-error"></div>
-      <div class="pin-modal-footer">
-        <button id="pinModalCancelBtn" class="btn-ghost" data-i18n="cancelEdit">취소</button>
-        <button id="pinModalConfirmBtn" class="btn" data-i18n="pinModalConfirm">확인</button>
       </div>
     </div>
   </div>
@@ -2485,6 +2574,7 @@ button { cursor: pointer; font-family: inherit; }
   <script src="storage.js"></script>
   <script src="i18n.js"></script>
   <script src="render-day.js"></script>
+  <script src="pin-lock.js"></script>
   <script src="options-core.js"></script>
   <script src="options-stats.js"></script>
   <script src="options-sync.js"></script>

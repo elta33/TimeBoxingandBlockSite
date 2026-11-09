@@ -38,16 +38,67 @@ function cleanDomain(d) {
   const host = sepIdx === -1 ? domain : domain.slice(0, sepIdx);
   const tail = sepIdx === -1 ? '' : domain.slice(sepIdx);
   try {
-    return new URL('https://' + host).hostname + tail;
+    return _canonicalVideoUrl(new URL('https://' + host).hostname, tail);
   } catch (_) {
     return domain;
   }
 }
 
+// 유튜브 영상 링크는 공유 버튼이 붙이는 si·t·list 같은 부가 파라미터나 youtu.be 단축 주소 때문에
+// "그 주소로 시작하는 페이지" 비교가 어긋나기 쉽다(예외/화이트리스트에 넣어도 실제 방문 주소와 앞부분이
+// 달라 허용이 안 됨). 영상을 가리키는 최소 형태(youtube.com/watch?v=ID, youtube.com/shorts/ID)로 맞춘다.
+// 저장된 값이 아니라 읽을 때마다 적용되므로 예전에 저장된 링크도 그대로 고쳐진다.
+// background.js / options-core.js / popup.js의 cleanDomain과 함께 세 곳 동일하게 유지할 것.
+function _canonicalVideoUrl(host, tail) {
+  const h = host.replace(/^(www\.|m\.)/, '');
+  if (h === 'youtu.be' && tail) {
+    const id = tail.slice(1).split(/[/?#]/)[0];
+    if (id) return 'youtube.com/watch?v=' + id;
+  }
+  if (h === 'youtube.com' && tail) {
+    try {
+      const u = new URL('https://youtube.com' + tail);
+      const v = u.searchParams.get('v');
+      if (u.pathname === '/watch' && v) return 'youtube.com/watch?v=' + v;
+      if (/^\/shorts\/[^/]+$/.test(u.pathname)) return 'youtube.com' + u.pathname;
+    } catch (_) {}
+  }
+  return host + tail;
+}
+
+// 화이트리스트 항목을 호스트 단위와 경로 단위로 나눈다.
+// - 호스트(예: github.com): 서브도메인 포함 사이트 전체 허용 → DNR excludedRequestDomains
+// - 경로(예: youtube.com/watch?v=xxx): 그 주소로 시작하는 페이지만 허용 → 별도 allow 규칙
+// ASCII가 아니면(정규화 실패) 버린다 — 비ASCII 하나가 updateDynamicRules 전체를 실패시키는 건
+// addDnrRule과 같은 사정.
+function splitWhitelist(list) {
+  const hosts = new Set();
+  const paths = new Set();
+  (list || []).forEach(d => {
+    const clean = cleanDomain(d);
+    if (!clean || !/^[\x00-\x7F]*$/.test(clean)) return;
+    if (clean.search(/[/?#]/) === -1) hosts.add(clean.toLowerCase());
+    else paths.add(clean);
+  });
+  // youtu.be 공유 링크는 youtu.be에 먼저 요청한 뒤 서버가 youtube.com/watch?v=ID로 넘긴다.
+  // 화이트리스트 방식은 "등록 안 된 사이트 전부 차단"이라 첫 단계인 youtu.be에서 막혀버리므로
+  // (일반 차단에선 youtu.be가 차단 대상이 아니라 문제가 안 드러났음), 유튜브 항목에는 youtu.be 쪽
+  // 입구도 같이 열어 준다. 영상 항목은 그 영상의 youtu.be 주소만, 사이트 항목은 youtu.be 전체.
+  if (hosts.has('youtube.com')) hosts.add('youtu.be');
+  [...paths].forEach(p => {
+    const m = p.match(/^youtube\.com\/watch\?v=([^&#]+)$/);
+    if (m) paths.add('youtu.be/' + m[1]);
+  });
+  return { hosts: [...hosts], paths: [...paths] };
+}
+
 async function updateBlockingRules() {
-  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled', 'instaBlockEnabled']);
-  const generalList = data.generalList || [];
-  const permanentList = data.permanentList || [];
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled', 'instaBlockEnabled', 'whitelistModeEnabled', 'whitelistList']);
+  // 화이트리스트 모드가 켜지면 상시/일반 차단 목록은 일시 정지된다(옵션 페이지에서도 흐리게 접혀 보임).
+  // 목록 데이터는 그대로 두고 규칙만 안 올리므로, 끄면 원래 차단이 그대로 돌아온다.
+  const whitelistOn = !!data.whitelistModeEnabled;
+  const generalList = whitelistOn ? [] : (data.generalList || []);
+  const permanentList = whitelistOn ? [] : (data.permanentList || []);
   // dailyBoxes: 요일 무관 오늘만 / weeklyBoxes: 요일 필터 적용
   const dailyEnabled = data.dailyScheduleEnabled !== false;
   const dailyBoxes = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : []; // 강제로 매일 적용
@@ -96,19 +147,23 @@ async function updateBlockingRules() {
     return isTimeInBox(box.startTime, box.endTime);
   });
 
-  if (activeBox) {
-    // ※ 크롬 DNR 핵심 제약: allow 액션은 block 액션만 무력화하며, redirect 액션은 무력화하지 못함.
-    //   따라서 "커스텀 allow → generalList redirect" 충돌은 우선순위로 해결 불가.
-    //   해결책: 커스텀 allow 도메인은 generalList 규칙 자체를 올리지 않는 방식으로 우회.
-    //   (finalAllowSet에 기록 → generalList 등록 시 필터링)
+  // 박스 예외(customDomains)는 "일반 차단"의 예외라서, 일반 차단이 일시 정지되는 화이트리스트
+  // 모드에선 같이 쉰다(안 그러면 박스 시간마다 화이트리스트에 구멍이 뚫림).
+  if (activeBox && !whitelistOn) {
+    // 크롬 DNR은 우선순위가 높은 allow가 낮은 redirect를 이긴다(공식 문서 matching algorithm).
+    // 경로 예외(예: youtube.com/watch?v=xxx)는 이 allow 규칙으로 youtube.com 일반 차단을 뚫는다.
+    // 도메인이 정확히 같은 예외는 finalAllowSet으로 일반 차단 규칙 자체도 안 올린다(이중 안전장치).
 
-    // 커스텀 허용 도메인 처리 (계급 50): permanentList 제외 후 generalList 차단에서 면제
+    // 커스텀 허용 도메인 처리 (계급 15): 일반 차단(10)·쇼츠/인스타(5)만 이기고 포모도로(30)·
+    // 상시(100)에는 진다 — 예외는 "박스 시간의 일반 차단" 예외일 뿐, 집중 타이머까지 풀면 안 됨.
+    // (예전엔 50이라 포모도로를 이겼지만 SPA 판정(shouldUrlBeBlocked)은 포모도로가 이겨서,
+    //  페이지가 열렸다가 content.js가 다시 차단 화면으로 보내는 식으로 어긋나 있었다.)
     if (activeBox.customDomains) {
       activeBox.customDomains.forEach(cd => {
         const clean = cleanDomain(cd.domain);
         if (!permanentList.some(p => cleanDomain(p) === clean)) {
           finalAllowSet.add(clean);
-          addDnrRule(clean, 50, true);
+          addDnrRule(clean, 15, true);
         }
       });
     }
@@ -123,8 +178,8 @@ async function updateBlockingRules() {
 
   // 포모도로 차단 (작업 페이즈 중에만 활성화, 계급 30)
   // 도메인 커스텀 프리셋의 허용(예외) 도메인은 pomodoroList엔 그대로 남겨두고(프리셋 없이 되돌아오면
-  // 다시 차단되도록) 규칙 생성 시에만 건너뛴다 — allow 액션은 redirect를 못 이겨서(위 finalAllowSet
-  // 주석 참고) 규칙 자체를 안 만드는 방식으로 처리.
+  // 다시 차단되도록) 규칙 생성 시에만 건너뛴다 — allow 규칙(계급 30 초과)으로 만들면 그보다 낮은
+  // 화이트리스트/일반 차단까지 같이 풀리므로, 규칙 자체를 안 만드는 방식으로 처리.
   const pomodoroState = data.pomodoroState || { active: false };
   const pomodoroList  = data.pomodoroList  || [];
   const pomoAllowSet  = new Set((data.pomodoroActiveDomainOverride?.allow || []).map(cleanDomain));
@@ -132,6 +187,30 @@ async function updateBlockingRules() {
     pomodoroList.forEach(d => {
       const clean = cleanDomain(d);
       if (!pomoAllowSet.has(clean)) addDnrRule(clean, 30, false, 'pomodoro');
+    });
+  }
+
+  // 화이트리스트 모드 (계급 20): 등록된 호스트(서브도메인 포함)를 뺀 모든 http(s) 페이지를 차단.
+  // 호스트는 "전부 매칭 + excludedRequestDomains" 규칙 하나로 빼고, 경로 항목만 allow 규칙(계급 25)을
+  // 따로 둔다 — 호스트까지 allow 규칙으로 만들면 쇼츠/인스타(5) 강력 차단도 같이 무력화된다.
+  // 차단 화면 통계/문구용 domain 파라미터는 regexSubstitution으로 원래 호스트를 넘긴다.
+  // 포모도로(30)는 둘 다보다 높아서, 화이트리스트에 있는 사이트라도 작업 시간엔 포모도로 차단이 이긴다.
+  if (whitelistOn) {
+    const { hosts: allowHosts, paths: allowPaths } = splitWhitelist(data.whitelistList);
+    allowPaths.forEach(p => addDnrRule(p, 25, true));
+    const condition = {
+      regexFilter: "^https?://(?:www\\.)?([^/:?#]+)",
+      resourceTypes: ["main_frame"]
+    };
+    if (allowHosts.length) condition.excludedRequestDomains = allowHosts;
+    newRules.push({
+      id: ruleIdCounter++,
+      priority: 20,
+      action: {
+        type: "redirect",
+        redirect: { regexSubstitution: chrome.runtime.getURL("block.html") + "?reason=whitelist&domain=\\1" }
+      },
+      condition
     });
   }
 
@@ -211,7 +290,7 @@ async function updateShortsCosmetic() {
 }
 
 async function updateInstaCosmetic() {
-  const { instaBlockEnabled, instaShowFollowedPosts } = await TBBStorage.get(['instaBlockEnabled', 'instaShowFollowedPosts']);
+  const { instaBlockEnabled } = await TBBStorage.get(['instaBlockEnabled']);
   const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [INSTA_CSS_SCRIPT_ID] });
 
   if (!instaBlockEnabled) {
@@ -219,22 +298,15 @@ async function updateInstaCosmetic() {
     return;
   }
 
-  // instaShowFollowedPosts(팔로우한 계정 게시물은 홈에 표시)가 켜져 있으면 "모두 확인했습니다"
-  // 카드를 숨기지 않도록 그 규칙만 담은 css 파일을 등록 목록에서 뺀다. JS로 조건부 처리하면
-  // MutationObserver 지연에 따른 플리커링이 재발하므로, 파일 자체를 넣고 빼는 방식으로 순수
-  // CSS의 무지연 이점을 유지한다.
-  const desiredCss = ['strong-block-selectors.css'];
-  if (!instaShowFollowedPosts) desiredCss.push('strong-block-insta-caughtup.css');
-
-  const currentCss = registered[0]?.css || [];
-  const cssChanged = currentCss.length !== desiredCss.length || !desiredCss.every(f => currentCss.includes(f));
-
-  if (registered.length === 0 || cssChanged) {
-    if (registered.length > 0) await chrome.scripting.unregisterContentScripts({ ids: [INSTA_CSS_SCRIPT_ID] });
+  // 예전에는 instaShowFollowedPosts(팔로우한 계정 게시물은 홈에 표시) 옵션에 따라
+  // strong-block-insta-caughtup.css를 등록 목록에 넣고 빼면서 조건부로 적용했다. 그 옵션을
+  // 제거하면서 규칙이 항상 적용되므로 파일은 strong-block-selectors.css로 합쳐졌고, 여기서도
+  // 조건 분기 없이 고정 목록을 등록하면 된다.
+  if (registered.length === 0) {
     await chrome.scripting.registerContentScripts([{
       id: INSTA_CSS_SCRIPT_ID,
       matches: ["*://*.instagram.com/*"],
-      css: desiredCss,
+      css: ["strong-block-selectors.css"],
       js: ["strong-block-selectors.js"],
       runAt: "document_start"
     }]);
@@ -447,7 +519,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes.shortsBlockEnabled) {
     _reloadOpenYoutubeTabs();
   }
-  if (changes.instaBlockEnabled || changes.instaShowFollowedPosts) {
+  if (changes.instaBlockEnabled) {
     _reloadOpenInstagramTabs();
   }
 });
@@ -473,6 +545,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await _migrateToSyncV2();
   await TBBStorage.gcLegacyFocusEvents();
   await TBBStorage.ensureSyncLink();
+  // 제거된 기능의 잔여 키 정리: instaShowFollowedPosts(팔로우한 계정 게시물 표시)는 기능째로
+  // 삭제됐지만, 쓰던 사용자의 sync 저장소에는 값이 남아 있다. 읽는 코드가 없으니 동작에
+  // 영향은 없고 동기화 비교 목록에도 안 나오지만, 계정에 죽은 키가 남는 걸 피하려고 한 번
+  // 지운다. 없는 키를 remove해도 onChanged는 안 뜨므로 두 번째 업데이트부터는 no-op이다.
+  await chrome.storage.sync.remove('instaShowFollowedPosts').catch(() => {});
   updateBlockingRules();
   updateShortsCosmetic();
   updateInstaCosmetic();
@@ -525,8 +602,11 @@ async function shouldUrlBeBlocked(url) {
     return hostname === clean || hostname.endsWith('.' + clean);
   }
 
-  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled', 'instaBlockEnabled']);
-  const permanentList = data.permanentList || [];
+  const data = await TBBStorage.get(['generalList', 'permanentList', 'dailyBoxes', 'weeklyBoxes', 'dailyScheduleEnabled', 'pomodoroState', 'pomodoroList', 'pomodoroActiveDomainOverride', 'shortsBlockEnabled', 'instaBlockEnabled', 'whitelistModeEnabled', 'whitelistList']);
+  // 체크 순서는 DNR 우선순위와 같게 유지: permanent(100) → pomodoro(30) → whitelist(20) → general(10) → shorts/insta(5).
+  // 화이트리스트 모드에선 updateBlockingRules와 똑같이 상시/일반 차단을 건너뛴다.
+  const whitelistOn = !!data.whitelistModeEnabled;
+  const permanentList = whitelistOn ? [] : (data.permanentList || []);
   const permBlocked = permanentList.find(d => matches(d));
   if (permBlocked) return { blocked: true, reason: 'permanent', domain: cleanDomain(permBlocked) };
 
@@ -538,6 +618,18 @@ async function shouldUrlBeBlocked(url) {
     if (pomoBlocked) return { blocked: true, reason: 'pomodoro', domain: cleanDomain(pomoBlocked) };
   }
 
+  // DNR에서 allow 규칙(박스 예외 15, 화이트리스트 경로 25)에 걸린 주소는 그보다 낮은 일반 차단(10)과
+  // 쇼츠/인스타(5)도 통과한다 — 아래 체크들이 같은 결론을 내도록 표시해 둔다.
+  let allowRuleHit = false;
+
+  if (whitelistOn && (urlObj.protocol === 'http:' || urlObj.protocol === 'https:')) {
+    const { hosts, paths } = splitWhitelist(data.whitelistList);
+    const pathHit = paths.some(p => matches(p));
+    const hostHit = hosts.some(h => hostname === h || hostname.endsWith('.' + h));
+    if (!pathHit && !hostHit) return { blocked: true, reason: 'whitelist', domain: hostname };
+    if (pathHit) allowRuleHit = true;
+  }
+
   const dailyEnabled = data.dailyScheduleEnabled !== false;
   const dailyBoxes = dailyEnabled ? (data.dailyBoxes || []).map(b => ({ ...b, days: [] })) : [];
   const weeklyBoxes = data.weeklyBoxes || [];
@@ -547,20 +639,24 @@ async function shouldUrlBeBlocked(url) {
     if (days.length > 0 && !days.includes(todayDow)) return false;
     return isTimeInBox(box.startTime, box.endTime);
   });
-  if (activeBox) {
-    const allowSet = new Set(
-      (activeBox.customDomains || []).map(cd => cleanDomain(cd.domain))
-    );
+  if (activeBox && !whitelistOn) {
+    // 예외는 도메인 일치만이 아니라 "이 주소가 예외 항목에 매칭되는가"로 본다 — 예전엔 정확히 같은
+    // 도메인만 비교해서, youtube.com/watch?v=xxx 예외를 넣어도 content.js의 로드 시 판정이
+    // youtube.com 일반 차단으로 다시 막아버렸다(DNR은 통과시켰는데 차단 화면이 뜨던 버그).
+    const exceptionHit = (activeBox.customDomains || []).some(cd => matches(cd.domain));
+    if (exceptionHit) allowRuleHit = true;
 
-    const generalList = data.generalList || [];
+    const generalList = exceptionHit ? [] : (data.generalList || []);
     for (const d of generalList) {
-      if (!allowSet.has(cleanDomain(d)) && matches(d)) return { blocked: true, reason: 'general', domain: cleanDomain(d) };
+      if (matches(d)) return { blocked: true, reason: 'general', domain: cleanDomain(d) };
     }
   }
 
   // 유튜브 쇼츠 강력 차단 (permanent/pomodoro/general 다음 순위 폴백):
   // SPA 내부 이동(홈 피드에서 쇼츠 썸네일 클릭 등)은 DNR이 못 잡으므로 여기서 한 번 더 처리.
   // reason: 'shorts'는 block.html이 아니라 content.js가 유튜브 홈으로 직접 리다이렉트한다.
+  if (allowRuleHit) return { blocked: false };
+
   if (data.shortsBlockEnabled && (hostname === 'youtube.com' || hostname.endsWith('.youtube.com'))) {
     if (urlObj.pathname === '/shorts' || urlObj.pathname.startsWith('/shorts/')) {
       return { blocked: true, reason: 'shorts' };

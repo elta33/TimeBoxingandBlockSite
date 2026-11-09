@@ -198,6 +198,40 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDailyScheduleVisual();
   });
 
+  // 차단 방식 선택: [차단 목록 방식 | 화이트리스트 방식] (차단 관리 탭)
+  const _syncWhitelistModeUi = (on, animate) => {
+    whitelistModeEnabled = on;
+    const radio = document.getElementById(on ? 'blockModeWhitelist' : 'blockModeBlocklist');
+    if (radio) radio.checked = true;
+    applyWhitelistModeVisual(on, animate);
+    _applyScheduleToggleLockVisual();
+  };
+  TBBStorage.get(['whitelistModeEnabled'], result => _syncWhitelistModeUi(!!result.whitelistModeEnabled, false));
+  document.querySelectorAll('input[name="blockMode"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (!radio.checked) return;
+      const on = radio.value === 'whitelist';
+      // 화이트리스트 → 차단 목록 방식(차단이 느슨해지는 방향)만 PIN을 묻는다 — 하루 스케줄 비활성화와 같은 취지.
+      if (!on && _pinEnabled) {
+        document.getElementById('blockModeWhitelist').checked = true; // 원래 상태 즉시 복원
+        _openPinModal(T('pinActionDisable'), () => {
+          TBBStorage.set({ whitelistModeEnabled: false });
+          _syncWhitelistModeUi(false, true);
+        });
+        return;
+      }
+      TBBStorage.set({ whitelistModeEnabled: on });
+      _syncWhitelistModeUi(on, true);
+    });
+  });
+  initBlockListPeek();
+  // 다른 기기(sync)·불러오기 등 이 토글 밖에서 바뀐 경우. 자기 자신이 저장한 변경은 값이 같아 건너뛴다.
+  chrome.storage.onChanged.addListener(changes => {
+    if (!changes.whitelistModeEnabled) return;
+    const on = !!changes.whitelistModeEnabled.newValue;
+    if (on !== whitelistModeEnabled) _syncWhitelistModeUi(on, true);
+  });
+
   // 다크모드 토글
   const darkModeToggle = document.getElementById('darkModeToggle');
   chrome.storage.local.get(['darkModeEnabled'], result => {
@@ -221,32 +255,13 @@ document.addEventListener('DOMContentLoaded', () => {
     TBBStorage.set({ shortsBlockEnabled: e.target.checked });
   });
 
-  // 팔로우한 계정 게시물 표시 (인스타 강력 차단의 하위 옵션) — instaBlockToggle 핸들러가
-  // 참조하므로 먼저 선언.
-  const instaShowFollowedToggle = document.getElementById('instaShowFollowedToggle');
-  TBBStorage.get(['instaShowFollowedPosts'], result => {
-    if (instaShowFollowedToggle) instaShowFollowedToggle.checked = !!result.instaShowFollowedPosts;
-  });
-  instaShowFollowedToggle?.addEventListener('change', e => {
-    TBBStorage.set({ instaShowFollowedPosts: e.target.checked });
-  });
-
   // 인스타그램 강력 차단 토글
   const instaBlockToggle = document.getElementById('instaBlockToggle');
   TBBStorage.get(['instaBlockEnabled'], result => {
     if (instaBlockToggle) instaBlockToggle.checked = !!result.instaBlockEnabled;
-    if (instaShowFollowedToggle) instaShowFollowedToggle.disabled = !result.instaBlockEnabled;
   });
   instaBlockToggle?.addEventListener('change', e => {
-    const enabled = e.target.checked;
-    const updates = { instaBlockEnabled: enabled };
-    // 꺼질 때만 하위 옵션을 강제 해제(켤 때는 자동 체크 안 함 — 사용자가 직접 선택해야 함).
-    if (!enabled && instaShowFollowedToggle) {
-      instaShowFollowedToggle.checked = false;
-      updates.instaShowFollowedPosts = false;
-    }
-    if (instaShowFollowedToggle) instaShowFollowedToggle.disabled = !enabled;
-    TBBStorage.set(updates);
+    TBBStorage.set({ instaBlockEnabled: e.target.checked });
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -255,10 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (changes.instaBlockEnabled && instaBlockToggle) {
       instaBlockToggle.checked = !!changes.instaBlockEnabled.newValue;
-      if (instaShowFollowedToggle) instaShowFollowedToggle.disabled = !changes.instaBlockEnabled.newValue;
-    }
-    if (changes.instaShowFollowedPosts && instaShowFollowedToggle) {
-      instaShowFollowedToggle.checked = !!changes.instaShowFollowedPosts.newValue;
     }
   });
 
@@ -324,9 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 입력 시 경고 숨김
-  ['generalDomainInput', 'permanentDomainInput', 'customDomainInput', 'boxName']
+  ['generalDomainInput', 'permanentDomainInput', 'whitelistDomainInput', 'customDomainInput', 'boxName']
     .forEach((id, idx) => {
-      document.getElementById(id)?.addEventListener('input', () => hideWarn(['generalWarn','permanentWarn','customWarn','boxWarn'][idx]));
+      document.getElementById(id)?.addEventListener('input', () => hideWarn(['generalWarn','permanentWarn','whitelistWarn','customWarn','boxWarn'][idx]));
     });
   ['startTime', 'endTime'].forEach(id => {
     const el = document.getElementById(id);
@@ -336,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('permanentDomainInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('addPermanentBtn').click(); });
   document.getElementById('generalDomainInput')?.addEventListener('keydown',   e => { if (e.key === 'Enter') document.getElementById('addGeneralBtn').click(); });
+  document.getElementById('whitelistDomainInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('addWhitelistBtn').click(); });
   document.getElementById('customDomainInput')?.addEventListener('keydown',    e => { if (e.key === 'Enter') document.getElementById('addCustomStagingBtn').click(); });
 
   // 내보내기 / 불러오기
@@ -356,16 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings(); // 박스 카드 버튼 상태 재렌더링
   });
 
-  // PIN 모달 이벤트
-  document.getElementById('pinModalCancelBtn')?.addEventListener('click', _closePinModal);
-  document.getElementById('pinModalConfirmBtn')?.addEventListener('click', _attemptPinUnlock);
-  document.getElementById('pinModalOverlay')?.addEventListener('click', e => {
-    if (e.target.id === 'pinModalOverlay') _closePinModal();
-  });
-  document.getElementById('pinModalInput')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  _attemptPinUnlock();
-    if (e.key === 'Escape') _closePinModal();
-  });
+  initTwoStepLockUi();
 
   // PIN 등록
   async function _doSetPin() {
@@ -434,7 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // PIN 해제
   document.getElementById('pinRemoveBtn')?.addEventListener('click', () => {
     _openPinModal(T('pinRemoveBtn'), () => {
-      chrome.storage.local.set({ lockPin: { hash: '', salt: '', enabled: false } });
+      // 평문은 남겨 두되 2단계는 끈다 — 나중에 PIN을 새로 등록했을 때 기본값(꺼짐)에서 시작하도록.
+      chrome.storage.local.set({ lockPin: { hash: '', salt: '', enabled: false }, lockTwoStepEnabled: false });
     });
   });
 });
